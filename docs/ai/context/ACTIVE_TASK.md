@@ -2,9 +2,9 @@
 
 ## タスク
 
-次のタスク: Task 02 `scaffold-minimal-demo-app`
+次のタスク: 未定
 
-状態: 未着手
+状態: Task 02 `scaffold-minimal-demo-app`完了。次の実行可能タスク指示はまだ未作成。
 
 ## タスク開始時に必ず読む
 
@@ -13,21 +13,22 @@ AGENTS.md
 docs/ai/context/CURRENT.md
 docs/ai/context/ACTIVE_TASK.md
 docs/ai/context/SOURCE_OF_TRUTH.md
-docs/ai/tasks/02_scaffold_minimal_demo_app.md
 ```
 
 ## 必要な場合のみ読む
 
 ```text
-docs/ai/inbox/pro-instructions/**
-docs/ai/specs/**
-docs/ai/adr/**
 README.md
 package.json
 package-lock.json
 src/**
 tests/**
 .github/workflows/**
+docs/ai/tasks/README.md
+docs/ai/tasks/_template.md
+docs/ai/inbox/pro-instructions/**
+docs/ai/specs/**
+docs/ai/adr/**
 ```
 
 ## 読まない
