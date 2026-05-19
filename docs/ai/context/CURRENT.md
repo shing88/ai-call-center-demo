@@ -11,6 +11,7 @@
 - デモ用knowledge baselineは`knowledge/README.md`、`knowledge/business_rules/`、`knowledge/customer_contracts/`、`knowledge/scenarios/`にある。
 - Markdown loader / chunk modelは`src/knowledge.ts`にある。
 - keyword search / 根拠候補抽出は`src/knowledge-search.ts`にある。
+- キュー項目とknowledge検索結果をつなぐ根拠候補bridgeは`src/evidence-bridge.ts`にある。
 - `npm run build`で`dist/index.html`と`dist/assets/*.js`を生成する。
 - 開発時は`npm run dev`で`dist/`をローカル配信する。
 
@@ -21,16 +22,17 @@
 - `src/knowledge.ts`は`knowledge/`配下の架空Markdownを読み込み、`KnowledgeDocument` / `KnowledgeChunk`へ変換する。
 - chunkは文書タイトルと`##`見出し単位で作られ、カテゴリ、相対パス、見出しパス、安定ID、本文を持つ。
 - `src/knowledge-search.ts`は`KnowledgeChunk`配列からキーワード検索し、`sourcePath`、`section`、`snippet`、`score`、`matchedTerms`を持つ根拠候補を返す。
+- `src/evidence-bridge.ts`は`QueueItem`の`topic`と`excerpt`から検索クエリを作り、`EvidenceBundle`として根拠候補を返す。
 - 顧客契約検索は`customerId`で対象顧客を絞れる。
-- 現時点ではloader/searchはNode.js側の境界であり、ブラウザUIには接続していない。
+- 現時点ではloader/search/evidence bridgeはNode.js側の境界であり、ブラウザUIには接続していない。
 - 外部AI API、通話連携、認証、DBはまだ存在しない。
-- 機械可読な契約はTypeScriptの`KnowledgeDocument` / `KnowledgeChunk` / `KnowledgeSearchResult`型として存在する。
+- 機械可読な契約はTypeScriptの`KnowledgeDocument` / `KnowledgeChunk` / `KnowledgeSearchResult` / `EvidenceBundle`型として存在する。
 
 ## 現在のテスト / CI
 
 - ローカルテストコマンドは`npm test`。
 - ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 根拠候補抽出を検査する。
+- `npm test`はアプリ描画ロジック、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 根拠候補抽出、evidence bridgeを検査する。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -40,7 +42,7 @@
 
 ## 既知の未完了項目
 
-- 次の実装タスクは未定。候補は検索結果をデモUIまたは会話フローへ接続する前段の作業だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
+- 次の実装タスクは未定。候補は`EvidenceBundle`をデモUIまたは会話フローへ接続する作業だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
 - knowledgeのUI接続、検索ランキング高度化、AI応答接続、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
@@ -51,5 +53,5 @@
 
 ## 次のハンドオフ
 
-- Task 05 `keyword-search-tools`は完了。
-- 次は検索結果をデモUIまたは会話フローへ接続する前段の実行可能タスク指示を作成してから着手する。
+- Task 06 `evidence-bridge`は完了。
+- 次は`EvidenceBundle`をデモUIまたは会話フローへ接続する実行可能タスク指示を作成してから着手する。
