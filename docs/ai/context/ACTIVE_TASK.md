@@ -4,7 +4,7 @@
 
 次のタスク: 未定
 
-状態: Task 03 `knowledge-markdown-baseline`完了。次の候補はMarkdown loader / chunk modelだが、実行可能タスク指示はまだ未作成。
+状態: Task 04 `markdown-loader-chunk-model`完了。次の候補はchunk検索 / 根拠候補抽出だが、実行可能タスク指示はまだ未作成。
 
 ## タスク開始時に必ず読む
 
