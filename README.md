@@ -24,7 +24,7 @@ npm run build
 
 ## デモ知識ベース
 
-`knowledge/`配下に、AI応対の後続実装で参照するための架空Markdownを置いています。Node.js側ではMarkdown loader、keyword search、キュー項目から根拠候補を作るbridgeまで用意しています。ブラウザUIへの表示や外部AI API連携にはまだ接続していません。
+`knowledge/`配下に、AI応対の後続実装で参照するための架空Markdownを置いています。Node.js側ではMarkdown loader、keyword search、キュー項目から根拠候補を作るbridgeまで用意しています。ブラウザUIには静的な根拠候補プレビューを表示していますが、実行時のMarkdown検索や外部AI API連携にはまだ接続していません。
 
 - 業務ルール: `knowledge/business_rules/`
 - 架空顧客契約: `knowledge/customer_contracts/`
