@@ -1,4 +1,20 @@
+import type { EvidenceBundle } from "./evidence-bridge.js";
+
 export type CallStatus = "waiting" | "ai-handling" | "human-review";
+
+export interface AssistantEvidenceItem {
+  sourcePath: EvidenceBundle["results"][number]["sourcePath"];
+  section: EvidenceBundle["results"][number]["section"];
+  snippet: EvidenceBundle["results"][number]["snippet"];
+  score: EvidenceBundle["results"][number]["score"];
+}
+
+export interface AssistantEvidence {
+  callId: EvidenceBundle["callId"];
+  query: EvidenceBundle["query"];
+  resultCount: EvidenceBundle["resultCount"];
+  results: AssistantEvidenceItem[];
+}
 
 export interface QueueItem {
   id: string;
@@ -14,6 +30,7 @@ export interface DemoState {
   agentName: string;
   activeQueue: QueueItem[];
   assistantSuggestion: string;
+  assistantEvidence: AssistantEvidence;
 }
 
 export interface QueueSummary {
@@ -28,6 +45,25 @@ export const demoState: DemoState = {
   agentName: "Support Ops",
   assistantSuggestion:
     "配送状況の確認後、住所変更の可否を案内し、必要なら人の担当者へ引き継ぎます。",
+  assistantEvidence: {
+    callId: "CALL-1026",
+    query: "返品受付 サイズが合わなかった商品の返送方法を確認したいです。",
+    resultCount: 2,
+    results: [
+      {
+        sourcePath: "business_rules/002_refund_policy.md",
+        section: "返金ポリシー > 通常返金",
+        snippet: "返品受付後、本人確認と購入履歴を確認してから返金予定を案内します。",
+        score: 18
+      },
+      {
+        sourcePath: "scenarios/scenario_01_refund_normal.md",
+        section: "通常返金シナリオ > 根拠候補",
+        snippet: "返送方法、受付期限、返金予定は業務ルールと顧客契約を照合して回答します。",
+        score: 11
+      }
+    ]
+  },
   activeQueue: [
     {
       id: "CALL-1024",
@@ -146,10 +182,56 @@ export function renderApp(state: DemoState = demoState): string {
               <span>Next best action</span>
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
+            ${renderAssistantEvidence(state.assistantEvidence)}
           </aside>
         </section>
       </section>
     </main>
+  `;
+}
+
+function renderAssistantEvidence(evidence: AssistantEvidence): string {
+  const items = evidence.results.map(renderAssistantEvidenceItem).join("");
+
+  return `
+    <section class="evidence-panel" aria-labelledby="evidence-title">
+      <div class="evidence-heading">
+        <h3 id="evidence-title">Evidence candidates</h3>
+        <span>${evidence.resultCount} sources</span>
+      </div>
+      ${renderEvidenceQuery(evidence)}
+      ${
+        evidence.results.length > 0
+          ? `<div class="evidence-list">${items}</div>`
+          : `<p class="evidence-empty">根拠候補はまだありません。</p>`
+      }
+    </section>
+  `;
+}
+
+function renderEvidenceQuery(evidence: AssistantEvidence): string {
+  if (evidence.query.length === 0) {
+    return "";
+  }
+
+  return `
+    <p class="evidence-query">
+      <span>${escapeHtml(evidence.callId)}</span>
+      ${escapeHtml(evidence.query)}
+    </p>
+  `;
+}
+
+function renderAssistantEvidenceItem(item: AssistantEvidenceItem): string {
+  return `
+    <article class="evidence-item">
+      <div class="evidence-source">
+        <span>${escapeHtml(item.sourcePath)}</span>
+        <strong>${escapeHtml(item.section)}</strong>
+      </div>
+      <p>${escapeHtml(item.snippet)}</p>
+      <span class="evidence-score">score ${item.score}</span>
+    </article>
   `;
 }
 

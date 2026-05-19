@@ -8,6 +8,7 @@
 
 - リポジトリ運用の初期ファイルは`AGENTS.md`と`docs/ai/`配下にある。
 - 最小Webアプリの入口は`index.html`、実行時の接続点は`src/main.ts`。
+- Assistant handoffには静的な根拠候補プレビューが表示される。
 - デモ用knowledge baselineは`knowledge/README.md`、`knowledge/business_rules/`、`knowledge/customer_contracts/`、`knowledge/scenarios/`にある。
 - Markdown loader / chunk modelは`src/knowledge.ts`にある。
 - keyword search / 根拠候補抽出は`src/knowledge-search.ts`にある。
@@ -19,12 +20,13 @@
 
 - アプリケーションスタックはTypeScript + Node.js標準ライブラリ。
 - `src/app.ts`にデモ用のキュー状態、集計、HTML描画、escapingを置いている。
+- `src/app.ts`は`AssistantEvidence`表示用データを受け取り、出典、section、snippet、scoreをAssistant handoffに表示する。
 - `src/knowledge.ts`は`knowledge/`配下の架空Markdownを読み込み、`KnowledgeDocument` / `KnowledgeChunk`へ変換する。
 - chunkは文書タイトルと`##`見出し単位で作られ、カテゴリ、相対パス、見出しパス、安定ID、本文を持つ。
 - `src/knowledge-search.ts`は`KnowledgeChunk`配列からキーワード検索し、`sourcePath`、`section`、`snippet`、`score`、`matchedTerms`を持つ根拠候補を返す。
 - `src/evidence-bridge.ts`は`QueueItem`の`topic`と`excerpt`から検索クエリを作り、`EvidenceBundle`として根拠候補を返す。
 - 顧客契約検索は`customerId`で対象顧客を絞れる。
-- 現時点ではloader/search/evidence bridgeはNode.js側の境界であり、ブラウザUIには接続していない。
+- 現時点ではloader/search/evidence bridgeはNode.js側の境界であり、ブラウザUIには静的な根拠候補プレビューだけを渡している。
 - 外部AI API、通話連携、認証、DBはまだ存在しない。
 - 機械可読な契約はTypeScriptの`KnowledgeDocument` / `KnowledgeChunk` / `KnowledgeSearchResult` / `EvidenceBundle`型として存在する。
 
@@ -32,7 +34,7 @@
 
 - ローカルテストコマンドは`npm test`。
 - ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 根拠候補抽出、evidence bridgeを検査する。
+- `npm test`はアプリ描画ロジック、Assistant handoffの根拠候補表示、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 根拠候補抽出、evidence bridgeを検査する。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -42,8 +44,8 @@
 
 ## 既知の未完了項目
 
-- 次の実装タスクは未定。候補は`EvidenceBundle`をデモUIまたは会話フローへ接続する作業だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
-- knowledgeのUI接続、検索ランキング高度化、AI応答接続、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
+- 次の実装タスクは未定。候補は`EvidenceBundle`を動的な検索結果または会話フローへ接続する作業だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
+- 動的knowledge検索のUI接続、検索ランキング高度化、AI応答接続、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
 
@@ -53,5 +55,5 @@
 
 ## 次のハンドオフ
 
-- Task 06 `evidence-bridge`は完了。
-- 次は`EvidenceBundle`をデモUIまたは会話フローへ接続する実行可能タスク指示を作成してから着手する。
+- Task 07 `evidence-bundle-ui-preview`は完了。
+- 次は`EvidenceBundle`を動的な検索結果または会話フローへ接続する実行可能タスク指示を作成してから着手する。

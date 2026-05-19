@@ -4,7 +4,7 @@
 
 次のタスク: 未定
 
-状態: Task 06 `evidence-bridge`完了。次の候補は`EvidenceBundle`をデモUIまたは会話フローへ接続する作業だが、実行可能タスク指示はまだ未作成。
+状態: Task 07 `evidence-bundle-ui-preview`完了。次の候補は`EvidenceBundle`を動的な検索結果または会話フローへ接続する作業だが、実行可能タスク指示はまだ未作成。
 
 ## タスク開始時に必ず読む
 
