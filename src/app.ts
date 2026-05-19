@@ -129,7 +129,10 @@ export function escapeHtml(value: string): string {
 
 export function renderApp(state: DemoState = demoState): string {
   const summary = buildQueueSummary(state.activeQueue);
-  const queueItems = state.activeQueue.map(renderQueueItem).join("");
+  const selectedCallId = state.assistantEvidence.callId;
+  const queueItems = state.activeQueue
+    .map((item) => renderQueueItem(item, selectedCallId))
+    .join("");
 
   return `
     <main class="app-shell">
@@ -235,22 +238,35 @@ function renderAssistantEvidenceItem(item: AssistantEvidenceItem): string {
   `;
 }
 
-function renderQueueItem(item: QueueItem): string {
+function renderQueueItem(item: QueueItem, selectedCallId: string): string {
+  const isSelected = item.id === selectedCallId;
+  const escapedId = escapeHtml(item.id);
+  const escapedTopic = escapeHtml(item.topic);
+
   return `
-    <article class="queue-item queue-item--${item.priority}">
+    <article class="queue-item queue-item--${item.priority}${
+      isSelected ? " queue-item--selected" : ""
+    }" data-queue-call-id="${escapedId}"${isSelected ? ' aria-current="true"' : ""}>
       <div class="queue-main">
         <div class="queue-title-row">
-          <h3>${escapeHtml(item.topic)}</h3>
+          <h3>${escapedTopic}</h3>
           <span class="status-badge">${statusLabel(item.status)}</span>
         </div>
         <p>${escapeHtml(item.excerpt)}</p>
         <div class="queue-meta">
-          <span>${escapeHtml(item.id)}</span>
+          <span>${escapedId}</span>
           <span>${escapeHtml(item.callerName)}</span>
           <span>${formatWaitTime(item.waitSeconds)}</span>
         </div>
       </div>
-      <button type="button" aria-label="${escapeHtml(item.topic)}を開く">開く</button>
+      <button
+        type="button"
+        data-queue-open="${escapedId}"
+        aria-label="${escapedTopic}を開く"
+        aria-pressed="${isSelected ? "true" : "false"}"
+      >
+        開く
+      </button>
     </article>
   `;
 }

@@ -3,6 +3,7 @@ import test from "node:test";
 import { demoState } from "../src/app.js";
 import {
   isEvidenceManifest,
+  selectAssistantEvidenceByCallId,
   selectAssistantEvidenceFromManifest,
   toAssistantEvidence
 } from "../src/evidence-manifest.js";
@@ -61,6 +62,31 @@ test("manifest helpers safely fall back when the payload is invalid or missing a
   });
 
   assert.equal(selectAssistantEvidenceFromManifest(manifest, "CALL-404", fallback), fallback);
+});
+
+test("selectAssistantEvidenceByCallId keeps the current evidence when a bundle is missing", () => {
+  const manifest = buildEvidenceManifest({
+    generatedAt: "2026-05-19T00:00:00.000Z",
+    items: demoState.activeQueue,
+    knowledgeBase: loadKnowledgeBase(),
+    defaultCallId: "CALL-1026",
+    limit: 1
+  });
+  const selected = selectAssistantEvidenceByCallId(
+    manifest,
+    "CALL-1025",
+    demoState.assistantEvidence
+  );
+  const missing = selectAssistantEvidenceByCallId(
+    manifest,
+    "CALL-404",
+    demoState.assistantEvidence
+  );
+
+  assert.equal(selected.callId, "CALL-1025");
+  assert.notEqual(selected, demoState.assistantEvidence);
+  assert.equal(selected.resultCount, selected.results.length);
+  assert.equal(missing, demoState.assistantEvidence);
 });
 
 test("toAssistantEvidence strips search-only fields from EvidenceBundle results", () => {

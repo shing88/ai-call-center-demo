@@ -8,7 +8,7 @@
 
 - リポジトリ運用の初期ファイルは`AGENTS.md`と`docs/ai/`配下にある。
 - 最小Webアプリの入口は`index.html`、実行時の接続点は`src/main.ts`。
-- Assistant handoffにはbuild時に生成した根拠候補manifestの内容が表示される。
+- Assistant handoffにはbuild時に生成した根拠候補manifestの内容が表示され、キュー項目の選択に応じて該当call idの根拠候補へ切り替わる。
 - デモ用knowledge baselineは`knowledge/README.md`、`knowledge/business_rules/`、`knowledge/customer_contracts/`、`knowledge/scenarios/`にある。
 - Markdown loader / chunk modelは`src/knowledge.ts`にある。
 - keyword search / 根拠候補抽出は`src/knowledge-search.ts`にある。
@@ -27,7 +27,7 @@
 - `src/knowledge-search.ts`は`KnowledgeChunk`配列からキーワード検索し、`sourcePath`、`section`、`snippet`、`score`、`matchedTerms`を持つ根拠候補を返す。
 - `src/evidence-bridge.ts`は`QueueItem`の`topic`と`excerpt`から検索クエリを作り、`EvidenceBundle`として根拠候補を返す。
 - `scripts/generate-evidence-manifest.mjs`はbuild後のcompiled modulesを使い、demo queue向けの`evidence-bundles.json`を生成する。
-- `src/main.ts`はmanifest取得に成功した場合はその根拠候補を表示し、失敗した場合は`demoState`のfallback表示を使う。
+- `src/main.ts`はmanifest取得に成功した場合はその根拠候補を表示し、キュー項目の「開く」操作で該当bundleをAssistant handoffへ反映する。manifest取得失敗時や該当bundleなしの場合は既存表示を維持する。
 - 顧客契約検索は`customerId`で対象顧客を絞れる。
 - 現時点ではloader/search/evidence bridgeはNode.js側のbuild時境界であり、ブラウザUIは生成済みmanifestだけをfetchする。
 - 外部AI API、通話連携、認証、DBはまだ存在しない。
@@ -37,7 +37,7 @@
 
 - ローカルテストコマンドは`npm test`。
 - ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、Assistant handoffの根拠候補表示、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 根拠候補抽出、evidence bridgeを検査する。
+- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 根拠候補抽出、evidence bridgeを検査する。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -47,8 +47,8 @@
 
 ## 既知の未完了項目
 
-- 次の実装タスクは未定。候補はキュー項目選択に応じてmanifest内の根拠候補を切り替える作業、または会話フローへ接続する作業だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
-- キュー選択に応じた根拠候補切り替え、検索ランキング高度化、AI応答接続、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
+- 次の実装タスクは未定。候補は選択中キューと根拠候補を会話フローへ接続する作業、または検索ランキング高度化だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
+- AI応答接続、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
 
@@ -58,5 +58,5 @@
 
 ## 次のハンドオフ
 
-- Task 08 `evidence-manifest-build`は完了。
-- 次はキュー項目選択に応じてmanifest内の根拠候補を切り替える、または会話フローへ接続する実行可能タスク指示を作成してから着手する。
+- Task 09 `queue-evidence-selection`は完了。
+- 次は選択中キューと根拠候補を会話フローへ接続する、または検索ランキングを高度化する実行可能タスク指示を作成してから着手する。
