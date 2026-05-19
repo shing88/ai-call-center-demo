@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildAssistantConversationDraft,
+  buildConversationThreadPreview,
   buildQueueSummary,
   demoState,
   escapeHtml,
@@ -170,6 +171,91 @@ test("renderApp switches the conversation draft with assistant evidence call id"
   assert.match(html, /田中 美咲さんには、配送予定日の確認について受付済みであることを伝える/);
   assert.match(html, /注文番号 A-2048/);
   assert.match(html, /business_rules\/004_escalation_policy\.md/);
+});
+
+test("buildConversationThreadPreview creates customer, assistant, and internal messages", () => {
+  const item = {
+    id: "CALL-9",
+    callerName: "User A",
+    topic: "配送確認",
+    status: "ai-handling" as const,
+    priority: "normal" as const,
+    waitSeconds: 12,
+    excerpt: "注文の到着予定を知りたいです。"
+  };
+  const draft = buildAssistantConversationDraft(item, {
+    callId: "CALL-9",
+    query: "配送確認 注文の到着予定を知りたいです。",
+    resultCount: 1,
+    results: [
+      {
+        sourcePath: "business_rules/004_escalation_policy.md",
+        section: "上席確認ルール > AIが行う引き継ぎ準備",
+        snippet: "AIが行う引き継ぎ準備として、顧客が求めている解決内容をまとめます。",
+        score: 9
+      }
+    ]
+  });
+  const preview = buildConversationThreadPreview(item, draft);
+
+  assert.equal(preview.callId, "CALL-9");
+  assert.deepEqual(
+    preview.messages.map((message) => message.role),
+    ["customer", "assistant", "internal"]
+  );
+  assert.match(preview.messages[0]?.body ?? "", /User A/);
+  assert.match(preview.messages[0]?.body ?? "", /注文の到着予定/);
+  assert.match(preview.messages[1]?.body ?? "", /配送確認について受付済み/);
+  assert.match(preview.messages[2]?.body ?? "", /business_rules\/004_escalation_policy\.md/);
+});
+
+test("buildConversationThreadPreview stays stable without a queue item", () => {
+  const draft = buildAssistantConversationDraft(undefined, {
+    callId: "CALL-0",
+    query: "",
+    resultCount: 0,
+    results: []
+  });
+  const preview = buildConversationThreadPreview(undefined, draft);
+
+  assert.equal(preview.callId, "CALL-0");
+  assert.match(preview.messages[0]?.body ?? "", /キュー項目を選択中/);
+  assert.match(preview.messages[1]?.body ?? "", /対象のキュー項目を確認中/);
+  assert.match(preview.messages[2]?.body ?? "", /根拠候補は確認中/);
+});
+
+test("renderApp displays a conversation preview for the selected queue item", () => {
+  const html = renderApp();
+
+  assert.match(html, /Conversation preview/);
+  assert.match(html, /Customer/);
+  assert.match(html, /山本 花: サイズが合わなかった商品の返送方法を確認したいです。/);
+  assert.match(html, /AI draft/);
+  assert.match(html, /Internal note/);
+});
+
+test("renderApp switches the conversation preview with assistant evidence call id", () => {
+  const html = renderApp({
+    ...demoState,
+    assistantEvidence: {
+      callId: "CALL-1024",
+      query: "配送予定日の確認 注文番号 A-2048 の到着予定を知りたいです。",
+      resultCount: 1,
+      results: [
+        {
+          sourcePath: "business_rules/004_escalation_policy.md",
+          section: "上席確認ルール > AIが行う引き継ぎ準備",
+          snippet: "AIが行う引き継ぎ準備として、顧客が求めている解決内容をまとめます。",
+          score: 12
+        }
+      ]
+    }
+  });
+
+  assert.match(html, /Conversation preview/);
+  assert.match(html, /田中 美咲: 注文番号 A-2048 の到着予定を知りたいです。/);
+  assert.match(html, /配送予定日の確認について受付済み/);
+  assert.match(html, /上席確認ルール &gt; AIが行う引き継ぎ準備/);
 });
 
 test("renderApp marks the selected queue item from assistant evidence", () => {

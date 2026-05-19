@@ -40,6 +40,19 @@ export interface AssistantConversationDraft {
   handoffNote: string;
 }
 
+export type ConversationThreadRole = "customer" | "assistant" | "internal";
+
+export interface ConversationThreadMessage {
+  role: ConversationThreadRole;
+  label: string;
+  body: string;
+}
+
+export interface ConversationThreadPreview {
+  callId: AssistantEvidence["callId"];
+  messages: ConversationThreadMessage[];
+}
+
 export interface QueueSummary {
   waiting: number;
   aiHandling: number;
@@ -160,6 +173,32 @@ export function buildAssistantConversationDraft(
   };
 }
 
+export function buildConversationThreadPreview(
+  item: QueueItem | undefined,
+  draft: AssistantConversationDraft
+): ConversationThreadPreview {
+  return {
+    callId: draft.callId,
+    messages: [
+      {
+        role: "customer",
+        label: "Customer",
+        body: item ? `${item.callerName}: ${item.excerpt}` : "キュー項目を選択中です。"
+      },
+      {
+        role: "assistant",
+        label: "AI draft",
+        body: draft.response
+      },
+      {
+        role: "internal",
+        label: "Internal note",
+        body: `${draft.evidenceLine} / ${draft.handoffNote}`
+      }
+    ]
+  };
+}
+
 export function renderApp(state: DemoState = demoState): string {
   const summary = buildQueueSummary(state.activeQueue);
   const selectedCallId = state.assistantEvidence.callId;
@@ -167,6 +206,10 @@ export function renderApp(state: DemoState = demoState): string {
   const conversationDraft = buildAssistantConversationDraft(
     selectedQueueItem,
     state.assistantEvidence
+  );
+  const threadPreview = buildConversationThreadPreview(
+    selectedQueueItem,
+    conversationDraft
   );
   const queueItems = state.activeQueue
     .map((item) => renderQueueItem(item, selectedCallId))
@@ -224,11 +267,37 @@ export function renderApp(state: DemoState = demoState): string {
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
             ${renderConversationDraft(conversationDraft)}
+            ${renderConversationThreadPreview(threadPreview)}
             ${renderAssistantEvidence(state.assistantEvidence)}
           </aside>
         </section>
       </section>
     </main>
+  `;
+}
+
+function renderConversationThreadPreview(preview: ConversationThreadPreview): string {
+  const messages = preview.messages.map(renderConversationThreadMessage).join("");
+
+  return `
+    <section class="thread-panel" aria-labelledby="thread-title">
+      <div class="thread-heading">
+        <h3 id="thread-title">Conversation preview</h3>
+        <span>${escapeHtml(preview.callId)}</span>
+      </div>
+      <div class="thread-list">
+        ${messages}
+      </div>
+    </section>
+  `;
+}
+
+function renderConversationThreadMessage(message: ConversationThreadMessage): string {
+  return `
+    <article class="thread-message thread-message--${message.role}">
+      <span>${escapeHtml(message.label)}</span>
+      <p>${escapeHtml(message.body)}</p>
+    </article>
   `;
 }
 
