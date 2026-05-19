@@ -1,7 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadKnowledgeBase } from "../src/knowledge.js";
+import { loadKnowledgeBase, type KnowledgeChunk } from "../src/knowledge.js";
 import { expandSearchTerms, searchKnowledge } from "../src/knowledge-search.js";
+
+function chunk(overrides: Partial<KnowledgeChunk>): KnowledgeChunk {
+  return {
+    id: "business_rules/demo#01",
+    documentId: "business_rules/demo",
+    category: "business_rules",
+    sourcePath: "business_rules/demo.md",
+    title: "デモルール",
+    heading: "デモ見出し",
+    headingPath: ["デモルール", "デモ見出し"],
+    ordinal: 1,
+    content: "デモ本文",
+    ...overrides
+  };
+}
 
 test("searchKnowledge returns refund rule evidence for refund queries", () => {
   const knowledgeBase = loadKnowledgeBase();
@@ -64,6 +79,38 @@ test("searchKnowledge can restrict customer contract results by customerId", () 
   assert.ok(results.length > 0);
   assert.ok(results.every((result) => result.sourcePath === "customer_contracts/customer_1002.md"));
   assert.match(results[0]?.snippet ?? "", /年額契約|返金|解約/);
+});
+
+test("searchKnowledge ranks compact multi-term matches above single-topic matches", () => {
+  const results = searchKnowledge({
+    chunks: [
+      chunk({
+        id: "business_rules/refund-only#01",
+        documentId: "business_rules/refund-only",
+        sourcePath: "business_rules/refund-only.md",
+        title: "返金ルール",
+        heading: "返金",
+        headingPath: ["返金ルール", "返金"],
+        content: "返金の基本だけを説明します。"
+      }),
+      chunk({
+        id: "business_rules/refund-schedule#01",
+        documentId: "business_rules/refund-schedule",
+        sourcePath: "business_rules/refund-schedule.md",
+        title: "受付後の確認",
+        heading: "案内タイミング",
+        headingPath: ["受付後の確認", "案内タイミング"],
+        content: "返金予定は本人確認後に案内し、予定日は断定しない。"
+      })
+    ],
+    query: "返金 予定",
+    categories: ["business_rules"]
+  });
+
+  assert.equal(results[0]?.sourcePath, "business_rules/refund-schedule.md");
+  assert.ok((results[0]?.score ?? 0) > (results[1]?.score ?? 0));
+  assert.ok(results[0]?.matchedTerms.includes("返金"));
+  assert.ok(results[0]?.matchedTerms.includes("予定"));
 });
 
 test("searchKnowledge returns no evidence for empty queries", () => {

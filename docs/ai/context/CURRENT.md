@@ -24,7 +24,7 @@
 - `src/app.ts`は`AssistantEvidence`表示用データを受け取り、出典、section、snippet、scoreをAssistant handoffに表示し、選択中キューと根拠候補からデモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビューを決定的に作る。
 - `src/knowledge.ts`は`knowledge/`配下の架空Markdownを読み込み、`KnowledgeDocument` / `KnowledgeChunk`へ変換する。
 - chunkは文書タイトルと`##`見出し単位で作られ、カテゴリ、相対パス、見出しパス、安定ID、本文を持つ。
-- `src/knowledge-search.ts`は`KnowledgeChunk`配列からキーワード検索し、`sourcePath`、`section`、`snippet`、`score`、`matchedTerms`を持つ根拠候補を返す。
+- `src/knowledge-search.ts`は`KnowledgeChunk`配列からキーワード検索し、`sourcePath`、`section`、`snippet`、`score`、`matchedTerms`を持つ根拠候補を返す。ランキングはタイトル、見出し、本文、source pathの一致に加えて、クエリ内の複数語が同じchunk内で近く出る候補を加点する。
 - `src/evidence-bridge.ts`は`QueueItem`の`topic`と`excerpt`から検索クエリを作り、`EvidenceBundle`として根拠候補を返す。
 - `scripts/generate-evidence-manifest.mjs`はbuild後のcompiled modulesを使い、demo queue向けの`evidence-bundles.json`を生成する。
 - `src/main.ts`はmanifest取得に成功した場合はその根拠候補を表示し、キュー項目の「開く」操作で該当bundleをAssistant handoffへ反映する。表示再描画時に応答ドラフト、会話履歴風プレビュー、未送信入力欄も選択中call idへ追従する。manifest取得失敗時や該当bundleなしの場合は既存表示を維持する。
@@ -37,7 +37,7 @@
 
 - ローカルテストコマンドは`npm test`。
 - ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 根拠候補抽出、evidence bridgeを検査する。
+- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -47,7 +47,7 @@
 
 ## 既知の未完了項目
 
-- 次の実装タスクは未定。候補は検索ランキング高度化、外部AI API接続準備、または入力内容の送信/保存設計だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
+- 次の実装タスクは未定。候補は外部AI API接続準備、入力内容の送信/保存設計、または検索ランキングの追加評価だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
 - LLM応答生成、会話履歴保存、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
@@ -58,5 +58,5 @@
 
 ## 次のハンドオフ
 
-- Task 12 `conversation-input-preview`は完了。
-- 次は検索ランキング高度化、外部AI API接続準備、または入力内容の送信/保存設計を進める実行可能タスク指示を作成してから着手する。
+- Task 13 `search-ranking-tuning`は完了。
+- 次は外部AI API接続準備、入力内容の送信/保存設計、または検索ランキングの追加評価を進める実行可能タスク指示を作成してから着手する。
