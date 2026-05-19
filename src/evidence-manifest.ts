@@ -22,14 +22,28 @@ export function toAssistantEvidence(bundle: EvidenceBundle): AssistantEvidence {
   };
 }
 
+export function selectAssistantEvidenceByCallId(
+  manifest: EvidenceManifest,
+  callId: string,
+  fallback: AssistantEvidence
+): AssistantEvidence {
+  const bundle = manifest.bundles[callId];
+
+  return bundle ? toAssistantEvidence(bundle) : fallback;
+}
+
 export function selectAssistantEvidenceFromManifest(
   manifest: EvidenceManifest,
   preferredCallId: string,
   fallback: AssistantEvidence
 ): AssistantEvidence {
-  const bundle = manifest.bundles[preferredCallId] ?? manifest.bundles[manifest.defaultCallId];
+  const defaultEvidence = selectAssistantEvidenceByCallId(
+    manifest,
+    manifest.defaultCallId,
+    fallback
+  );
 
-  return bundle ? toAssistantEvidence(bundle) : fallback;
+  return selectAssistantEvidenceByCallId(manifest, preferredCallId, defaultEvidence);
 }
 
 export function isEvidenceManifest(value: unknown): value is EvidenceManifest {

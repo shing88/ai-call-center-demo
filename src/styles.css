@@ -36,6 +36,11 @@ button:hover {
   color: #1746a2;
 }
 
+button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
 .app-shell {
   min-height: 100vh;
   padding: 24px;
@@ -183,6 +188,19 @@ h3 {
 
 .queue-item--high {
   border-left-color: #d94f2b;
+}
+
+.queue-item--selected {
+  border-color: #2563eb;
+  border-left-color: #2563eb;
+  background: #f7fbff;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.16);
+}
+
+.queue-item--selected button {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .queue-main {

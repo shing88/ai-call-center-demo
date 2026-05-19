@@ -95,6 +95,16 @@ test("renderApp displays assistant evidence candidates", () => {
   assert.match(html, /返金/);
 });
 
+test("renderApp marks the selected queue item from assistant evidence", () => {
+  const html = renderApp();
+
+  assert.match(html, /data-queue-call-id="CALL-1026"/);
+  assert.match(html, /data-queue-open="CALL-1026"/);
+  assert.match(html, /queue-item--selected/);
+  assert.match(html, /aria-current="true"/);
+  assert.match(html, /aria-pressed="true"/);
+});
+
 test("renderApp keeps the assistant panel stable without evidence candidates", () => {
   const state: DemoState = {
     agentName: "Support Ops",
