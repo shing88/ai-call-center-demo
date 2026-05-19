@@ -25,7 +25,7 @@ npm run build
 
 ## デモ知識ベース
 
-`knowledge/`配下に、AI応対の後続実装で参照するための架空Markdownを置いています。Node.js側ではMarkdown loader、keyword search、キュー項目から根拠候補を作るbridgeまで用意しています。build時に`dist/assets/evidence-bundles.json`を生成し、ブラウザUIはそのmanifestを読み込んでAssistant handoffへ表示します。キュー項目を開くと、該当call idの根拠候補へ切り替わります。外部AI API連携にはまだ接続していません。
+`knowledge/`配下に、AI応対の後続実装で参照するための架空Markdownを置いています。Node.js側ではMarkdown loader、keyword search、キュー項目から根拠候補を作るbridgeまで用意しています。build時に`dist/assets/evidence-bundles.json`を生成し、ブラウザUIはそのmanifestを読み込んでAssistant handoffへ表示します。キュー項目を開くと、該当call idの根拠候補と応答ドラフトへ切り替わります。応答ドラフトはデモ用の決定的な文面で、外部AI API連携にはまだ接続していません。
 
 - 業務ルール: `knowledge/business_rules/`
 - 架空顧客契約: `knowledge/customer_contracts/`

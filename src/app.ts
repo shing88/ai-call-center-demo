@@ -33,6 +33,13 @@ export interface DemoState {
   assistantEvidence: AssistantEvidence;
 }
 
+export interface AssistantConversationDraft {
+  callId: AssistantEvidence["callId"];
+  response: string;
+  evidenceLine: string;
+  handoffNote: string;
+}
+
 export interface QueueSummary {
   waiting: number;
   aiHandling: number;
@@ -127,9 +134,40 @@ export function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+export function buildAssistantConversationDraft(
+  item: QueueItem | undefined,
+  evidence: AssistantEvidence
+): AssistantConversationDraft {
+  const firstEvidence = evidence.results[0];
+  const evidenceLine = firstEvidence
+    ? `根拠: ${firstEvidence.sourcePath} / ${firstEvidence.section}`
+    : "根拠候補は確認中です。";
+
+  if (!item) {
+    return {
+      callId: evidence.callId,
+      response: "対象のキュー項目を確認中です。キューを開くと応答ドラフトを準備します。",
+      evidenceLine,
+      handoffNote: evidence.query.length > 0 ? `確認メモ: ${evidence.query}` : "確認メモ: キュー未選択"
+    };
+  }
+
+  return {
+    callId: item.id,
+    response: `${item.callerName}さんには、${item.topic}について受付済みであることを伝える。回答は根拠候補を確認してから確定する。`,
+    evidenceLine,
+    handoffNote: `要点: ${item.excerpt}`
+  };
+}
+
 export function renderApp(state: DemoState = demoState): string {
   const summary = buildQueueSummary(state.activeQueue);
   const selectedCallId = state.assistantEvidence.callId;
+  const selectedQueueItem = state.activeQueue.find((item) => item.id === selectedCallId);
+  const conversationDraft = buildAssistantConversationDraft(
+    selectedQueueItem,
+    state.assistantEvidence
+  );
   const queueItems = state.activeQueue
     .map((item) => renderQueueItem(item, selectedCallId))
     .join("");
@@ -185,11 +223,26 @@ export function renderApp(state: DemoState = demoState): string {
               <span>Next best action</span>
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
+            ${renderConversationDraft(conversationDraft)}
             ${renderAssistantEvidence(state.assistantEvidence)}
           </aside>
         </section>
       </section>
     </main>
+  `;
+}
+
+function renderConversationDraft(draft: AssistantConversationDraft): string {
+  return `
+    <section class="draft-panel" aria-labelledby="draft-title">
+      <div class="draft-heading">
+        <h3 id="draft-title">Response draft</h3>
+        <span>${escapeHtml(draft.callId)}</span>
+      </div>
+      <p class="draft-response">${escapeHtml(draft.response)}</p>
+      <p class="draft-evidence">${escapeHtml(draft.evidenceLine)}</p>
+      <p class="draft-note">${escapeHtml(draft.handoffNote)}</p>
+    </section>
   `;
 }
 
