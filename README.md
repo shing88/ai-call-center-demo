@@ -18,11 +18,13 @@ npm run build
 - ブラウザ入口: `index.html`
 - アプリ本体: `src/main.ts`
 - 描画ロジック: `src/app.ts`
-- テスト: `tests/app.test.ts`
+- knowledge loader / search: `src/knowledge.ts`、`src/knowledge-search.ts`
+- 根拠候補bridge: `src/evidence-bridge.ts`
+- テスト: `tests/*.test.ts`
 
 ## デモ知識ベース
 
-`knowledge/`配下に、AI応対の後続実装で参照するための架空Markdownを置いています。現時点では読み込み処理や検索処理には接続していません。
+`knowledge/`配下に、AI応対の後続実装で参照するための架空Markdownを置いています。Node.js側ではMarkdown loader、keyword search、キュー項目から根拠候補を作るbridgeまで用意しています。ブラウザUIへの表示や外部AI API連携にはまだ接続していません。
 
 - 業務ルール: `knowledge/business_rules/`
 - 架空顧客契約: `knowledge/customer_contracts/`
