@@ -39,11 +39,12 @@ export function searchKnowledge(input: SearchKnowledgeInput): KnowledgeSearchRes
   }
 
   const terms = expandSearchTerms(normalizedQuery);
+  const queryTokens = tokenize(normalizedQuery);
   const limit = input.limit ?? defaultLimit;
 
   return input.chunks
     .filter((chunk) => matchesFilters(chunk, input))
-    .map((chunk) => scoreChunk(chunk, terms))
+    .map((chunk) => scoreChunk(chunk, terms, queryTokens))
     .filter((result): result is KnowledgeSearchResult => result !== null)
     .sort(compareResults)
     .slice(0, limit);
@@ -90,12 +91,14 @@ function matchesFilters(chunk: KnowledgeChunk, input: SearchKnowledgeInput): boo
 
 function scoreChunk(
   chunk: KnowledgeChunk,
-  terms: readonly string[]
+  terms: readonly string[],
+  queryTokens: readonly string[]
 ): KnowledgeSearchResult | null {
   const title = normalizeText(chunk.title);
   const heading = normalizeText(chunk.heading);
   const content = normalizeText(chunk.content);
   const sourcePath = normalizeText(chunk.sourcePath);
+  const searchableText = compactWhitespace(`${title} ${heading} ${content}`);
   const matchedTerms: string[] = [];
   let score = 0;
 
@@ -124,6 +127,9 @@ function scoreChunk(
     }
   }
 
+  score += scoreQueryCoverage(searchableText, queryTokens);
+  score += scoreTermProximity(searchableText, matchedTerms);
+
   if (score === 0) {
     return null;
   }
@@ -148,6 +154,47 @@ function compareResults(left: KnowledgeSearchResult, right: KnowledgeSearchResul
     left.sourcePath.localeCompare(right.sourcePath) ||
     left.section.localeCompare(right.section)
   );
+}
+
+function scoreQueryCoverage(text: string, queryTokens: readonly string[]): number {
+  if (queryTokens.length < 2) {
+    return 0;
+  }
+
+  const matchedTokenCount = queryTokens.filter((token) => text.includes(token)).length;
+
+  if (matchedTokenCount < 2) {
+    return 0;
+  }
+
+  return matchedTokenCount * 4 + (matchedTokenCount === queryTokens.length ? 4 : 0);
+}
+
+function scoreTermProximity(text: string, matchedTerms: readonly string[]): number {
+  const positions = matchedTerms
+    .map((term) => text.indexOf(term))
+    .filter((position) => position >= 0)
+    .sort((left, right) => left - right);
+
+  if (positions.length < 2) {
+    return 0;
+  }
+
+  let smallestSpan = Number.POSITIVE_INFINITY;
+
+  for (let index = 1; index < positions.length; index += 1) {
+    smallestSpan = Math.min(smallestSpan, positions[index] - positions[index - 1]);
+  }
+
+  if (smallestSpan <= 48) {
+    return 6;
+  }
+
+  if (smallestSpan <= 120) {
+    return 3;
+  }
+
+  return 0;
 }
 
 function buildSnippet(chunk: KnowledgeChunk, matchedTerms: readonly string[]): string {
