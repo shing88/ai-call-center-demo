@@ -53,6 +53,13 @@ export interface ConversationThreadPreview {
   messages: ConversationThreadMessage[];
 }
 
+export interface AssistantInputPreview {
+  callId: AssistantEvidence["callId"];
+  label: string;
+  value: string;
+  statusText: string;
+}
+
 export interface QueueSummary {
   waiting: number;
   aiHandling: number;
@@ -199,6 +206,27 @@ export function buildConversationThreadPreview(
   };
 }
 
+export function buildAssistantInputPreview(
+  item: QueueItem | undefined,
+  draft: AssistantConversationDraft
+): AssistantInputPreview {
+  if (!item) {
+    return {
+      callId: draft.callId,
+      label: "Draft input",
+      value: "No queue item selected. Review the queue before sending any reply.",
+      statusText: "Unsent demo input. This note is not sent or saved."
+    };
+  }
+
+  return {
+    callId: item.id,
+    label: "Draft input",
+    value: `Review ${item.topic}: ${item.excerpt}`,
+    statusText: "Unsent demo input. This note is not sent or saved."
+  };
+}
+
 export function renderApp(state: DemoState = demoState): string {
   const summary = buildQueueSummary(state.activeQueue);
   const selectedCallId = state.assistantEvidence.callId;
@@ -208,6 +236,10 @@ export function renderApp(state: DemoState = demoState): string {
     state.assistantEvidence
   );
   const threadPreview = buildConversationThreadPreview(
+    selectedQueueItem,
+    conversationDraft
+  );
+  const inputPreview = buildAssistantInputPreview(
     selectedQueueItem,
     conversationDraft
   );
@@ -268,6 +300,7 @@ export function renderApp(state: DemoState = demoState): string {
             </div>
             ${renderConversationDraft(conversationDraft)}
             ${renderConversationThreadPreview(threadPreview)}
+            ${renderAssistantInputPreview(inputPreview)}
             ${renderAssistantEvidence(state.assistantEvidence)}
           </aside>
         </section>
@@ -298,6 +331,27 @@ function renderConversationThreadMessage(message: ConversationThreadMessage): st
       <span>${escapeHtml(message.label)}</span>
       <p>${escapeHtml(message.body)}</p>
     </article>
+  `;
+}
+
+function renderAssistantInputPreview(preview: AssistantInputPreview): string {
+  const escapedCallId = escapeHtml(preview.callId);
+
+  return `
+    <section class="input-panel" aria-labelledby="input-title" data-input-preview-call-id="${escapedCallId}">
+      <div class="input-heading">
+        <h3 id="input-title">Operator note</h3>
+        <span>${escapedCallId}</span>
+      </div>
+      <label for="operator-note">${escapeHtml(preview.label)}</label>
+      <textarea
+        id="operator-note"
+        data-input-call-id="${escapedCallId}"
+        rows="4"
+        aria-describedby="operator-note-status"
+      >${escapeHtml(preview.value)}</textarea>
+      <p id="operator-note-status">${escapeHtml(preview.statusText)}</p>
+    </section>
   `;
 }
 

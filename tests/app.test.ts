@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildAssistantConversationDraft,
+  buildAssistantInputPreview,
   buildConversationThreadPreview,
   buildQueueSummary,
   demoState,
@@ -224,6 +225,44 @@ test("buildConversationThreadPreview stays stable without a queue item", () => {
   assert.match(preview.messages[2]?.body ?? "", /根拠候補は確認中/);
 });
 
+test("buildAssistantInputPreview links an unsent draft to the selected queue item", () => {
+  const item = {
+    id: "CALL-9",
+    callerName: "User A",
+    topic: "Delivery check",
+    status: "ai-handling" as const,
+    priority: "normal" as const,
+    waitSeconds: 12,
+    excerpt: "Customer wants the estimated arrival date."
+  };
+  const draft = buildAssistantConversationDraft(item, {
+    callId: "CALL-9",
+    query: "Delivery check Customer wants the estimated arrival date.",
+    resultCount: 0,
+    results: []
+  });
+  const inputPreview = buildAssistantInputPreview(item, draft);
+
+  assert.equal(inputPreview.callId, "CALL-9");
+  assert.match(inputPreview.value, /Delivery check/);
+  assert.match(inputPreview.value, /estimated arrival date/);
+  assert.match(inputPreview.statusText, /not sent or saved/);
+});
+
+test("buildAssistantInputPreview stays explicit without a selected queue item", () => {
+  const draft = buildAssistantConversationDraft(undefined, {
+    callId: "CALL-0",
+    query: "",
+    resultCount: 0,
+    results: []
+  });
+  const inputPreview = buildAssistantInputPreview(undefined, draft);
+
+  assert.equal(inputPreview.callId, "CALL-0");
+  assert.match(inputPreview.value, /No queue item selected/);
+  assert.match(inputPreview.statusText, /not sent or saved/);
+});
+
 test("renderApp displays a conversation preview for the selected queue item", () => {
   const html = renderApp();
 
@@ -232,6 +271,63 @@ test("renderApp displays a conversation preview for the selected queue item", ()
   assert.match(html, /山本 花: サイズが合わなかった商品の返送方法を確認したいです。/);
   assert.match(html, /AI draft/);
   assert.match(html, /Internal note/);
+});
+
+test("renderApp displays an unsent operator input for the selected queue item", () => {
+  const html = renderApp();
+
+  assert.match(html, /Operator note/);
+  assert.match(html, /data-input-call-id="CALL-1026"/);
+  assert.match(html, /Unsent demo input/);
+  assert.match(html, /not sent or saved/);
+  assert.doesNotMatch(html, /type="submit"/);
+  assert.doesNotMatch(html, />Send</);
+});
+
+test("renderApp switches the unsent operator input with assistant evidence call id", () => {
+  const state: DemoState = {
+    agentName: "Support Ops",
+    assistantSuggestion: "Review before response.",
+    assistantEvidence: {
+      callId: "CALL-B",
+      query: "Technical support password reset",
+      resultCount: 1,
+      results: [
+        {
+          sourcePath: "business_rules/reset.md",
+          section: "Password reset",
+          snippet: "Confirm identity before reset.",
+          score: 7
+        }
+      ]
+    },
+    activeQueue: [
+      {
+        id: "CALL-A",
+        callerName: "User A",
+        topic: "Billing",
+        status: "waiting",
+        priority: "normal",
+        waitSeconds: 15,
+        excerpt: "Needs an invoice copy."
+      },
+      {
+        id: "CALL-B",
+        callerName: "User B",
+        topic: "Technical support",
+        status: "ai-handling",
+        priority: "high",
+        waitSeconds: 45,
+        excerpt: "Needs a password reset."
+      }
+    ]
+  };
+  const html = renderApp(state);
+
+  assert.match(html, /data-input-call-id="CALL-B"/);
+  assert.match(html, /Technical support/);
+  assert.match(html, /Needs a password reset/);
+  assert.doesNotMatch(html, /data-input-call-id="CALL-A"/);
 });
 
 test("renderApp switches the conversation preview with assistant evidence call id", () => {
