@@ -8,6 +8,8 @@
 
 別枠: `codex/two-angle-review`では通常の次Taskを進めず、Docker化、デモ担当者向けREADME更新、manifest validation堅牢化だけを実施した。次の通常実装タスクはTask 27のまま。
 
+後続計画: Task 28 `browser-realtime-voice-demo`を追加した。電話番号/SIP/Twilioは使わず、画面の`Start call`からヘッドセットでAIオペレータと会話し、業務ルールに基づく回答と通話記録を残す完成形へ段階的に進める。次の通常実装タスクはTask 27のまま。
+
 ## タスク開始時に必ず読む
 
 ```text
