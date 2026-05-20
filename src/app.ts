@@ -5,6 +5,10 @@ import {
   type ResponsePolicyGuard,
   type ResponsePolicyOutcome
 } from "./response-policy.js";
+import type {
+  FallbackRehearsalPlan,
+  FallbackRehearsalStep
+} from "./fallback-rehearsal.js";
 
 export type CallStatus = "waiting" | "ai-handling" | "human-review";
 
@@ -60,6 +64,7 @@ export interface DemoState {
   assistantSuggestion: string;
   assistantEvidence: AssistantEvidence;
   operatorNotes?: OperatorNotesByCallId;
+  fallbackRehearsal?: FallbackRehearsalPlan;
 }
 
 export interface AssistantConversationDraft {
@@ -392,6 +397,11 @@ export function renderApp(state: DemoState = demoState): string {
               <span>Next best action</span>
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
+            ${
+              state.fallbackRehearsal
+                ? renderFallbackRehearsalPlan(state.fallbackRehearsal)
+                : ""
+            }
             ${renderConversationDraft(conversationDraft)}
             ${renderConversationThreadPreview(threadPreview)}
             ${renderAssistantInputPreview(inputPreview)}
@@ -401,6 +411,61 @@ export function renderApp(state: DemoState = demoState): string {
         </section>
       </section>
     </main>
+  `;
+}
+
+function renderFallbackRehearsalPlan(plan: FallbackRehearsalPlan): string {
+  const steps = plan.steps.map(renderFallbackRehearsalStep).join("");
+
+  return `
+    <section
+      class="policy-panel"
+      aria-labelledby="fallback-title"
+      data-fallback-mode="${escapeHtml(plan.mode)}"
+      data-external-send-allowed="false"
+      data-persistence-allowed="false"
+    >
+      <div class="policy-heading">
+        <h3 id="fallback-title">Fallback rehearsal</h3>
+        <span>${escapeHtml(plan.statusText)}</span>
+      </div>
+      <p>${escapeHtml(plan.operatorMessage)}</p>
+      <dl>
+        <div>
+          <dt>Scenario count</dt>
+          <dd>${plan.scenarioCount}</dd>
+        </div>
+        <div>
+          <dt>Manual progression</dt>
+          <dd>${plan.guardrails.manualProgressionAllowed ? "ready" : "blocked"}</dd>
+        </div>
+        <div>
+          <dt>External send</dt>
+          <dd>blocked</dd>
+        </div>
+        <div>
+          <dt>Persistent save</dt>
+          <dd>blocked</dd>
+        </div>
+      </dl>
+      <div class="policy-lists">
+        <div>
+          <span>Run order</span>
+          <ul>${steps}</ul>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderFallbackRehearsalStep(step: FallbackRehearsalStep): string {
+  const reviewLabel = step.humanReviewRequired ? "human review" : "local draft";
+
+  return `
+    <li>
+      ${escapeHtml(step.callId)}: ${escapeHtml(step.label)}
+      (${escapeHtml(step.expectedPolicyOutcome)}, ${reviewLabel})
+    </li>
   `;
 }
 

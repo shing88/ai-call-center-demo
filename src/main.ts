@@ -9,6 +9,7 @@ import {
   selectAssistantEvidenceFromManifest
 } from "./evidence-manifest.js";
 import { loadEvidenceManifest } from "./evidence-manifest-client.js";
+import { buildFallbackRehearsalPlan } from "./fallback-rehearsal.js";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -26,12 +27,16 @@ let currentEvidence: AssistantEvidence = manifest
     )
   : demoState.assistantEvidence;
 const operatorNotes: OperatorNotesByCallId = {};
+const fallbackRehearsal = buildFallbackRehearsalPlan({
+  reason: manifest ? "manual-demo" : "network-unavailable"
+});
 
 function renderCurrentState(): void {
   appRoot.innerHTML = renderApp({
     ...demoState,
     assistantEvidence: currentEvidence,
-    operatorNotes: { ...operatorNotes }
+    operatorNotes: { ...operatorNotes },
+    fallbackRehearsal
   });
 }
 
