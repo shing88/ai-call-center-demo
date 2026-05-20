@@ -66,7 +66,7 @@ export const demoScenarioRegressionCases: readonly DemoScenarioRegressionCase[] 
     },
     operatorNoteValue: "本人確認はまだです。受付状況は断定しない。",
     categories: ["business_rules"],
-    evidenceLimit: 4,
+    evidenceLimit: 3,
     expected: {
       evidenceSourcePaths: ["business_rules/003_cancellation_policy.md"],
       policyOutcome: "customer-specific-answer-blocked",
