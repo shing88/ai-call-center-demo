@@ -54,7 +54,63 @@ test("startRealtimeCallSession falls back without microphone or WebRTC when the 
   assert.equal(result.controls.startCallAvailable, true);
   assert.equal(result.controls.endCallAvailable, false);
   assert.equal(result.controls.fallbackRehearsalAvailable, true);
+  assert.equal(result.controls.lastFailure?.stage, "client-secret");
+  assert.equal(result.controls.lastFailure?.httpStatus, 503);
+  assert.match(result.controls.lastFailure?.message ?? "", /Client secret request failed/);
   assert.equal(result.session, undefined);
+});
+
+test("startRealtimeCallSession reports microphone denial before WebRTC setup", async () => {
+  const result = await startRealtimeCallSession({
+    fetch: async () =>
+      jsonResponse({
+        value: "ek_test_ephemeral_client_secret",
+        expires_at: 1_800_000_000,
+        session: { type: "realtime", model: "gpt-realtime" }
+      }),
+    getUserMedia: async () => {
+      throw new DOMException("Permission denied", "NotAllowedError");
+    },
+    createPeerConnection: () => {
+      throw new Error("peer connection should not be created without microphone");
+    }
+  });
+
+  assert.equal(result.controls.status, "fallback");
+  assert.equal(result.controls.microphonePermissionState, "denied");
+  assert.equal(result.controls.lastFailure?.stage, "microphone");
+  assert.match(result.controls.lastFailure?.message ?? "", /NotAllowedError/);
+});
+
+test("startRealtimeCallSession reports Realtime calls HTTP failures after microphone permission", async () => {
+  const peer = new FakeRealtimePeerConnection();
+  const audioTrack = new FakeMediaTrack();
+  const stream = new FakeMediaStream([audioTrack]);
+
+  const result = await startRealtimeCallSession({
+    fetch: async (url) => {
+      if (String(url) === REALTIME_TOKEN_ENDPOINT_PATH) {
+        return jsonResponse({
+          value: "ek_test_ephemeral_client_secret",
+          expires_at: 1_800_000_000,
+          session: { type: "realtime", model: "gpt-realtime" }
+        });
+      }
+
+      return textResponse("bad request", 400);
+    },
+    getUserMedia: async () => stream as unknown as MediaStream,
+    createPeerConnection: () => peer
+  });
+
+  assert.equal(result.controls.status, "fallback");
+  assert.equal(result.controls.microphonePermissionState, "granted");
+  assert.equal(result.controls.lastFailure?.stage, "realtime-calls");
+  assert.equal(result.controls.lastFailure?.httpStatus, 400);
+  assert.equal(result.controls.lastFailure?.endpoint, OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT);
+  assert.match(result.controls.lastFailure?.message ?? "", /Realtime WebRTC calls request failed/);
+  assert.equal(audioTrack.stopped, true);
+  assert.equal(peer.closed, true);
 });
 
 test("startRealtimeCallSession connects with an ephemeral client secret and SDP offer", async () => {

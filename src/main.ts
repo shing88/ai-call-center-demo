@@ -14,10 +14,20 @@ import {
 import { loadEvidenceManifest } from "./evidence-manifest-client.js";
 import { buildFallbackRehearsalPlan } from "./fallback-rehearsal.js";
 import {
+  buildRealtimeConnectionBoundary,
+  type BuildRealtimeConnectionBoundaryOptions,
+  type RealtimeMicrophonePermissionState
+} from "./realtime-connection.js";
+import {
+  buildRealtimeConnectionBoundaryOptionsFromRuntimeHealth,
+  loadRealtimeRuntimeHealth
+} from "./realtime-runtime-health.js";
+import {
   buildRealtimeCallControls,
   endRealtimeCallSession,
   startRealtimeCallSession,
   type RealtimeCallControls,
+  type RealtimeCallMicrophonePermissionState,
   type RealtimeCallSession
 } from "./realtime-call-controls.js";
 import { buildCallSummary, type CallSummary } from "./call-summary.js";
@@ -61,6 +71,8 @@ let realtimeCallControls: RealtimeCallControls = buildRealtimeCallControls();
 let realtimeCallSession: RealtimeCallSession | undefined;
 let realtimeTranscriptCollector: RealtimeTranscriptCollector | undefined;
 let realtimeCallHandoff: RealtimeCallHandoffRecord | undefined;
+let realtimeRuntimeOptions: BuildRealtimeConnectionBoundaryOptions =
+  buildRealtimeConnectionBoundaryOptionsFromRuntimeHealth(undefined);
 let realtimeCallRequestId = 0;
 let realtimeHandoffLoadRequestId = 0;
 
@@ -70,6 +82,7 @@ function renderCurrentState(): void {
     assistantEvidence: currentEvidence,
     operatorNotes: { ...operatorNotes },
     fallbackRehearsal,
+    realtimeConnection: buildCurrentRealtimeConnectionBoundary(),
     realtimeCallControls,
     realtimeCallHandoff
   });
@@ -152,6 +165,7 @@ appRoot.addEventListener("click", (event) => {
 });
 
 renderCurrentState();
+void loadCurrentRealtimeRuntimeHealth();
 void loadCurrentPersistedRealtimeCallHandoff();
 
 async function handleStartRealtimeCall(): Promise<void> {
@@ -277,6 +291,54 @@ function buildCurrentRealtimeCallHandoff(
     policy: context.policy,
     transcript: realtimeTranscriptCollector?.getTranscript() ?? []
   });
+}
+
+function buildCurrentRealtimeConnectionBoundary() {
+  return buildRealtimeConnectionBoundary({
+    ...realtimeRuntimeOptions,
+    ephemeralClientSecretAvailable: hasEphemeralClientSecretForCurrentCall(),
+    microphonePermissionState: toRealtimeBoundaryMicrophoneState(
+      realtimeCallControls.microphonePermissionState
+    )
+  });
+}
+
+function hasEphemeralClientSecretForCurrentCall(): boolean {
+  if (
+    realtimeCallControls.status === "requesting-microphone" ||
+    realtimeCallControls.status === "connecting" ||
+    realtimeCallControls.status === "connected" ||
+    realtimeCallControls.status === "ended"
+  ) {
+    return true;
+  }
+
+  return (
+    realtimeCallControls.status === "fallback" &&
+    realtimeCallControls.lastFailure?.stage !== "client-secret" &&
+    realtimeCallControls.microphonePermissionState !== "not-requested"
+  );
+}
+
+function toRealtimeBoundaryMicrophoneState(
+  state: RealtimeCallMicrophonePermissionState
+): RealtimeMicrophonePermissionState {
+  if (state === "granted" || state === "denied") {
+    return state;
+  }
+
+  return "not-requested";
+}
+
+async function loadCurrentRealtimeRuntimeHealth(): Promise<void> {
+  try {
+    realtimeRuntimeOptions = buildRealtimeConnectionBoundaryOptionsFromRuntimeHealth(
+      await loadRealtimeRuntimeHealth(fetch)
+    );
+    renderCurrentState();
+  } catch (_error) {
+    return;
+  }
 }
 
 async function persistCurrentRealtimeCallHandoff(): Promise<void> {

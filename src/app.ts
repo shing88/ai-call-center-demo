@@ -681,6 +681,8 @@ function renderRealtimeConnectionBoundary(
 }
 
 function renderRealtimeCallControls(controls: RealtimeCallControls): string {
+  const failure = controls.lastFailure;
+
   return `
     <div
       class="realtime-call-controls"
@@ -689,11 +691,19 @@ function renderRealtimeCallControls(controls: RealtimeCallControls): string {
       data-realtime-token-endpoint="${escapeHtml(controls.tokenEndpointPath)}"
       data-realtime-webrtc-endpoint="${escapeHtml(controls.webRtcCallsEndpoint)}"
       data-realtime-browser-api-key-allowed="false"
+      ${
+        failure
+          ? `data-realtime-failure-stage="${escapeHtml(failure.stage)}" data-realtime-failure-http-status="${escapeHtml(
+              failure.httpStatus?.toString() ?? ""
+            )}"`
+          : ""
+      }
     >
       <div>
         <span>Realtime call controls</span>
         <strong>${escapeHtml(controls.statusText)}</strong>
         <p>${escapeHtml(controls.detail)}</p>
+        ${failure ? renderRealtimeFailureDiagnostics(controls) : ""}
       </div>
       <div class="realtime-control-actions">
         <button
@@ -707,6 +717,46 @@ function renderRealtimeCallControls(controls: RealtimeCallControls): string {
           ${controls.endCallAvailable ? "" : "disabled"}
         >End call</button>
       </div>
+    </div>
+  `;
+}
+
+function renderRealtimeFailureDiagnostics(
+  controls: RealtimeCallControls
+): string {
+  const failure = controls.lastFailure;
+
+  if (!failure) {
+    return "";
+  }
+
+  return `
+    <div class="realtime-failure-diagnostics" aria-label="Realtime failure diagnostics">
+      <span>Realtime failure diagnostics</span>
+      <dl>
+        <div>
+          <dt>Stage</dt>
+          <dd>${escapeHtml(failure.stage)}</dd>
+        </div>
+        <div>
+          <dt>Message</dt>
+          <dd>${escapeHtml(failure.message)}</dd>
+        </div>
+        ${
+          failure.httpStatus
+            ? `<div><dt>HTTP status</dt><dd>${escapeHtml(failure.httpStatus.toString())}</dd></div>`
+            : ""
+        }
+        <div>
+          <dt>Microphone</dt>
+          <dd>${escapeHtml(controls.microphonePermissionState)}</dd>
+        </div>
+        ${
+          failure.endpoint
+            ? `<div><dt>Endpoint</dt><dd>${escapeHtml(failure.endpoint)}</dd></div>`
+            : ""
+        }
+      </dl>
     </div>
   `;
 }

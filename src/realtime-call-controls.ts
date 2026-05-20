@@ -18,6 +18,22 @@ export type RealtimeCallMicrophonePermissionState =
   | "granted"
   | "denied";
 
+export type RealtimeCallFailureStage =
+  | "client-secret"
+  | "microphone"
+  | "peer-connection"
+  | "sdp-offer"
+  | "realtime-calls"
+  | "remote-description"
+  | "unexpected";
+
+export interface RealtimeCallFailureDiagnostics {
+  stage: RealtimeCallFailureStage;
+  message: string;
+  httpStatus?: number;
+  endpoint?: string;
+}
+
 export interface RealtimeCallControls {
   status: RealtimeCallStatus;
   statusText: string;
@@ -30,12 +46,14 @@ export interface RealtimeCallControls {
   standardApiKeyAllowedInBrowser: false;
   ephemeralClientSecretRequired: true;
   fallbackRehearsalAvailable: boolean;
+  lastFailure?: RealtimeCallFailureDiagnostics;
 }
 
 export interface BuildRealtimeCallControlsOptions {
   status?: RealtimeCallStatus;
   microphonePermissionState?: RealtimeCallMicrophonePermissionState;
   fallbackRehearsalAvailable?: boolean;
+  lastFailure?: RealtimeCallFailureDiagnostics;
 }
 
 export interface RealtimeCallSession {
@@ -78,6 +96,11 @@ interface RealtimeClientSecretResponse {
   value: string;
 }
 
+interface RealtimeClientSecretRequestResult {
+  value?: string;
+  failure?: RealtimeCallFailureDiagnostics;
+}
+
 export function buildRealtimeCallControls(
   options: BuildRealtimeCallControlsOptions = {}
 ): RealtimeCallControls {
@@ -100,7 +123,8 @@ export function buildRealtimeCallControls(
     webRtcCallsEndpoint: OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT,
     standardApiKeyAllowedInBrowser: false,
     ephemeralClientSecretRequired: true,
-    fallbackRehearsalAvailable: options.fallbackRehearsalAvailable ?? true
+    fallbackRehearsalAvailable: options.fallbackRehearsalAvailable ?? true,
+    lastFailure: options.lastFailure
   };
 }
 
@@ -110,23 +134,27 @@ export async function startRealtimeCallSession(
   let localStream: MediaStream | undefined;
   let peerConnection: RealtimePeerConnectionLike | undefined;
   let dataChannel: RealtimeDataChannelLike | undefined;
+  let currentStage: RealtimeCallFailureStage = "client-secret";
 
   try {
-    const clientSecret = await requestEphemeralClientSecret(
+    const clientSecretResult = await requestEphemeralClientSecret(
       dependencies.fetch,
       dependencies.tokenRequestBody
     );
 
-    if (!clientSecret) {
+    if (!clientSecretResult.value) {
       return {
         controls: buildRealtimeCallControls({
           status: "fallback",
-          microphonePermissionState: "not-requested"
+          microphonePermissionState: "not-requested",
+          lastFailure: clientSecretResult.failure
         })
       };
     }
 
+    currentStage = "microphone";
     localStream = await dependencies.getUserMedia({ audio: true });
+    currentStage = "peer-connection";
     peerConnection = dependencies.createPeerConnection();
 
     for (const track of localStream.getTracks()) {
@@ -135,14 +163,16 @@ export async function startRealtimeCallSession(
 
     dataChannel = peerConnection.createDataChannel("oai-events");
     attachRealtimeServerEventListener(dataChannel, dependencies.onServerEvent);
+    currentStage = "sdp-offer";
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
 
+    currentStage = "realtime-calls";
     const sdpResponse = await dependencies.fetch(OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT, {
       method: "POST",
       body: offer.sdp ?? "",
       headers: {
-        Authorization: `Bearer ${clientSecret}`,
+        Authorization: `Bearer ${clientSecretResult.value}`,
         "Content-Type": "application/sdp"
       }
     });
@@ -152,11 +182,18 @@ export async function startRealtimeCallSession(
       return {
         controls: buildRealtimeCallControls({
           status: "fallback",
-          microphonePermissionState: "granted"
+          microphonePermissionState: "granted",
+          lastFailure: {
+            stage: "realtime-calls",
+            message: `Realtime WebRTC calls request failed with HTTP ${sdpResponse.status}.`,
+            httpStatus: sdpResponse.status,
+            endpoint: OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT
+          }
         })
       };
     }
 
+    currentStage = "remote-description";
     await peerConnection.setRemoteDescription({
       type: "answer",
       sdp: await sdpResponse.text()
@@ -178,7 +215,8 @@ export async function startRealtimeCallSession(
     return {
       controls: buildRealtimeCallControls({
         status: "fallback",
-        microphonePermissionState: localStream ? "granted" : "denied"
+        microphonePermissionState: localStream ? "granted" : "denied",
+        lastFailure: buildExceptionFailureDiagnostics(currentStage, _error)
       })
     };
   }
@@ -196,7 +234,7 @@ export function endRealtimeCallSession(session: RealtimeCallSession): RealtimeCa
 async function requestEphemeralClientSecret(
   fetchFn: typeof fetch,
   tokenRequestBody?: unknown
-): Promise<string | undefined> {
+): Promise<RealtimeClientSecretRequestResult> {
   const response = await fetchFn(REALTIME_TOKEN_ENDPOINT_PATH, {
     method: "POST",
     headers: {
@@ -210,16 +248,81 @@ async function requestEphemeralClientSecret(
   });
 
   if (!response.ok) {
-    return undefined;
+    return {
+      failure: {
+        stage: "client-secret",
+        message: `Client secret request failed with HTTP ${response.status}.`,
+        httpStatus: response.status,
+        endpoint: REALTIME_TOKEN_ENDPOINT_PATH
+      }
+    };
   }
 
   const body: unknown = await response.json();
 
   if (!isRealtimeClientSecretResponse(body)) {
-    return undefined;
+    return {
+      failure: {
+        stage: "client-secret",
+        message: "Client secret response did not include an ephemeral value.",
+        endpoint: REALTIME_TOKEN_ENDPOINT_PATH
+      }
+    };
   }
 
-  return body.value;
+  return { value: body.value };
+}
+
+function buildExceptionFailureDiagnostics(
+  stage: RealtimeCallFailureStage,
+  error: unknown
+): RealtimeCallFailureDiagnostics {
+  return {
+    stage,
+    message: buildSafeExceptionMessage(stage, error),
+    endpoint:
+      stage === "client-secret"
+        ? REALTIME_TOKEN_ENDPOINT_PATH
+        : stage === "realtime-calls"
+          ? OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT
+          : undefined
+  };
+}
+
+function buildSafeExceptionMessage(
+  stage: RealtimeCallFailureStage,
+  error: unknown
+): string {
+  const stageLabel = selectFailureStageLabel(stage);
+
+  if (error instanceof DOMException) {
+    return `${stageLabel} failed: ${error.name}.`;
+  }
+
+  if (error instanceof Error && error.name.length > 0) {
+    return `${stageLabel} failed: ${error.name}.`;
+  }
+
+  return `${stageLabel} failed.`;
+}
+
+function selectFailureStageLabel(stage: RealtimeCallFailureStage): string {
+  switch (stage) {
+    case "client-secret":
+      return "Client secret request";
+    case "microphone":
+      return "Microphone permission";
+    case "peer-connection":
+      return "Peer connection setup";
+    case "sdp-offer":
+      return "SDP offer setup";
+    case "realtime-calls":
+      return "Realtime WebRTC calls request";
+    case "remote-description":
+      return "Remote SDP answer setup";
+    case "unexpected":
+      return "Realtime call setup";
+  }
 }
 
 function isRealtimeClientSecretResponse(
