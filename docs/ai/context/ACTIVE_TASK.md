@@ -4,7 +4,7 @@
 
 次のタスク: 未定
 
-状態: Task 14 `ai-response-request-contract`完了。次の候補は`AiResponseRequest`を消費するprovider別client adapter、入力内容の送信/保存設計、または検索ランキングの追加評価だが、実行可能タスク指示はまだ未作成。
+状態: Task 15 `ai-response-client-adapter`完了。次の候補はprovider別network client adapter、入力内容の送信/保存設計、または検索ランキングの追加評価だが、実行可能タスク指示はまだ未作成。
 
 ## タスク開始時に必ず読む
 
