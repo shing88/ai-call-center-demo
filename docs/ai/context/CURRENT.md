@@ -14,6 +14,7 @@
 - keyword search / 根拠候補抽出は`src/knowledge-search.ts`にある。
 - キュー項目とknowledge検索結果をつなぐ根拠候補bridgeは`src/evidence-bridge.ts`にある。
 - evidence manifestのbrowser-safe helperは`src/evidence-manifest.ts`、build専用builderは`src/evidence-manifest-builder.ts`、browser fetch helperは`src/evidence-manifest-client.ts`にある。
+- 外部AI API連携前の送信用payload契約とbuilderは`src/ai-response-request.ts`にある。
 - `npm run build`で`dist/index.html`、`dist/assets/*.js`、`dist/assets/evidence-bundles.json`を生成する。
 - 開発時は`npm run dev`で`dist/`をローカル配信する。
 
@@ -28,16 +29,17 @@
 - `src/evidence-bridge.ts`は`QueueItem`の`topic`と`excerpt`から検索クエリを作り、`EvidenceBundle`として根拠候補を返す。
 - `scripts/generate-evidence-manifest.mjs`はbuild後のcompiled modulesを使い、demo queue向けの`evidence-bundles.json`を生成する。
 - `src/main.ts`はmanifest取得に成功した場合はその根拠候補を表示し、キュー項目の「開く」操作で該当bundleをAssistant handoffへ反映する。表示再描画時に応答ドラフト、会話履歴風プレビュー、未送信入力欄も選択中call idへ追従する。manifest取得失敗時や該当bundleなしの場合は既存表示を維持する。
+- `src/ai-response-request.ts`は選択中キュー項目、根拠候補、応答ドラフト、会話プレビュー、未送信Operator noteをprovider非依存の送信用payloadへまとめる。現時点では`externalSendAllowed`と`persistenceAllowed`は常に`false`で、外部通信や保存は行わない。
 - 顧客契約検索は`customerId`で対象顧客を絞れる。
 - 現時点ではloader/search/evidence bridgeはNode.js側のbuild時境界であり、ブラウザUIは生成済みmanifestだけをfetchする。
 - 外部AI API、LLM応答生成、会話履歴保存、通話連携、認証、DBはまだ存在しない。
-- 機械可読な契約はTypeScriptの`KnowledgeDocument` / `KnowledgeChunk` / `KnowledgeSearchResult` / `EvidenceBundle`型として存在する。
+- 機械可読な契約はTypeScriptの`KnowledgeDocument` / `KnowledgeChunk` / `KnowledgeSearchResult` / `EvidenceBundle` / `AiResponseRequest`型として存在する。
 
 ## 現在のテスト / CI
 
 - ローカルテストコマンドは`npm test`。
 - ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
+- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、AI response request payload、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -47,7 +49,7 @@
 
 ## 既知の未完了項目
 
-- 次の実装タスクは未定。候補は外部AI API接続準備、入力内容の送信/保存設計、または検索ランキングの追加評価だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
+- 次の実装タスクは未定。候補は`AiResponseRequest`を消費するprovider別client adapter、入力内容の送信/保存設計、または検索ランキングの追加評価だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
 - LLM応答生成、会話履歴保存、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
@@ -58,5 +60,5 @@
 
 ## 次のハンドオフ
 
-- Task 13 `search-ranking-tuning`は完了。
-- 次は外部AI API接続準備、入力内容の送信/保存設計、または検索ランキングの追加評価を進める実行可能タスク指示を作成してから着手する。
+- Task 14 `ai-response-request-contract`は完了。
+- 次はprovider別client adapter、入力内容の送信/保存設計、または検索ランキングの追加評価を進める実行可能タスク指示を作成してから着手する。
