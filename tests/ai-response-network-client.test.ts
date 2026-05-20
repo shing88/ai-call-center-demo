@@ -53,7 +53,28 @@ function aiResponseRequest(overrides: Partial<AiResponseRequest> = {}): AiRespon
       label: "Draft input",
       value: "Review 返金相談: 返品後の返金予定を確認したいです。",
       unsent: true,
-      statusText: "Unsent demo input. This note is not sent or saved."
+      unsaved: true,
+      browserOnly: true,
+      statusText: "Unsent demo input. Browser-only submit/save candidate; not sent or saved.",
+      submitSaveCandidate: {
+        version: 1,
+        kind: "operator-input-submit-save-candidate",
+        callId: "CALL-5001",
+        operatorInput: {
+          label: "Draft input",
+          value: "Review 返金相談: 返品後の返金予定を確認したいです。"
+        },
+        status: {
+          unsent: true,
+          unsaved: true,
+          browserOnly: true
+        },
+        guardrails: {
+          externalSendAllowed: false,
+          persistenceAllowed: false,
+          candidateOnly: true
+        }
+      }
     },
     guardrails: {
       externalSendAllowed: false,

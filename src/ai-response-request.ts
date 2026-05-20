@@ -3,6 +3,7 @@ import {
   buildAssistantInputPreview,
   buildConversationThreadPreview,
   type AssistantEvidence,
+  type OperatorInputSubmitSaveCandidate,
   type QueueItem
 } from "./app.js";
 
@@ -49,7 +50,10 @@ export interface AiResponseRequest {
     label: string;
     value: string;
     unsent: true;
+    unsaved: true;
+    browserOnly: true;
     statusText: string;
+    submitSaveCandidate: OperatorInputSubmitSaveCandidate;
   };
   guardrails: {
     externalSendAllowed: false;
@@ -61,6 +65,7 @@ export interface AiResponseRequest {
 export interface BuildAiResponseRequestInput {
   item: QueueItem;
   evidence: AssistantEvidence;
+  operatorNoteValue?: string;
   createdAt?: string;
 }
 
@@ -73,7 +78,9 @@ export function buildAiResponseRequest(input: BuildAiResponseRequestInput): AiRe
 
   const draft = buildAssistantConversationDraft(input.item, input.evidence);
   const conversation = buildConversationThreadPreview(input.item, draft);
-  const operatorInput = buildAssistantInputPreview(input.item, draft);
+  const operatorInput = buildAssistantInputPreview(input.item, draft, {
+    value: input.operatorNoteValue
+  });
 
   return {
     version: 1,
@@ -114,7 +121,10 @@ export function buildAiResponseRequest(input: BuildAiResponseRequestInput): AiRe
       label: operatorInput.label,
       value: operatorInput.value,
       unsent: true,
-      statusText: operatorInput.statusText
+      unsaved: true,
+      browserOnly: true,
+      statusText: operatorInput.statusText,
+      submitSaveCandidate: operatorInput.candidate
     },
     guardrails: {
       externalSendAllowed: false,

@@ -1,4 +1,9 @@
-import { demoState, renderApp, type AssistantEvidence } from "./app.js";
+import {
+  demoState,
+  renderApp,
+  type AssistantEvidence,
+  type OperatorNotesByCallId
+} from "./app.js";
 import {
   selectAssistantEvidenceByCallId,
   selectAssistantEvidenceFromManifest
@@ -20,13 +25,42 @@ let currentEvidence: AssistantEvidence = manifest
       demoState.assistantEvidence
     )
   : demoState.assistantEvidence;
+const operatorNotes: OperatorNotesByCallId = {};
 
 function renderCurrentState(): void {
   appRoot.innerHTML = renderApp({
     ...demoState,
-    assistantEvidence: currentEvidence
+    assistantEvidence: currentEvidence,
+    operatorNotes: { ...operatorNotes }
   });
 }
+
+function syncRenderedOperatorNote(): void {
+  const textarea = appRoot.querySelector<HTMLTextAreaElement>("[data-input-call-id]");
+  const callId = textarea?.dataset.inputCallId;
+
+  if (!textarea || !callId) {
+    return;
+  }
+
+  operatorNotes[callId] = textarea.value;
+}
+
+appRoot.addEventListener("input", (event) => {
+  const target = event.target;
+
+  if (!(target instanceof HTMLTextAreaElement) || !target.matches("[data-input-call-id]")) {
+    return;
+  }
+
+  const callId = target.dataset.inputCallId;
+
+  if (!callId) {
+    return;
+  }
+
+  operatorNotes[callId] = target.value;
+});
 
 appRoot.addEventListener("click", (event) => {
   const target = event.target;
@@ -57,6 +91,7 @@ appRoot.addEventListener("click", (event) => {
     return;
   }
 
+  syncRenderedOperatorNote();
   currentEvidence = nextEvidence;
   renderCurrentState();
 });

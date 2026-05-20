@@ -249,6 +249,42 @@ test("buildAssistantInputPreview links an unsent draft to the selected queue ite
   assert.match(inputPreview.statusText, /not sent or saved/);
 });
 
+test("buildAssistantInputPreview can prepare an edited browser-only submit/save candidate", () => {
+  const item = {
+    id: "CALL-9",
+    callerName: "User A",
+    topic: "Delivery check",
+    status: "ai-handling" as const,
+    priority: "normal" as const,
+    waitSeconds: 12,
+    excerpt: "Customer wants the estimated arrival date."
+  };
+  const draft = buildAssistantConversationDraft(item, {
+    callId: "CALL-9",
+    query: "Delivery check Customer wants the estimated arrival date.",
+    resultCount: 0,
+    results: []
+  });
+  const inputPreview = buildAssistantInputPreview(item, draft, {
+    value: "Edited note for the next handoff."
+  });
+
+  assert.equal(inputPreview.value, "Edited note for the next handoff.");
+  assert.equal(inputPreview.candidate.kind, "operator-input-submit-save-candidate");
+  assert.equal(inputPreview.candidate.callId, "CALL-9");
+  assert.equal(inputPreview.candidate.operatorInput.value, "Edited note for the next handoff.");
+  assert.deepEqual(inputPreview.candidate.status, {
+    unsent: true,
+    unsaved: true,
+    browserOnly: true
+  });
+  assert.deepEqual(inputPreview.candidate.guardrails, {
+    externalSendAllowed: false,
+    persistenceAllowed: false,
+    candidateOnly: true
+  });
+});
+
 test("buildAssistantInputPreview stays explicit without a selected queue item", () => {
   const draft = buildAssistantConversationDraft(undefined, {
     callId: "CALL-0",
@@ -328,6 +364,67 @@ test("renderApp switches the unsent operator input with assistant evidence call 
   assert.match(html, /Technical support/);
   assert.match(html, /Needs a password reset/);
   assert.doesNotMatch(html, /data-input-call-id="CALL-A"/);
+});
+
+test("renderApp keeps edited operator notes separated by selected call id", () => {
+  const state: DemoState = {
+    agentName: "Support Ops",
+    assistantSuggestion: "Review before response.",
+    assistantEvidence: {
+      callId: "CALL-B",
+      query: "Technical support password reset",
+      resultCount: 1,
+      results: [
+        {
+          sourcePath: "business_rules/reset.md",
+          section: "Password reset",
+          snippet: "Confirm identity before reset.",
+          score: 7
+        }
+      ]
+    },
+    activeQueue: [
+      {
+        id: "CALL-A",
+        callerName: "User A",
+        topic: "Billing",
+        status: "waiting",
+        priority: "normal",
+        waitSeconds: 15,
+        excerpt: "Needs an invoice copy."
+      },
+      {
+        id: "CALL-B",
+        callerName: "User B",
+        topic: "Technical support",
+        status: "ai-handling",
+        priority: "high",
+        waitSeconds: 45,
+        excerpt: "Needs a password reset."
+      }
+    ],
+    operatorNotes: {
+      "CALL-A": "Edited note for invoice follow-up.",
+      "CALL-B": "Edited note for password reset review."
+    }
+  };
+  const html = renderApp(state);
+
+  assert.match(html, /Edited note for password reset review\./);
+  assert.match(html, /data-submit-save-candidate-call-id="CALL-B"/);
+  assert.doesNotMatch(html, /Edited note for invoice follow-up\./);
+});
+
+test("renderApp escapes edited operator notes before rendering", () => {
+  const html = renderApp({
+    ...demoState,
+    operatorNotes: {
+      "CALL-1026": "Please review <script>alert(1)</script> before handoff."
+    }
+  });
+
+  assert.match(html, /Please review &lt;script&gt;alert\(1\)&lt;\/script&gt; before handoff\./);
+  assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
 });
 
 test("renderApp switches the conversation preview with assistant evidence call id", () => {
