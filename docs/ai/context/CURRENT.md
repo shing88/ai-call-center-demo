@@ -8,7 +8,7 @@
 
 - リポジトリ運用の初期ファイルは`AGENTS.md`と`docs/ai/`配下にある。
 - 最小Webアプリの入口は`index.html`、実行時の接続点は`src/main.ts`。
-- Assistant handoffにはExecutive demo brief、build時に生成した根拠候補manifestの内容、デモ用応答ドラフト、会話履歴風プレビュー、未送信のOperator note入力欄、送信/保存候補payload境界、policy guard判定が表示され、キュー項目の選択に応じて該当call idの根拠候補、ドラフト、プレビュー、入力欄、policyへ切り替わる。
+- Assistant handoffにはExecutive demo brief、Call summary、build時に生成した根拠候補manifestの内容、デモ用応答ドラフト、会話履歴風プレビュー、未送信のOperator note入力欄、送信/保存候補payload境界、policy guard判定が表示され、キュー項目の選択に応じて該当call idのサマリー、根拠候補、ドラフト、プレビュー、入力欄、policyへ切り替わる。
 - デモ用knowledge baselineは`knowledge/README.md`、`knowledge/business_rules/`、`knowledge/customer_contracts/`、`knowledge/scenarios/`にある。
 - knowledgeには架空顧客データに加えて、CCNet株式会社の公開HP、サービス詳細、約款、重要事項説明に合わせた役員デモ用の一般案内文書、架空顧客モック、架空シナリオがある。実在顧客・契約・問い合わせ履歴は含めない。
 - Markdown loader / chunk modelは`src/knowledge.ts`にある。
@@ -19,6 +19,7 @@
 - AI response client adapter契約と実外部通信を行わない決定的stubは`src/ai-response-client.ts`にある。
 - AI response HTTP network adapter境界は`src/ai-response-network-client.ts`にある。`fetcher`注入でテストでき、provider固有SDKやsecret参照は持たない。
 - 回答範囲、上席確認要否、回答不可種別を決定的に判定するpolicy guardは`src/response-policy.ts`にある。
+- 問い合わせ要約、根拠参照、policy判断、Operator note状態、次アクションをローカル決定的に作るCall summaryは`src/call-summary.ts`にある。
 - 代表シナリオごとの根拠候補、Operator note、policy guard、AI response request/client結果を固定する回帰runnerは`src/demo-scenario-regression.ts`にある。
 - 外部AI API、音声、通信が使えない場合に備えたfallback / rehearsal planは`src/fallback-rehearsal.ts`にあり、`src/main.ts`から画面へ注入される。
 - fallback時のデモ進行手順は`docs/ai/demo/fallback-runbook.md`にある。
@@ -30,7 +31,7 @@
 
 - アプリケーションスタックはTypeScript + Node.js標準ライブラリ。
 - `src/app.ts`にデモ用のキュー状態、集計、HTML描画、escapingを置いている。
-- `src/app.ts`は`AssistantEvidence`表示用データを受け取り、出典、section、snippet、scoreをAssistant handoffに表示し、選択中キューと根拠候補からCCNet-fit scenario、架空顧客ID、エリア、サービスプラン、本人未確認状態を含むExecutive demo brief、デモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、browser-onlyの送信/保存候補payload、policy guard表示を決定的に作る。
+- `src/app.ts`は`AssistantEvidence`表示用データを受け取り、出典、section、snippet、scoreをAssistant handoffに表示し、選択中キューと根拠候補からCCNet-fit scenario、架空顧客ID、エリア、サービスプラン、本人未確認状態を含むExecutive demo brief、Call summary、デモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、browser-onlyの送信/保存候補payload、policy guard表示を決定的に作る。
 - `src/knowledge.ts`は`knowledge/`配下の架空Markdownを読み込み、`KnowledgeDocument` / `KnowledgeChunk`へ変換する。
 - chunkは文書タイトルと`##`見出し単位で作られ、カテゴリ、相対パス、見出しパス、安定ID、本文を持つ。
 - `src/knowledge-search.ts`は`KnowledgeChunk`配列からキーワード検索し、`sourcePath`、`section`、`snippet`、`score`、`matchedTerms`を持つ根拠候補を返す。ランキングはタイトル、見出し、本文、source pathの一致に加えて、クエリ内の複数語が同じchunk内で近く出る候補を加点する。
@@ -38,6 +39,7 @@
 - `scripts/generate-evidence-manifest.mjs`はbuild後のcompiled modulesを使い、demo queue向けの`evidence-bundles.json`を生成する。
 - `src/main.ts`はmanifest取得に成功した場合はその根拠候補を表示し、キュー項目の「開く」操作で該当bundleをAssistant handoffへ反映する。Operator noteの編集値はブラウザ内メモリでcall id別に保持し、表示再描画時に応答ドラフト、会話履歴風プレビュー、未送信入力欄も選択中call idへ追従する。manifest取得失敗時や該当bundleなしの場合は既存表示を維持する。
 - `src/response-policy.ts`はキュー項目、根拠候補、会話プレビュー、Operator noteから、本人確認前の顧客別回答ブロック、上席確認必須、本人確認済みscoped draft許可を決定的に判定する。
+- `src/call-summary.ts`は選択中キュー項目、根拠候補、会話プレビュー、Operator note、policy guardから、問い合わせ要約、根拠参照、policy判断、Operator note状態、次アクションをローカル決定的に返す。外部送信、永続保存、LLM生成済み履歴は扱わない。
 - `src/ai-response-request.ts`は選択中キュー項目、根拠候補、応答ドラフト、会話プレビュー、未送信Operator note、送信/保存候補payload、policy guardをprovider非依存の送信用payloadへまとめる。現時点では`externalSendAllowed`と`persistenceAllowed`は常に`false`で、外部通信や保存は行わない。
 - `src/ai-response-client.ts`は`AiResponseRequest`を消費するclient adapter境界を定義し、決定的stubでprovider/model識別子、応答ドラフト、根拠参照、policy guard、human review要否、送信/保存不可guardrailを返す。
 - `src/ai-response-network-client.ts`は`AiResponseRequest`をJSON POSTし、policy guardを含む`AiResponseClientResult`を受け取るHTTP adapterを定義する。response payload、HTTPエラー、call id不一致を検証するが、本番provider SDK、API key、環境変数は扱わない。
@@ -52,7 +54,7 @@
 
 - ローカルテストコマンドは`npm test`。
 - ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffのExecutive demo briefと架空顧客モック表示、根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、call id別の未送信入力プレビュー、browser-only送信/保存候補payload、policy guard、代表デモシナリオ回帰、fallback / rehearsal plan表示、AI response request payload、AI response client adapter、AI response network adapter、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
+- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffのExecutive demo briefと架空顧客モック表示、Call summary、根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、call id別の未送信入力プレビュー、browser-only送信/保存候補payload、policy guard、代表デモシナリオ回帰、fallback / rehearsal plan表示、AI response request payload、AI response client adapter、AI response network adapter、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -63,10 +65,11 @@
 - Operator note送信/保存境界の安全監査メモは`docs/ai/security/operator-input-submit-save-design-safety-audit.md`にある。
 - Policy guardの安全監査メモは`docs/ai/security/response-policy-guard-safety-audit.md`にある。
 - CCNet向け架空顧客モックの安全監査メモは`docs/ai/security/ccnet-mock-customer-data-safety-audit.md`にある。
+- Call summaryの安全監査メモは`docs/ai/security/call-summary-generation-safety-audit.md`にある。
 
 ## 既知の未完了項目
 
-- 次の実装タスクはTask 23 `call-summary-generation`。選択中の問い合わせ、根拠候補、policy guard、Operator noteから、応対サマリー、判断結果、次アクションをローカル決定的に作る。
+- 次の実装タスクはTask 24 `browser-call-style-ui`。現在の安全境界と決定的なCall summaryを保ったまま、役員に見せる通話風UIへ整える。
 - LLM応答生成、会話履歴保存、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
@@ -77,5 +80,5 @@
 
 ## 次のハンドオフ
 
-- Task 22 `executive-demo-polish`は完了。CCNet株式会社の公開HP、サービス詳細、約款、重要事項説明を確認し、公開情報ベースの架空シナリオと顧客モックをExecutive demo brief、knowledge、デモ台本へ反映した。
-- 次はTask 23 `call-summary-generation`に着手する。
+- Task 23 `call-summary-generation`は完了。選択中問い合わせ、根拠候補、会話プレビュー、Operator note、policy guardから、ローカル決定的なCall summaryと次アクションを表示できる。
+- 次はTask 24 `browser-call-style-ui`に着手する。

@@ -9,6 +9,7 @@ import type {
   FallbackRehearsalPlan,
   FallbackRehearsalStep
 } from "./fallback-rehearsal.js";
+import { buildCallSummary, type CallSummary } from "./call-summary.js";
 
 export type CallStatus = "waiting" | "ai-handling" | "human-review";
 
@@ -485,6 +486,13 @@ export function renderApp(state: DemoState = demoState): string {
     inputPreview,
     scenario: state.executiveScenario
   });
+  const callSummary = buildCallSummary({
+    item: selectedQueueItem,
+    evidence: state.assistantEvidence,
+    conversation: threadPreview,
+    operatorInput: inputPreview,
+    policy: policyGuard
+  });
   const queueItems = state.activeQueue
     .map((item) => renderQueueItem(item, selectedCallId))
     .join("");
@@ -541,6 +549,7 @@ export function renderApp(state: DemoState = demoState): string {
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
             ${renderExecutiveDemoBrief(executiveDemoBrief)}
+            ${renderCallSummary(callSummary)}
             ${
               state.fallbackRehearsal
                 ? renderFallbackRehearsalPlan(state.fallbackRehearsal)
@@ -555,6 +564,51 @@ export function renderApp(state: DemoState = demoState): string {
         </section>
       </section>
     </main>
+  `;
+}
+
+function renderCallSummary(summary: CallSummary): string {
+  const evidenceItems = summary.evidenceReferences
+    .map((reference) => `<li>${escapeHtml(reference)}</li>`)
+    .join("");
+
+  return `
+    <section
+      class="summary-panel"
+      aria-labelledby="call-summary-title"
+      data-call-summary-call-id="${escapeHtml(summary.callId)}"
+      data-external-send-allowed="false"
+      data-persistence-allowed="false"
+    >
+      <div class="summary-heading">
+        <h3 id="call-summary-title">Call summary</h3>
+        <span>${escapeHtml(summary.callId)}</span>
+      </div>
+      <p class="summary-main">${escapeHtml(summary.inquirySummary)}</p>
+      <dl>
+        <div>
+          <dt>Policy decision</dt>
+          <dd>${escapeHtml(summary.policyDecision.summary)}</dd>
+        </div>
+        <div>
+          <dt>Operator note</dt>
+          <dd>${escapeHtml(summary.operatorNoteStatus.summary)}</dd>
+        </div>
+        <div>
+          <dt>Next action</dt>
+          <dd>${escapeHtml(summary.nextAction)}</dd>
+        </div>
+        <div>
+          <dt>Summary only</dt>
+          <dd>External send blocked; Persistent save blocked</dd>
+        </div>
+      </dl>
+      ${
+        summary.evidenceReferences.length > 0
+          ? `<div class="summary-evidence"><span>Evidence references</span><ul>${evidenceItems}</ul></div>`
+          : `<p class="summary-empty">根拠参照はまだありません。</p>`
+      }
+    </section>
   `;
 }
 

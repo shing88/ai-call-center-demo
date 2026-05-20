@@ -486,6 +486,73 @@ h3 {
   font-size: 0.84rem;
 }
 
+.summary-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid #c7d3e2;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcff;
+}
+
+.summary-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-heading span,
+.summary-evidence span {
+  color: #667085;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.summary-main,
+.summary-empty {
+  margin-bottom: 0;
+  color: #344052;
+  font-size: 0.9rem;
+}
+
+.summary-panel dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.summary-panel dl div {
+  display: grid;
+  gap: 3px;
+}
+
+.summary-panel dt,
+.summary-panel dd {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.summary-panel dt {
+  color: #667085;
+  font-weight: 800;
+}
+
+.summary-panel dd {
+  color: #17202a;
+}
+
+.summary-evidence ul {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: #344052;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
 .policy-panel {
   display: grid;
   gap: 10px;
@@ -638,6 +705,7 @@ h3 {
   .thread-heading,
   .input-heading,
   .executive-brief__heading,
+  .summary-heading,
   .policy-heading,
   .evidence-heading {
     align-items: stretch;
