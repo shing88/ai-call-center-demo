@@ -4,13 +4,15 @@
 
 次のタスク: Task 28 `browser-realtime-voice-demo`
 
-現在のPR段階: Business-rule grounded operator behavior
+現在のPR段階: Call recording and handoff
 
 Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controlsは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否を固定している。
 
-このPRでは、Task 28の推奨PR分割のBusiness-rule grounded operator behaviorだけを扱う。選択中callのevidence candidates、業務ルール、架空顧客モック、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、server-side client secret session configへ渡す。根拠外の断定、本人確認前の顧客別断定、送信・保存・変更済みの主張は禁止する。`.env.local`や実secretはcommitしない。記録DB、実電話接続、transcript/summary保存はまだ入れない。
+Task 28のBusiness-rule grounded operator behaviorも実装済み。選択中callのevidence candidates、業務ルール、架空顧客モック、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、server-side client secret session configへ渡す。
 
-後続計画: Task 28の次PRはCall recording and handoff。transcript、summary、evidence references、policy decision、next actionを画面に残す最小実装へ進める。
+このPRでは、Task 28の推奨PR分割のCall recording and handoffだけを扱う。`End call`後にtranscript、summary、evidence references、policy decision、next actionをbrowser stateのhandoff recordとして画面に残す。`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信、transcript/summaryの永続保存はまだ入れない。
+
+後続計画: 必要になった場合だけ、Docker再起動後もhandoff recordを残すSQLite/local JSON persistenceを別PRで小さく扱う。
 
 ## タスク開始時に必ず読む
 
@@ -34,6 +36,7 @@ src/app.ts
 src/main.ts
 src/realtime-connection.ts
 src/realtime-call-controls.ts
+src/realtime-call-recording.ts
 src/realtime-session-context.ts
 src/realtime-token-endpoint.ts
 src/evidence-bridge.ts

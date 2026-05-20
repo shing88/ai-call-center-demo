@@ -60,6 +60,10 @@ export interface RealtimePeerConnectionLike {
 
 export interface RealtimeDataChannelLike {
   close(): void;
+  addEventListener?(
+    type: "message",
+    listener: (event: { data: unknown }) => void
+  ): void;
 }
 
 export interface StartRealtimeCallSessionDependencies {
@@ -67,6 +71,7 @@ export interface StartRealtimeCallSessionDependencies {
   getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
   createPeerConnection: () => RealtimePeerConnectionLike;
   tokenRequestBody?: unknown;
+  onServerEvent?: (event: unknown) => void;
 }
 
 interface RealtimeClientSecretResponse {
@@ -129,6 +134,7 @@ export async function startRealtimeCallSession(
     }
 
     dataChannel = peerConnection.createDataChannel("oai-events");
+    attachRealtimeServerEventListener(dataChannel, dependencies.onServerEvent);
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
 
@@ -242,6 +248,27 @@ function closeSessionResources(input: {
   }
 
   input.peerConnection?.close();
+}
+
+function attachRealtimeServerEventListener(
+  dataChannel: RealtimeDataChannelLike,
+  onServerEvent: ((event: unknown) => void) | undefined
+): void {
+  if (!onServerEvent || !dataChannel.addEventListener) {
+    return;
+  }
+
+  dataChannel.addEventListener("message", (event) => {
+    if (typeof event.data !== "string") {
+      return;
+    }
+
+    try {
+      onServerEvent(JSON.parse(event.data) as unknown);
+    } catch (_error) {
+      return;
+    }
+  });
 }
 
 function selectDefaultMicrophoneState(
