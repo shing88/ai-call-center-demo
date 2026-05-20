@@ -10,6 +10,7 @@
 - Webアプリの入口は`index.html`、ブラウザ実行時の接続先は`src/main.ts`。
 - 開発時は`npm run dev`で`dist/`をローカル配信する。
 - `npm run build`で`dist/index.html`、`dist/assets/*.js`、`dist/assets/evidence-bundles.json`を生成する。
+- デモ担当者向けにはDocker起動を用意している。`docker compose up --build`でコンテナを起動し、`http://localhost:4173/`を開く。
 
 ## 現在のデモ状態
 
@@ -18,6 +19,7 @@
 - `Realtime boundary`は`Realtime not configured`を表示し、contract-only token endpoint `POST /api/realtime/client-secret`、server-minted ephemeral client secret、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、実電話接続blockedを明示する。実Realtime sessionは開始しない。
 - ブラウザ入口`src/main.ts`のruntime dependency graphはNode-only moduleを含めない。fallback rehearsalはbrowser-safeな`src/demo-scenario-cases.ts`を使い、knowledge loaderはブラウザ入口から到達しない。
 - キュー項目の「開く」操作で、該当call idの根拠候補、サマリー、ドラフト、会話プレビュー、Operator note、policyが切り替わる。
+- evidence manifestは読み込み時にbundle/result単位まで検証し、不正なmanifestはfallback表示へ戻す。
 - CCNet向けデモは公開HP、サービス詳細、約款、重要事項説明に合わせた架空シナリオと架空顧客モックを使う。実在顧客データは使わない。
 - 外部AI API、Realtime音声、実電話、DB保存、認証、本番接続は未実装。Operator noteはbrowser-onlyの未送信・未保存候補。
 
@@ -30,7 +32,7 @@
 - `src/knowledge.ts`: knowledge Markdown loader / chunk model。
 - `src/knowledge-search.ts`: ローカル決定的keyword search。
 - `src/evidence-bridge.ts`: キュー項目とknowledge検索結果の橋渡し。
-- `src/evidence-manifest.ts` / `src/evidence-manifest-builder.ts` / `src/evidence-manifest-client.ts`: browser-safe evidence manifest。
+- `src/evidence-manifest.ts` / `src/evidence-manifest-builder.ts` / `src/evidence-manifest-client.ts`: browser-safe evidence manifestとmanifest validation。
 - `src/response-policy.ts`: 本人確認前の顧客別回答ブロック、上席確認必須、本人確認済みscoped draft許可の決定的判定。
 - `src/call-summary.ts`: 問い合わせ要約、根拠参照、policy判断、Operator note状態、次アクションのローカル決定的生成。
 - `src/ai-response-request.ts` / `src/ai-response-client.ts` / `src/ai-response-network-client.ts`: provider非依存payload、決定的stub、HTTP adapter境界。現時点では外部送信・永続保存を許可しない。
@@ -42,7 +44,8 @@
 
 - ローカルテスト: `npm.cmd test`（POSIX/CIでは`npm test`）。
 - ローカルビルド: `npm.cmd run build`（POSIX/CIでは`npm run build`）。
-- `npm test`は89件。Call workspaceのreview-only表示、Realtime boundaryのnot configured表示、contract-only token endpoint、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabled、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないことも固定している。
+- Docker確認: `docker build -t ai-call-center-demo:codex-two-angle-review .`、`docker run -p 4174:4173 ai-call-center-demo:codex-two-angle-review`でHTTP 200を確認。
+- `npm test`は90件。Call workspaceのreview-only表示、Realtime boundaryのnot configured表示、contract-only token endpoint、manifest validation、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabled、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないことも固定している。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -54,5 +57,6 @@
 
 ## 次のハンドオフ
 
+- 別枠ブランチ`codex/two-angle-review`でDocker化、デモ担当者向けREADME更新、manifest validation堅牢化を実施した。通常の次Task指定は変更していない。
 - Task 26 `realtime-token-endpoint-contract`は実装済み。PRではcontract-only token endpoint、公式Docs確認URL、未接続UIへの表示、secret非露出guardrail tests、安全監査、テストカタログを確認する。
 - 次の実装タスクはTask 27 `realtime-token-endpoint-disabled-adapter`。実OpenAI API keyや実network呼び出しを入れず、未設定時のserver-side adapter / fallback responseを決定的に扱う。

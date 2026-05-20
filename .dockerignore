@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+coverage/
+.tmp/
+.cache/
+.git/
+.github/
+.codex/
+.env
+.env.*
+*.log
+test-results/
+playwright-report/
+.DS_Store
+Thumbs.db
