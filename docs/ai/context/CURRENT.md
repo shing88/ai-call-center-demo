@@ -50,10 +50,11 @@
 
 - エージェントは`AGENTS.md`、このコンテキストパック、アクティブなタスク指示から開始する。
 - GPT Proや外部ツールの計画ドラフトは`docs/ai/inbox/pro-instructions/`に置き、実行前に変換する。
+- GPT Proドラフトと実行済みTaskの対応、未実装項目、次の大きめPR候補は`docs/ai/specs/draft-task-reconciliation.md`にある。
 
 ## 既知の未完了項目
 
-- 次の実装タスクは未定。候補はprovider固有client設定、入力内容の送信/保存設計、または検索ランキングの追加評価だが、実行前に`docs/ai/tasks/`配下の短いタスク指示として定義する。
+- 次の実装タスクはTask 18 `operator-input-submit-save-design`。未送信Operator noteを、キュー選択ごとの編集状態、送信候補payload、保存不可/未永続の明示へ進める。
 - LLM応答生成、会話履歴保存、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
@@ -64,5 +65,5 @@
 
 ## 次のハンドオフ
 
-- Task 16 `ai-response-network-adapter`は完了。
-- 次はprovider固有client設定、入力内容の送信/保存設計、または検索ランキングの追加評価を進める実行可能タスク指示を作成してから着手する。
+- Task 17 `roadmap-reconciliation`は完了。
+- 次はTask 18 `operator-input-submit-save-design`に着手する。
