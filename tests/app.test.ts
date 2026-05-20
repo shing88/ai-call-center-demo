@@ -555,6 +555,36 @@ test("renderApp marks the selected queue item from assistant evidence", () => {
   assert.match(html, /aria-pressed="true"/);
 });
 
+test("renderApp frames the selected call as a review-only call workspace", () => {
+  const html = renderApp();
+  const workspaceIndex = html.indexOf('class="call-workspace"');
+  const workspaceTitleIndex = html.indexOf('id="call-workspace-title"');
+  const summaryIndex = html.indexOf('id="call-summary-title"');
+  const threadIndex = html.indexOf('id="thread-title"');
+  const inputIndex = html.indexOf('id="input-title"');
+  const policyIndex = html.indexOf('id="policy-title"');
+  const evidenceIndex = html.indexOf('id="evidence-title"');
+
+  assert.ok(workspaceIndex >= 0);
+  assert.ok(workspaceTitleIndex >= 0);
+  assert.ok(summaryIndex > workspaceTitleIndex);
+  assert.ok(threadIndex > summaryIndex);
+  assert.ok(inputIndex > threadIndex);
+  assert.ok(policyIndex > inputIndex);
+  assert.ok(evidenceIndex > policyIndex);
+  assert.match(html, /data-call-workspace-call-id="CALL-CC-03"/);
+  assert.match(html, /Call workspace/);
+  assert.match(html, /Review mode/);
+  assert.match(html, /Phone connection/);
+  assert.match(html, /not connected/);
+  assert.match(html, /CCNet光10G Wi-Fi/);
+  assert.match(html, /customer_ccnet_2001/);
+  assert.doesNotMatch(html, /Live call connected/i);
+  assert.doesNotMatch(html, /external AI generated/i);
+  assert.doesNotMatch(html, /sent successfully/i);
+  assert.doesNotMatch(html, /saved successfully/i);
+});
+
 test("renderApp keeps the assistant panel stable without evidence candidates", () => {
   const state: DemoState = {
     agentName: "Support Ops",
