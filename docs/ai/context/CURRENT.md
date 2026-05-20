@@ -16,6 +16,7 @@
 - 静的TypeScriptデモとして、Live queue、Assistant handoff、Call workspace、Realtime boundary、Executive demo brief、Call summary、Response draft、Conversation preview、Operator note、Policy guard、Evidence candidatesを表示する。
 - `Call workspace`は選択中call id、Review mode、Phone connection not connected、架空顧客モック、サービス文脈、policy lane、next actionを1枚で確認するレビュー専用UI。
 - `Realtime boundary`は`Realtime not configured`を表示し、contract-only token endpoint `POST /api/realtime/client-secret`、server-minted ephemeral client secret、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、実電話接続blockedを明示する。実Realtime sessionは開始しない。
+- ブラウザ入口`src/main.ts`のruntime dependency graphはNode-only moduleを含めない。fallback rehearsalはbrowser-safeな`src/demo-scenario-cases.ts`を使い、knowledge loaderはブラウザ入口から到達しない。
 - キュー項目の「開く」操作で、該当call idの根拠候補、サマリー、ドラフト、会話プレビュー、Operator note、policyが切り替わる。
 - CCNet向けデモは公開HP、サービス詳細、約款、重要事項説明に合わせた架空シナリオと架空顧客モックを使う。実在顧客データは使わない。
 - 外部AI API、Realtime音声、実電話、DB保存、認証、本番接続は未実装。Operator noteはbrowser-onlyの未送信・未保存候補。
@@ -34,13 +35,14 @@
 - `src/call-summary.ts`: 問い合わせ要約、根拠参照、policy判断、Operator note状態、次アクションのローカル決定的生成。
 - `src/ai-response-request.ts` / `src/ai-response-client.ts` / `src/ai-response-network-client.ts`: provider非依存payload、決定的stub、HTTP adapter境界。現時点では外部送信・永続保存を許可しない。
 - `src/demo-scenario-regression.ts`: 代表シナリオをknowledge検索、Operator note、policy guard、request/client境界に通す回帰runner。
+- `src/demo-scenario-cases.ts`: fallback rehearsalと回帰runnerで共有するbrowser-safeな代表シナリオ定義。
 - `src/fallback-rehearsal.ts`: 外部通信なしで進行するfallback / rehearsal plan。
 
 ## 現在のテスト / CI
 
 - ローカルテスト: `npm.cmd test`（POSIX/CIでは`npm test`）。
 - ローカルビルド: `npm.cmd run build`（POSIX/CIでは`npm run build`）。
-- `npm test`は88件。Call workspaceのreview-only表示、Realtime boundaryのnot configured表示、contract-only token endpoint、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabled、compiled browser-facing moduleのsecret非露出も固定している。
+- `npm test`は89件。Call workspaceのreview-only表示、Realtime boundaryのnot configured表示、contract-only token endpoint、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabled、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないことも固定している。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー

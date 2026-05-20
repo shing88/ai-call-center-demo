@@ -4,7 +4,7 @@
 
 次のタスク: Task 27 `realtime-token-endpoint-disabled-adapter`
 
-状態: Task 26 `realtime-token-endpoint-contract`実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、contract-only token endpoint `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、`value` / `expires_at` / `session` response field、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabledを固定している。次は実OpenAI API keyや実network呼び出しを入れず、未設定時のdisabled adapter / fallback responseを決定的に扱う。
+状態: Task 26 `realtime-token-endpoint-contract`実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、contract-only token endpoint `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、`value` / `expires_at` / `session` response field、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabledを固定している。ブラウザ入口はNode-only moduleを含まない依存グラフへ修正済み。次は実OpenAI API keyや実network呼び出しを入れず、未設定時のdisabled adapter / fallback responseを決定的に扱う。
 
 ## タスク開始時に必ず読む
 
