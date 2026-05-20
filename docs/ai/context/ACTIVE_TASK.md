@@ -4,11 +4,13 @@
 
 次のタスク: Task 28 `browser-realtime-voice-demo`
 
-状態: Task 27 `realtime-token-endpoint-disabled-adapter`実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、contract-only token endpoint `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、disabled adapterの`not-configured` / local fallback、ブラウザAPI key拒否、マイク未要求、外部音声送信blocked、session start disabledを固定している。実OpenAI API keyや実network呼び出しはまだ入れていない。次はTask 28の計画に従い、ブラウザ音声デモを小さなPR列へ分割して進める。
+現在のPR段階: Server runtime foundation
 
-別枠: `codex/two-angle-review`では通常の次Taskを進めず、Docker化、デモ担当者向けREADME更新、manifest validation堅牢化だけを実施した。
+Task 27 `realtime-token-endpoint-disabled-adapter`は実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、contract-only token endpoint `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、disabled adapterの`not-configured` / local fallback、ブラウザAPI key拒否、マイク未要求、外部音声送信blocked、session start disabledを固定している。
 
-後続計画: Task 28 `browser-realtime-voice-demo`は、電話番号/SIP/Twilioは使わず、画面の`Start call`からヘッドセットでAIオペレータと会話し、業務ルールに基づく回答と通話記録を残す完成形へ段階的に進める。1PRで全部入れず、推奨PR分割の1段階だけを実装する。
+このPRでは、Task 28の推奨PR分割の1段階目だけを扱う。静的配信を維持しつつNode server runtimeを追加し、`GET /api/health`と`POST /api/realtime/client-secret`のdisabled/fallback responseをDocker起動パスでも提供する。実OpenAI API key、実network呼び出し、WebRTC接続、マイク権限、Start call UIはまだ入れない。
+
+後続計画: Task 28の次PRはRealtime client secret implementation。`OPENAI_API_KEY`未設定時はdeterministicな`not-configured` responseを維持し、設定時だけserver-sideからOpenAIの`/v1/realtime/client_secrets`へrequestしてbrowserへephemeral client secretを返す。
 
 ## タスク開始時に必ず読む
 
@@ -27,6 +29,7 @@ README.md
 package.json
 Dockerfile
 docker-compose.yml
+src/server-runtime.ts
 src/app.ts
 src/main.ts
 src/realtime-connection.ts
