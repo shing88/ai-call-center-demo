@@ -31,11 +31,20 @@ export interface LoadEvidenceBundleInput {
 }
 
 export function buildKnowledgeQuery(item: QueueItem): string {
-  return compactWhitespace(`${item.topic} ${item.excerpt}`);
+  return compactWhitespace(
+    [
+      item.topic,
+      item.excerpt,
+      item.customerId,
+      item.serviceArea,
+      item.servicePlan
+    ].join(" ")
+  );
 }
 
 export function buildEvidenceBundle(input: BuildEvidenceBundleInput): EvidenceBundle {
   const query = buildKnowledgeQuery(input.item);
+  const customerId = input.customerId ?? input.item.customerId;
   const results =
     query.length === 0
       ? []
@@ -43,7 +52,7 @@ export function buildEvidenceBundle(input: BuildEvidenceBundleInput): EvidenceBu
           chunks: input.chunks,
           query,
           categories: input.categories,
-          customerId: input.customerId,
+          customerId,
           limit: input.limit
         });
 

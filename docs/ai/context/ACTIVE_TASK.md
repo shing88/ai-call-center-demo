@@ -4,7 +4,7 @@
 
 次のタスク: Task 23 `call-summary-generation`
 
-状態: Task 22 `executive-demo-polish`完了。Assistant handoffの冒頭にExecutive demo briefを追加し、根拠候補、policy guard、fallback / rehearsal、送信/保存不可の関係を役員デモで説明しやすくした。次はTask 23で、選択中問い合わせの応対サマリー、判断結果、次アクションをローカル決定的に作る。
+状態: Task 22 `executive-demo-polish`完了。Assistant handoffの冒頭にExecutive demo briefを追加し、CCNetのサービス詳細・約款・重要事項説明ベースの架空顧客モック、根拠候補、policy guard、fallback / rehearsal、送信/保存不可の関係を役員デモで説明しやすくした。次はTask 23で、選択中問い合わせの応対サマリー、判断結果、次アクションをローカル決定的に作る。
 
 ## タスク開始時に必ず読む
 

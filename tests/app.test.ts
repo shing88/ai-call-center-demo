@@ -351,6 +351,10 @@ test("renderApp leads with an executive demo brief that connects evidence, polic
   assert.match(html, /CCNet株式会社 \/ fictional/);
   assert.match(html, /CCNet光10G/);
   assert.match(html, /安全・安心123チャンネル/);
+  assert.match(html, /Fictional customer mockup/);
+  assert.match(html, /customer_ccnet_2001/);
+  assert.match(html, /CCNet光1G おとく割/);
+  assert.match(html, /本人確認前は契約状態を断定しない/);
   assert.match(html, /Use only fictional customer details/);
   assert.match(html, /Evidence candidates/);
   assert.match(html, /Policy guard/);
@@ -498,6 +502,9 @@ test("renderApp marks the selected queue item from assistant evidence", () => {
 
   assert.match(html, /data-queue-call-id="CALL-CC-03"/);
   assert.match(html, /data-queue-open="CALL-CC-03"/);
+  assert.match(html, /customer_ccnet_2001/);
+  assert.match(html, /春日井市 \/ 戸建て/);
+  assert.match(html, /unverified/);
   assert.match(html, /queue-item--selected/);
   assert.match(html, /aria-current="true"/);
   assert.match(html, /aria-pressed="true"/);

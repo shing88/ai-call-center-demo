@@ -29,7 +29,25 @@ test("buildEvidenceManifest creates a bundle for each demo queue item", () => {
   ]);
   assert.equal(manifest.bundles["CALL-CC-03"]?.callId, "CALL-CC-03");
   assert.match(manifest.bundles["CALL-CC-03"]?.query ?? "", /CCNet光10G/);
+  assert.match(manifest.bundles["CALL-CC-03"]?.query ?? "", /customer_ccnet_2001/);
   assert.ok((manifest.bundles["CALL-CC-03"]?.resultCount ?? 0) > 0);
+});
+
+test("buildEvidenceManifest keeps CCNet customer contract evidence scoped to the selected fictional customer", () => {
+  const manifest = buildEvidenceManifest({
+    generatedAt: "2026-05-19T00:00:00.000Z",
+    items: demoState.activeQueue,
+    knowledgeBase: loadKnowledgeBase(),
+    defaultCallId: "CALL-CC-03",
+    categories: ["customer_contracts"],
+    limit: 3
+  });
+
+  const sourcePaths = manifest.bundles["CALL-CC-03"]?.results.map((result) => result.sourcePath);
+
+  assert.deepEqual(Array.from(new Set(sourcePaths)), [
+    "customer_contracts/customer_ccnet_2001.md"
+  ]);
 });
 
 test("selectAssistantEvidenceFromManifest uses the preferred bundle and converts display fields", () => {

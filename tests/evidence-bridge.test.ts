@@ -23,8 +23,16 @@ function queueItem(overrides: Partial<QueueItem> = {}): QueueItem {
 
 test("buildKnowledgeQuery combines queue topic and excerpt into a compact query", () => {
   assert.equal(
-    buildKnowledgeQuery(queueItem({ topic: "  返金相談  ", excerpt: "  返品したいです。  " })),
-    "返金相談 返品したいです。"
+    buildKnowledgeQuery(
+      queueItem({
+        topic: "  返金相談  ",
+        excerpt: "  返品したいです。  ",
+        customerId: "customer_ccnet_2001",
+        serviceArea: "春日井市 / 戸建て",
+        servicePlan: "CCNet光1G おとく割"
+      })
+    ),
+    "返金相談 返品したいです。 customer_ccnet_2001 春日井市 / 戸建て CCNet光1G おとく割"
   );
 });
 
@@ -74,5 +82,32 @@ test("loadEvidenceBundle can load the current knowledge base and apply customer 
   assert.ok(bundle.results.length > 0);
   assert.ok(
     bundle.results.every((result) => result.sourcePath === "customer_contracts/customer_1002.md")
+  );
+});
+
+test("loadEvidenceBundle can find the CCNet fictional customer mock by queue metadata", () => {
+  const bundle = loadEvidenceBundle({
+    item: queueItem({
+      id: "CALL-CC-03",
+      topic: "CCNet光10G Wi-Fi 相談",
+      excerpt: "春日井市の自宅でWi-Fiが不安定です。おとく割と10G変更を確認したいです。",
+      customerId: "customer_ccnet_2001",
+      serviceArea: "春日井市 / 戸建て",
+      servicePlan: "CCNet光1G おとく割 + メッシュWi-Fi"
+    }),
+    categories: ["customer_contracts"],
+    limit: 3
+  });
+
+  assert.ok(bundle.results.length > 0);
+  assert.ok(
+    bundle.results.every(
+      (result) => result.sourcePath === "customer_contracts/customer_ccnet_2001.md"
+    )
+  );
+  assert.match(bundle.results[0]?.section ?? "", /契約状態|特約/);
+  assert.match(
+    bundle.results.map((result) => `${result.section} ${result.snippet}`).join(" "),
+    /CCNet光1G|おとく割|メッシュWi-Fi/
   );
 });

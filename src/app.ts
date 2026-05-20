@@ -34,6 +34,10 @@ export interface QueueItem {
   priority: "normal" | "high";
   waitSeconds: number;
   excerpt: string;
+  customerId?: string;
+  serviceArea?: string;
+  servicePlan?: string;
+  verificationStatus?: "unverified" | "verified";
 }
 
 export type OperatorNotesByCallId = Record<string, string>;
@@ -122,6 +126,7 @@ export interface ExecutiveDemoBrief {
 
 export interface BuildExecutiveDemoBriefInput {
   evidence: AssistantEvidence;
+  item?: QueueItem;
   policy: ResponsePolicyGuard;
   fallbackRehearsal?: FallbackRehearsalPlan;
   inputPreview: AssistantInputPreview;
@@ -147,33 +152,43 @@ export const demoState: DemoState = {
     researchBasis: "Public CCNet website review on 2026-05-20",
     scenarioTitle: "10G/Wi-Fi support and local safety information handoff",
     fictionalCustomerSituation:
-      "Fictional Kasugai-area subscriber reports unstable home Wi-Fi during telework and asks whether CCNet光10G, support service, and 安全・安心123チャンネル can help before heavy rain.",
+      "Fictional Kasugai-area subscriber has CCNet光1G おとく割 with mesh Wi-Fi and asks whether CCNet光10G, support service, and 安全・安心123チャンネル can help before heavy rain.",
     fitPoints: [
       "Regional cable, internet, and phone provider across Aichi, Gifu, and Mie.",
-      "Cross-service support can reference internet, TV/community channel, fixed phone, My Page, and support windows.",
-      "Demo should show public-service guidance first, then block customer-specific course changes or promises until identity and service eligibility are confirmed."
+      "Cross-service support can reference internet, TV/community channel, fixed phone, My Page, contract terms, important explanations, and support windows.",
+      "Demo should show public-service guidance first, then block customer-specific course changes, fees, cancellation penalties, or promises until identity and service eligibility are confirmed."
     ],
     guardrail:
-      "Use only fictional customer details; do not imply real CCNet customer data, external AI send, persistent save, production connection, or guaranteed 10G availability."
+      "Use only fictional customer details; do not imply real CCNet customer data, external AI send, persistent save, production connection, guaranteed 10G availability, confirmed fees, or completed contract changes."
   },
   assistantSuggestion:
     "公開情報で案内できる範囲を先に整理し、契約状態や提供可否は本人確認後に担当者へ引き継ぎます。",
   assistantEvidence: {
     callId: "CALL-CC-03",
-    query: "CCNet光10G Wi-Fi 不安定 テレワーク 契約状態 安全・安心123チャンネル",
-    resultCount: 2,
+    query:
+      "CCNet光10G Wi-Fi 不安定 テレワーク 契約状態 安全・安心123チャンネル customer_ccnet_2001 CCNet光1G おとく割 メッシュWi-Fi",
+    resultCount: 3,
     results: [
       {
         sourcePath: "business_rules/005_ccnet_public_service_guidance.md",
-        section: "CCNet公開HPベース案内 > 10GとWi-Fiサポート",
-        snippet: "公開HPベースでは、10G、Wi-Fi標準提供、サポート導線は一般案内できるが、提供可否や契約状態は本人確認後に確認する。",
-        score: 21
+        section: "CCNet公開HPベース案内 > 10G・Wi-Fi・料金の一般案内",
+        snippet:
+          "公開HPベースでは10G、Wi-Fi標準提供、メッシュWi-Fi、料金目安を一般案内できるが、提供可否や契約状態は本人確認後に確認する。",
+        score: 28
+      },
+      {
+        sourcePath: "customer_contracts/customer_ccnet_2001.md",
+        section: "顧客契約: customer_ccnet_2001 > 契約状態",
+        snippet:
+          "架空顧客 customer_ccnet_2001 はCCNet光1G おとく割、テレビ、ケーブルライン、メッシュWi-Fiのデモ契約として扱う。",
+        score: 24
       },
       {
         sourcePath: "scenarios/scenario_05_ccnet_wifi_safety_handoff.md",
         section: "CCNet Wi-Fi・地域安全情報シナリオ > 根拠候補",
-        snippet: "Wi-Fi不安定、10G相談、安全・安心123チャンネル確認を、送信・保存なしの架空デモとして扱う。",
-        score: 15
+        snippet:
+          "Wi-Fi不安定、10G相談、安全・安心123チャンネル確認を、送信・保存なしの架空デモとして扱う。",
+        score: 18
       }
     ]
   },
@@ -185,7 +200,11 @@ export const demoState: DemoState = {
       status: "ai-handling",
       priority: "normal",
       waitSeconds: 35,
-      excerpt: "大雨の前に、テレビで道路・河川カメラや地域情報を確認する方法を知りたいです。"
+      excerpt: "大雨の前に、テレビで道路・河川カメラや地域情報を確認する方法を知りたいです。",
+      customerId: "customer_ccnet_2002",
+      serviceArea: "小牧市 / 戸建て",
+      servicePlan: "テレビ ファミリーA + 安全・安心123チャンネル",
+      verificationStatus: "unverified"
     },
     {
       id: "CALL-CC-02",
@@ -194,7 +213,11 @@ export const demoState: DemoState = {
       status: "human-review",
       priority: "high",
       waitSeconds: 142,
-      excerpt: "ネットがつながりにくく仕事に影響したので、障害状況と補償可否を上席に確認してほしいです。"
+      excerpt: "ネットがつながりにくく仕事に影響したので、障害状況と補償可否を上席に確認してほしいです。",
+      customerId: "customer_ccnet_2003",
+      serviceArea: "各務原市 / 集合住宅",
+      servicePlan: "CCNet Air LTE + 無線機器",
+      verificationStatus: "unverified"
     },
     {
       id: "CALL-CC-03",
@@ -203,7 +226,12 @@ export const demoState: DemoState = {
       status: "waiting",
       priority: "normal",
       waitSeconds: 78,
-      excerpt: "春日井市の自宅でテレワーク中にWi-Fiが不安定です。契約状態を見て CCNet光10G へ変えられるか知りたいです。"
+      excerpt:
+        "春日井市の自宅でテレワーク中にWi-Fiが不安定です。契約状態を見て CCNet光10G へ変えられるか知りたいです。",
+      customerId: "customer_ccnet_2001",
+      serviceArea: "春日井市 / 戸建て",
+      servicePlan: "CCNet光1G おとく割 + テレビ + ケーブルライン + メッシュWi-Fi",
+      verificationStatus: "unverified"
     }
   ]
 };
@@ -375,6 +403,17 @@ export function buildExecutiveDemoBrief(
         }
       ]
     : [];
+  const customerItems = input.item
+    ? [
+        {
+          label: "Fictional customer mockup",
+          status: input.item.customerId ?? input.item.id,
+          detail: `${input.item.callerName} / ${input.item.serviceArea ?? "area unlisted"} / ${
+            input.item.servicePlan ?? "service plan unlisted"
+          } / verification ${input.item.verificationStatus ?? "unverified"}. 本人確認前は契約状態を断定しない。`
+        }
+      ]
+    : [];
 
   return {
     callId: input.evidence.callId,
@@ -382,6 +421,7 @@ export function buildExecutiveDemoBrief(
       "Local deterministic demo only; External send blocked; Persistent save blocked; no production connection.",
     items: [
       ...scenarioItems,
+      ...customerItems,
       {
         label: "Evidence candidates",
         status: `${input.evidence.resultCount} sources`,
@@ -439,6 +479,7 @@ export function renderApp(state: DemoState = demoState): string {
   });
   const executiveDemoBrief = buildExecutiveDemoBrief({
     evidence: state.assistantEvidence,
+    item: selectedQueueItem,
     policy: policyGuard,
     fallbackRehearsal: state.fallbackRehearsal,
     inputPreview,
@@ -824,6 +865,15 @@ function renderQueueItem(item: QueueItem, selectedCallId: string): string {
   const isSelected = item.id === selectedCallId;
   const escapedId = escapeHtml(item.id);
   const escapedTopic = escapeHtml(item.topic);
+  const metaItems = [
+    item.id,
+    item.customerId,
+    item.serviceArea,
+    item.servicePlan,
+    item.verificationStatus,
+    item.callerName,
+    formatWaitTime(item.waitSeconds)
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
 
   return `
     <article class="queue-item queue-item--${item.priority}${
@@ -836,9 +886,7 @@ function renderQueueItem(item: QueueItem, selectedCallId: string): string {
         </div>
         <p>${escapeHtml(item.excerpt)}</p>
         <div class="queue-meta">
-          <span>${escapedId}</span>
-          <span>${escapeHtml(item.callerName)}</span>
-          <span>${formatWaitTime(item.waitSeconds)}</span>
+          ${metaItems.map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
         </div>
       </div>
       <button
