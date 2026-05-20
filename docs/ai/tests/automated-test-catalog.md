@@ -17,4 +17,4 @@
 
 - `npm test`はTypeScriptを`tsconfig.test.json`でcompileし、`.tmp/test/tests/*.test.js`をNode.js test runnerで実行する。
 - `npm run build`は`tsc -p tsconfig.json`、静的ファイルcopy、evidence manifest生成を実行する。
-- Task 20時点では、代表デモシナリオ回帰、policy guard、AI response request/client/network境界、Operator note、knowledge/search/evidenceを含む68件のテストが通る。
+- Task 21時点では、fallback / rehearsal plan、代表デモシナリオ回帰、policy guard、AI response request/client/network境界、Operator note、knowledge/search/evidenceを含む70件のテストが通る。

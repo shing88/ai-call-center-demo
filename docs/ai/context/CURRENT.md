@@ -19,6 +19,8 @@
 - AI response HTTP network adapter境界は`src/ai-response-network-client.ts`にある。`fetcher`注入でテストでき、provider固有SDKやsecret参照は持たない。
 - 回答範囲、上席確認要否、回答不可種別を決定的に判定するpolicy guardは`src/response-policy.ts`にある。
 - 代表シナリオごとの根拠候補、Operator note、policy guard、AI response request/client結果を固定する回帰runnerは`src/demo-scenario-regression.ts`にある。
+- 外部AI API、音声、通信が使えない場合に備えたfallback / rehearsal planは`src/fallback-rehearsal.ts`にあり、`src/main.ts`から画面へ注入される。
+- fallback時のデモ進行手順は`docs/ai/demo/fallback-runbook.md`にある。
 - `npm run build`で`dist/index.html`、`dist/assets/*.js`、`dist/assets/evidence-bundles.json`を生成する。
 - 開発時は`npm run dev`で`dist/`をローカル配信する。
 
@@ -38,6 +40,7 @@
 - `src/ai-response-client.ts`は`AiResponseRequest`を消費するclient adapter境界を定義し、決定的stubでprovider/model識別子、応答ドラフト、根拠参照、policy guard、human review要否、送信/保存不可guardrailを返す。
 - `src/ai-response-network-client.ts`は`AiResponseRequest`をJSON POSTし、policy guardを含む`AiResponseClientResult`を受け取るHTTP adapterを定義する。response payload、HTTPエラー、call id不一致を検証するが、本番provider SDK、API key、環境変数は扱わない。
 - `src/demo-scenario-regression.ts`は本人確認前、本人確認済み、上席確認必須の代表シナリオを、現在のknowledge検索、Operator note、policy guard、request/client境界に通すためのfixtureとrunnerを持つ。
+- `src/fallback-rehearsal.ts`は代表シナリオを手動進行するためのrun orderと、外部送信なし、保存なし、Realtime音声不要、provider SDK不要のguardrailを決定的に返す。
 - 顧客契約検索は`customerId`で対象顧客を絞れる。
 - 現時点ではloader/search/evidence bridgeはNode.js側のbuild時境界であり、ブラウザUIは生成済みmanifestだけをfetchする。
 - 外部AI APIのprovider固有本番接続、LLM応答生成、会話履歴保存、通話連携、認証、DBはまだ存在しない。
@@ -47,7 +50,7 @@
 
 - ローカルテストコマンドは`npm test`。
 - ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、call id別の未送信入力プレビュー、browser-only送信/保存候補payload、policy guard、代表デモシナリオ回帰、AI response request payload、AI response client adapter、AI response network adapter、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
+- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、call id別の未送信入力プレビュー、browser-only送信/保存候補payload、policy guard、代表デモシナリオ回帰、fallback / rehearsal plan表示、AI response request payload、AI response client adapter、AI response network adapter、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -60,7 +63,7 @@
 
 ## 既知の未完了項目
 
-- 次の実装タスクはTask 21 `fallback-rehearsal-mode`。外部AI API、音声、通信が使えない場合でも、現在の決定的なローカル境界だけでデモを継続できる状態を作る。
+- 次の実装タスクはTask 22 `executive-demo-polish`。根拠候補、policy guard、fallback / rehearsal、送信/保存不可の関係を役員デモで説明しやすい状態へ整える。
 - LLM応答生成、会話履歴保存、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
@@ -71,5 +74,5 @@
 
 ## 次のハンドオフ
 
-- Task 20 `demo-scenario-regression-suite`は完了。
-- 次はTask 21 `fallback-rehearsal-mode`に着手する。
+- Task 21 `fallback-rehearsal-mode`は完了。
+- 次はTask 22 `executive-demo-polish`に着手する。
