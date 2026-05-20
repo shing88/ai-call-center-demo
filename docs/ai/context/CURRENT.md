@@ -60,3 +60,4 @@
 - 別枠ブランチ`codex/two-angle-review`でDocker化、デモ担当者向けREADME更新、manifest validation堅牢化を実施した。通常の次Task指定は変更していない。
 - Task 26 `realtime-token-endpoint-contract`は実装済み。PRではcontract-only token endpoint、公式Docs確認URL、未接続UIへの表示、secret非露出guardrail tests、安全監査、テストカタログを確認する。
 - 次の実装タスクはTask 27 `realtime-token-endpoint-disabled-adapter`。実OpenAI API keyや実network呼び出しを入れず、未設定時のserver-side adapter / fallback responseを決定的に扱う。
+- 後続計画としてTask 28 `browser-realtime-voice-demo`を追加した。電話番号ではなく、ヘッドセット利用者が画面の`Start call`を押してAIオペレータと音声会話し、業務ルールに基づく回答と記録を残す完成形へ段階的に進める。
