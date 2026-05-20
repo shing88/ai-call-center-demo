@@ -12,6 +12,7 @@ import {
   type DemoState
 } from "../src/app.js";
 import { buildFallbackRehearsalPlan } from "../src/fallback-rehearsal.js";
+import { buildRealtimeConnectionBoundary } from "../src/realtime-connection.js";
 import { buildRealtimeCallControls } from "../src/realtime-call-controls.js";
 import type { RealtimeCallHandoffRecord } from "../src/realtime-call-recording.js";
 
@@ -633,6 +634,46 @@ test("renderApp displays browser Realtime call controls without exposing secrets
   assert.match(html, /data-microphone-permission-state="granted"/);
   assert.match(html, /data-realtime-start-call/);
   assert.match(html, /data-realtime-end-call/);
+  assert.doesNotMatch(html, /ek_test_ephemeral_client_secret/);
+  assert.doesNotMatch(html, /server-standard-key/);
+});
+
+test("renderApp can reflect configured Realtime runtime health in the boundary", () => {
+  const html = renderApp({
+    ...demoState,
+    realtimeConnection: buildRealtimeConnectionBoundary({
+      tokenEndpointConfigured: true
+    })
+  });
+
+  assert.match(html, /data-realtime-status="setup-incomplete"/);
+  assert.match(html, /<dt>Token endpoint<\/dt>\s*<dd>configured<\/dd>/);
+  assert.match(html, /Server token endpoint configuration \(ready\)/);
+  assert.doesNotMatch(html, /Server token endpoint is not configured\./);
+});
+
+test("renderApp displays Realtime failure diagnostics without exposing secrets", () => {
+  const html = renderApp({
+    ...demoState,
+    realtimeCallControls: buildRealtimeCallControls({
+      status: "fallback",
+      microphonePermissionState: "granted",
+      lastFailure: {
+        stage: "realtime-calls",
+        message: "Realtime WebRTC calls request failed with HTTP 400.",
+        httpStatus: 400,
+        endpoint: "https://api.openai.com/v1/realtime/calls"
+      }
+    })
+  });
+
+  assert.match(html, /Realtime failure diagnostics/);
+  assert.match(html, /realtime-calls/);
+  assert.match(html, /HTTP 400/);
+  assert.match(html, /Microphone/);
+  assert.match(html, /granted/);
+  assert.match(html, /data-realtime-failure-stage="realtime-calls"/);
+  assert.match(html, /data-realtime-failure-http-status="400"/);
   assert.doesNotMatch(html, /ek_test_ephemeral_client_secret/);
   assert.doesNotMatch(html, /server-standard-key/);
 });

@@ -428,6 +428,46 @@ h3 {
   margin-top: 2px;
 }
 
+.realtime-failure-diagnostics {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  border: 1px solid #e0b4a7;
+  border-radius: 6px;
+  padding: 10px;
+  background: #fff7ed;
+}
+
+.realtime-failure-diagnostics dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+  margin: 0;
+}
+
+.realtime-failure-diagnostics div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.realtime-failure-diagnostics dt,
+.realtime-failure-diagnostics dd {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.realtime-failure-diagnostics dt {
+  color: #8a4b22;
+  font-weight: 800;
+}
+
+.realtime-failure-diagnostics dd {
+  color: #17202a;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .realtime-control-actions {
   display: flex;
   flex-wrap: wrap;
