@@ -1,4 +1,5 @@
 import type { AiResponseRequest } from "./ai-response-request.js";
+import type { ResponsePolicyGuard } from "./response-policy.js";
 
 export interface AiResponseClient {
   readonly provider: string;
@@ -24,6 +25,7 @@ export interface AiResponseClientResult {
     humanReviewRequired: boolean;
     reviewReason: string | null;
   };
+  policy: ResponsePolicyGuard;
   diagnostics: {
     evidenceCount: number;
     promptCharacterCount: number;
@@ -67,9 +69,13 @@ export function buildDeterministicAiResponseClientResult(
   const evidenceReferences = request.evidence.results.map(
     (result) => `${result.sourcePath} / ${result.section}`
   );
-  const reviewReason = request.guardrails.humanReviewRequired
-    ? "High priority or human-review queue item requires operator confirmation."
-    : null;
+  const humanReviewRequired =
+    request.guardrails.humanReviewRequired || request.policy.humanReviewRequired;
+  const reviewReason = request.policy.humanReviewRequired
+    ? request.policy.reasons.join(" ")
+    : request.guardrails.humanReviewRequired
+      ? "High priority or human-review queue item requires operator confirmation."
+      : null;
 
   return {
     version: 1,
@@ -86,9 +92,10 @@ export function buildDeterministicAiResponseClientResult(
     guardrails: {
       externalSendAllowed: false,
       persistenceAllowed: false,
-      humanReviewRequired: request.guardrails.humanReviewRequired,
+      humanReviewRequired,
       reviewReason
     },
+    policy: request.policy,
     diagnostics: {
       evidenceCount: request.evidence.results.length,
       promptCharacterCount: countPromptCharacters(request),

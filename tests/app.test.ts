@@ -320,6 +320,19 @@ test("renderApp displays an unsent operator input for the selected queue item", 
   assert.doesNotMatch(html, />Send</);
 });
 
+test("renderApp displays a policy guard without implying send or save", () => {
+  const html = renderApp();
+
+  assert.match(html, /Policy guard/);
+  assert.match(html, /Customer-specific answer blocked/);
+  assert.match(html, /General information only/);
+  assert.match(html, /External send/);
+  assert.match(html, /blocked/);
+  assert.match(html, /Persistent save/);
+  assert.doesNotMatch(html, /送信済み/);
+  assert.doesNotMatch(html, /保存済み/);
+});
+
 test("renderApp switches the unsent operator input with assistant evidence call id", () => {
   const state: DemoState = {
     agentName: "Support Ops",

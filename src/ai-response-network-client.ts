@@ -114,9 +114,35 @@ function isAiResponseClientResult(value: unknown): value is AiResponseClientResu
     typeof value.guardrails.humanReviewRequired === "boolean" &&
     (typeof value.guardrails.reviewReason === "string" ||
       value.guardrails.reviewReason === null) &&
+    isResponsePolicyGuard(value.policy) &&
     typeof value.diagnostics.evidenceCount === "number" &&
     typeof value.diagnostics.promptCharacterCount === "number" &&
     typeof value.diagnostics.operatorInputIncluded === "boolean"
+  );
+}
+
+function isResponsePolicyGuard(value: unknown): boolean {
+  if (!isRecord(value) || value.version !== 1 || !isRecord(value.guardrails)) {
+    return false;
+  }
+
+  return (
+    typeof value.outcome === "string" &&
+    typeof value.allowedResponseScope === "string" &&
+    typeof value.identityVerification === "string" &&
+    typeof value.customerSpecificAnswerAllowed === "boolean" &&
+    typeof value.humanReviewRequired === "boolean" &&
+    Array.isArray(value.allowedTopics) &&
+    value.allowedTopics.every((item) => typeof item === "string") &&
+    Array.isArray(value.blockedResponseTypes) &&
+    value.blockedResponseTypes.every((item) => typeof item === "string") &&
+    Array.isArray(value.reasons) &&
+    value.reasons.every((item) => typeof item === "string") &&
+    Array.isArray(value.evidenceReferences) &&
+    value.evidenceReferences.every((item) => typeof item === "string") &&
+    value.guardrails.externalSendAllowed === false &&
+    value.guardrails.persistenceAllowed === false &&
+    value.guardrails.policyDecisionOnly === true
   );
 }
 

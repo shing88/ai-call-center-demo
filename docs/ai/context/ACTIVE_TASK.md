@@ -2,9 +2,9 @@
 
 ## タスク
 
-次のタスク: Task 19 `response-policy-guard`
+次のタスク: Task 20 `demo-scenario-regression-suite`
 
-状態: Task 18 `operator-input-submit-save-design`完了。未送信Operator noteはcall id別のブラウザ内編集状態、送信/保存候補payload、保存不可/未永続の明示へ進んだ。次はTask 19で本人確認前に回答できる範囲、上席確認が必要な条件、回答不可条件を決定的に判定するpolicy guardへ進む。
+状態: Task 19 `response-policy-guard`完了。キュー項目、根拠候補、会話プレビュー、Operator noteから、本人確認前の顧客別回答ブロック、上席確認必須、本人確認済みscoped draft許可を決定的に判定するpolicy guardへ進んだ。次はTask 20で代表シナリオごとの期待結果を固定する。
 
 ## タスク開始時に必ず読む
 
@@ -13,7 +13,7 @@ AGENTS.md
 docs/ai/context/CURRENT.md
 docs/ai/context/ACTIVE_TASK.md
 docs/ai/context/SOURCE_OF_TRUTH.md
-docs/ai/tasks/19_response_policy_guard.md
+docs/ai/tasks/20_demo_scenario_regression_suite.md
 ```
 
 ## 必要な場合のみ読む
@@ -31,6 +31,7 @@ docs/ai/inbox/pro-instructions/**
 docs/ai/specs/**
 docs/ai/adr/**
 docs/ai/security/operator-input-submit-save-design-safety-audit.md
+docs/ai/security/response-policy-guard-safety-audit.md
 knowledge/**
 ```
 

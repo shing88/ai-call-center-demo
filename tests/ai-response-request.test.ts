@@ -83,6 +83,22 @@ test("buildAiResponseRequest carries edited operator input into the submit/save 
   });
 });
 
+test("buildAiResponseRequest carries the policy guard decision", () => {
+  const request = buildAiResponseRequest({
+    item: queueItem(),
+    evidence: assistantEvidence(),
+    operatorNoteValue: "本人確認はまだです。",
+    createdAt: "2026-05-20T00:00:00.000Z"
+  });
+
+  assert.equal(request.policy.outcome, "customer-specific-answer-blocked");
+  assert.equal(request.policy.allowedResponseScope, "general-information-only");
+  assert.equal(request.policy.customerSpecificAnswerAllowed, false);
+  assert.equal(request.policy.humanReviewRequired, false);
+  assert.ok(request.policy.blockedResponseTypes.includes("顧客別の返金可否・返金額・返金予定"));
+  assert.equal(request.guardrails.humanReviewRequired, false);
+});
+
 test("buildAiResponseRequest keeps send and persistence disabled by default", () => {
   const request = buildAiResponseRequest({
     item: queueItem({ priority: "high" }),
