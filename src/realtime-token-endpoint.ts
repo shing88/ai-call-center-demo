@@ -7,7 +7,7 @@ export const OPENAI_REALTIME_CLIENT_SECRETS_REST_PATH =
 export const REALTIME_TOKEN_ENDPOINT_PATH = "/api/realtime/client-secret";
 
 export type RealtimeTokenEndpointMethod = "POST";
-export type RealtimeTokenEndpointImplementationState = "contract-only";
+export type RealtimeTokenEndpointImplementationState = "server-adapter";
 
 export interface RealtimeTokenEndpointContract {
   version: 1;
@@ -47,7 +47,7 @@ export interface RealtimeTokenEndpointContract {
     logSecretValueAllowed: false;
   };
   enablement: {
-    tokenEndpointImplemented: false;
+    tokenEndpointImplemented: true;
     realtimeSessionStartAllowed: false;
     microphonePermissionAllowed: false;
     externalAudioSendAllowed: false;
@@ -130,7 +130,7 @@ export function buildRealtimeTokenEndpointContract(
 ): RealtimeTokenEndpointContract {
   return {
     version: 1,
-    implementationState: "contract-only",
+    implementationState: "server-adapter",
     localEndpoint: {
       method: "POST",
       path: options.localEndpointPath ?? REALTIME_TOKEN_ENDPOINT_PATH,
@@ -166,7 +166,7 @@ export function buildRealtimeTokenEndpointContract(
       logSecretValueAllowed: false
     },
     enablement: {
-      tokenEndpointImplemented: false,
+      tokenEndpointImplemented: true,
       realtimeSessionStartAllowed: false,
       microphonePermissionAllowed: false,
       externalAudioSendAllowed: false,

@@ -16,9 +16,10 @@
 
 - 静的TypeScriptデモとして、Live queue、Assistant handoff、Call workspace、Realtime boundary、Executive demo brief、Call summary、Response draft、Conversation preview、Operator note、Policy guard、Evidence candidatesを表示する。
 - `Call workspace`は選択中call id、review mode、phone connection not connected、架空顧客モック、サービス文脈、policy lane、next actionを1枠で確認するレビュー専用UI。
-- `Realtime boundary`は`Realtime not configured`を表示し、contract-only token endpoint、disabled adapterの`not-configured` / local fallback、server-minted ephemeral client secret、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、実電話接続blockedを示す。実Realtime sessionは開始しない。
+- `Realtime boundary`は`Realtime not configured`を表示し、server-side token endpoint adapter、未設定時の`not-configured` / local fallback、server-minted ephemeral client secret、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、実電話接続blockedを示す。実Realtime sessionは開始しない。
 - Node server runtime foundationとして、`src/server-runtime.ts`が静的配信、`GET /api/health`、`POST /api/realtime/client-secret`のdisabled/fallback JSONを扱う。
-- `POST /api/realtime/client-secret`はまだ実OpenAI接続を開始しない。標準API key、browser-supplied credential、ephemeral secret値を転送・保存・応答反映せず、`not-configured` / `local-rehearsal`を返す。
+- `POST /api/realtime/client-secret`は、`OPENAI_API_KEY`未設定時にOpenAIへ接続せず、`not-configured` / `local-rehearsal`を返す。`OPENAI_API_KEY`がserver-side環境変数として設定されている場合だけ、OpenAI `/v1/realtime/client_secrets`へserver-side requestし、短命client secretを返す。
+- 標準API keyやbrowser-supplied credentialは受け付けず、server-only runtime fileは静的配信から除外している。`REALTIME_MODEL`未設定時の既定modelは`gpt-realtime`。
 - ブラウザ入口`src/main.ts`のruntime dependency graphはNode-only moduleを含めない。fallback rehearsalはbrowser-safeな`src/demo-scenario-cases.ts`を使う。knowledge loaderはブラウザ入口から到達しない。
 - evidence manifestは読み込み時にbundle/result単位まで検証し、不正なmanifestはfallback表示へ戻す。
 - CCNet向けデモは公開HP、サービス詳細、約款、重要事項説明に合わせた架空シナリオと架空顧客モックを使う。実顧客データは使わない。
@@ -27,9 +28,9 @@
 ## 現在の主要コード
 
 - `src/app.ts`: デモ状態、HTML描画、escape、Call workspace、Realtime boundary、Executive demo brief、Call summary、会話プレビュー、Operator note、Policy guard、Evidence candidates。
-- `src/server-runtime.ts`: Node server runtime、静的配信、`/api/health`、disabled Realtime client-secret fallback、path traversal拒否。
+- `src/server-runtime.ts`: Node server runtime、静的配信、`/api/health`、未設定時のdisabled Realtime client-secret fallback、設定時のserver-side OpenAI client secret request、browser credential拒否、server-only runtime fileの静的配信拒否、path traversal拒否。
 - `src/realtime-connection.ts`: Realtime未接続境界、contract-only token endpoint表示、公式Docs確認URL、ephemeral client secret前提、ブラウザAPI key禁止、session start disabledのguardrail。
-- `src/realtime-token-endpoint.ts`: `POST /api/realtime/client-secret`のcontract-only境界、OpenAI側`/v1/realtime/client_secrets`へのserver-only前提、`value` / `expires_at` / `session` response field、secret非露出enablement、未設定時のdisabled adapter / local fallback response。
+- `src/realtime-token-endpoint.ts`: `POST /api/realtime/client-secret`のserver-adapter境界、OpenAI側`/v1/realtime/client_secrets`へのserver-only前提、`value` / `expires_at` / `session` response field、secret非露出enablement、未設定時のdisabled adapter / local fallback response。
 - `src/main.ts`: manifest取得、キュー選択、Operator noteのブラウザ内メモリ保持、再描画。
 - `src/knowledge.ts`: knowledge Markdown loader / chunk model。
 - `src/knowledge-search.ts`: ローカル決定的keyword search。
@@ -47,7 +48,7 @@
 - ローカルテスト: `npm.cmd test`。POSIX/CIでは`npm test`。
 - ローカルビルド: `npm.cmd run build`。POSIX/CIでは`npm run build`。
 - Docker確認: `docker compose up --build`後、`http://localhost:4173/`と`http://localhost:4173/api/health`を確認する。
-- `npm test`は95件。Call workspace、Realtime boundary、contract-only token endpoint、disabled adapter、Node server runtime、manifest validation、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabled、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないことを固定している。
+- `npm test`は98件。Call workspace、Realtime boundary、server-side token endpoint adapter、disabled fallback、Node server runtime、OpenAI client secret request境界、manifest validation、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabled、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないことを固定している。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -59,6 +60,6 @@
 
 ## 次のハンドオフ
 
-- Task 28 `browser-realtime-voice-demo`の1段階目、Server runtime foundationをPR化する。
-- 次のTask 28 PR段階はRealtime client secret implementation。`OPENAI_API_KEY`設定時だけserver-sideからOpenAI `client_secrets`へ進み、未設定時はdeterministicな`not-configured` fallbackを維持する。
-- 実Realtime音声、ブラウザcall controls、業務ルールgrounding、transcript/summary記録は後続PRに分割する。
+- Task 28 `browser-realtime-voice-demo`の2段階目、Realtime client secret implementationをPR化する。
+- 次のTask 28 PR段階はBrowser call controls。`Start call` / `End call` / connection status / mic permission stateを追加し、接続失敗時はfallback rehearsalへ戻せる表示にする。
+- 業務ルールgrounding、transcript/summary記録は後続PRに分割する。

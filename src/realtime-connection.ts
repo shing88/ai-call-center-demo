@@ -107,7 +107,7 @@ export function buildRealtimeConnectionBoundary(
         ? "Realtime not configured"
         : "Realtime setup captured, session start disabled",
     operatorMessage:
-      "Realtime browser use requires a server-minted ephemeral client secret. The disabled adapter returns a local fallback and does not request microphone permission, start a session, send audio, save audio, or connect to a production phone line.",
+      "Realtime browser use requires a server-minted ephemeral client secret. The server token endpoint can mint a client secret only when configured, while the browser still does not request microphone permission, start a session, send audio, save audio, or connect to a production phone line.",
     tokenEndpointContract,
     tokenEndpointAdapter,
     tokenEndpointConfigured,
@@ -168,8 +168,6 @@ function buildBlockedReasons(input: {
     reasons.push("Server token endpoint is not configured.");
   }
 
-  reasons.push("Server token endpoint adapter is disabled.");
-
   if (!input.ephemeralClientSecretAvailable) {
     reasons.push("Ephemeral client secret is not available.");
   }
@@ -196,13 +194,19 @@ function buildRequirements(input: {
   return [
     {
       label: "Token endpoint contract",
-      detail: `${input.tokenEndpointContract.localEndpoint.method} ${input.tokenEndpointContract.localEndpoint.path} is documented as contract-only; implementation still disabled.`,
+      detail: `${input.tokenEndpointContract.localEndpoint.method} ${input.tokenEndpointContract.localEndpoint.path} is implemented as a server-side client secret adapter.`,
       satisfied: true
     },
     {
       label: "Server token endpoint implementation",
       detail:
         "Mint an ephemeral client secret server-side before browser setup without accepting a browser API key.",
+      satisfied: input.tokenEndpointContract.enablement.tokenEndpointImplemented
+    },
+    {
+      label: "Server token endpoint configuration",
+      detail:
+        "Set a server-side OpenAI API key only in the runtime environment before requesting a client secret.",
       satisfied: input.tokenEndpointConfigured
     },
     {

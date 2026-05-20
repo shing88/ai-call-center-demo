@@ -24,7 +24,32 @@ test("server runtime exposes a deterministic health endpoint", async () => {
       assert.equal(body.realtimeTokenEndpoint.path, REALTIME_TOKEN_ENDPOINT_PATH);
       assert.equal(body.realtimeTokenEndpoint.state, "disabled");
       assert.equal(body.realtimeTokenEndpoint.status, "not-configured");
+      assert.equal(body.realtimeTokenEndpoint.model, "gpt-realtime");
     });
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test("server runtime reports the configured Realtime token adapter without exposing the key", async () => {
+  const fixture = await createServerFixture();
+
+  try {
+    await withRunningServer(
+      fixture.rootDir,
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/api/health`);
+        const body = await response.json();
+        const serialized = JSON.stringify(body);
+
+        assert.equal(response.status, 200);
+        assert.equal(body.realtimeTokenEndpoint.state, "configured");
+        assert.equal(body.realtimeTokenEndpoint.status, "ready");
+        assert.equal(body.realtimeTokenEndpoint.model, "gpt-realtime-2");
+        assert.doesNotMatch(serialized, /server-standard-key/);
+      },
+      { openAiApiKey: "server-standard-key", realtimeModel: "gpt-realtime-2" }
+    );
   } finally {
     await fixture.cleanup();
   }
@@ -74,6 +99,151 @@ test("server runtime returns the disabled Realtime client-secret fallback", asyn
   }
 });
 
+test("server runtime mints a Realtime client secret through a server-side request", async () => {
+  const fixture = await createServerFixture();
+  const upstreamRequests: Array<{
+    url: string;
+    init: RequestInit;
+    body: Record<string, unknown>;
+  }> = [];
+
+  try {
+    await withRunningServer(
+      fixture.rootDir,
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}${REALTIME_TOKEN_ENDPOINT_PATH}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            callId: "CALL-1",
+            operatorSessionId: "operator-session-1",
+            reviewGateId: "review-gate-1"
+          })
+        });
+        const body = await response.json();
+        const serialized = JSON.stringify(body);
+
+        assert.equal(response.status, 200);
+        assert.equal(body.status, "ready");
+        assert.equal(body.requestAccepted, true);
+        assert.equal(body.upstreamRequestAttempted, true);
+        assert.equal(body.networkRequestAllowed, true);
+        assert.equal(body.value, "ek_test_ephemeral_value");
+        assert.equal(body.expires_at, 1234567890);
+        assert.equal(body.session.type, "realtime");
+        assert.equal(body.session.model, "gpt-realtime-2");
+        assert.equal(body.guardrails.realtimeSessionStartAllowed, false);
+        assert.doesNotMatch(serialized, /server-standard-key/);
+      },
+      {
+        openAiApiKey: "server-standard-key",
+        realtimeModel: "gpt-realtime-2",
+        fetch: async (url, init = {}) => {
+          const bodyText = String(init.body ?? "");
+          const body = JSON.parse(bodyText) as Record<string, unknown>;
+
+          upstreamRequests.push({ url: String(url), init, body });
+
+          return new Response(
+            JSON.stringify({
+              value: "ek_test_ephemeral_value",
+              expires_at: 1234567890,
+              session: {
+                type: "realtime",
+                model: "gpt-realtime-2"
+              }
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" }
+            }
+          );
+        }
+      }
+    );
+
+    assert.equal(upstreamRequests.length, 1);
+    assert.equal(
+      upstreamRequests[0]?.url,
+      "https://api.openai.com/v1/realtime/client_secrets"
+    );
+    assert.equal(upstreamRequests[0]?.init.method, "POST");
+    assert.equal(
+      getHeader(upstreamRequests[0]?.init.headers, "Authorization"),
+      "Bearer server-standard-key"
+    );
+    assert.equal(getHeader(upstreamRequests[0]?.init.headers, "Content-Type"), "application/json");
+    assert.match(
+      getHeader(upstreamRequests[0]?.init.headers, "OpenAI-Safety-Identifier") ?? "",
+      /^sha256:[a-f0-9]{64}$/
+    );
+    assert.deepEqual(upstreamRequests[0]?.body, {
+      expires_after: {
+        anchor: "created_at",
+        seconds: 600
+      },
+      session: {
+        type: "realtime",
+        model: "gpt-realtime-2"
+      }
+    });
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test("configured Realtime client-secret endpoint rejects browser credentials before upstream fetch", async () => {
+  const fixture = await createServerFixture();
+  let fetchCalled = false;
+
+  try {
+    await withRunningServer(
+      fixture.rootDir,
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}${REALTIME_TOKEN_ENDPOINT_PATH}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer browser-credential"
+          },
+          body: JSON.stringify({
+            callId: "CALL-1",
+            operatorSessionId: "operator-session-1",
+            reviewGateId: "review-gate-1",
+            apiKey: "browser-standard-key"
+          })
+        });
+        const body = await response.json();
+        const serialized = JSON.stringify(body);
+
+        assert.equal(response.status, 400);
+        assert.equal(body.status, "rejected");
+        assert.equal(body.requestAccepted, false);
+        assert.equal(body.upstreamRequestAttempted, false);
+        assert.equal(body.networkRequestAllowed, false);
+        assert.equal(body.error.code, "browser_credentials_rejected");
+        assert.match(body.rejectedBrowserCredentialReasons.join("\n"), /authorization header/i);
+        assert.match(body.rejectedBrowserCredentialReasons.join("\n"), /browser API key/i);
+        assert.doesNotMatch(serialized, /browser-credential/);
+        assert.doesNotMatch(serialized, /browser-standard-key/);
+      },
+      {
+        openAiApiKey: "server-standard-key",
+        fetch: async () => {
+          fetchCalled = true;
+          return new Response("{}", { status: 200 });
+        }
+      }
+    );
+
+    assert.equal(fetchCalled, false);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
 test("server runtime keeps static app serving and blocks path traversal", async () => {
   const fixture = await createServerFixture();
 
@@ -81,6 +251,7 @@ test("server runtime keeps static app serving and blocks path traversal", async 
     await withRunningServer(fixture.rootDir, async (baseUrl) => {
       const indexResponse = await fetch(`${baseUrl}/`);
       const scriptResponse = await fetch(`${baseUrl}/assets/main.js`);
+      const serverRuntimeResponse = await fetch(`${baseUrl}/assets/server-runtime.js`);
       const traversalStatus = await requestRawStatus(baseUrl, "/%2e%2e/package.json");
 
       assert.equal(indexResponse.status, 200);
@@ -88,6 +259,7 @@ test("server runtime keeps static app serving and blocks path traversal", async 
       assert.equal(scriptResponse.status, 200);
       assert.equal(scriptResponse.headers.get("content-type"), "text/javascript; charset=utf-8");
       assert.equal(await scriptResponse.text(), "export {};\n");
+      assert.equal(serverRuntimeResponse.status, 404);
       assert.equal(traversalStatus, 403);
     });
   } finally {
@@ -111,6 +283,7 @@ async function createServerFixture(): Promise<{
   await writeFile(join(rootDir, "package.json"), "{\"private\":true}\n", "utf8");
   await mkdir(join(rootDir, "assets"), { recursive: true });
   await writeFile(join(rootDir, "assets", "main.js"), "export {};\n", "utf8");
+  await writeFile(join(rootDir, "assets", "server-runtime.js"), "export {};\n", "utf8");
 
   return {
     rootDir,
@@ -142,9 +315,21 @@ async function requestRawStatus(baseUrl: string, path: string): Promise<number> 
 
 async function withRunningServer(
   rootDir: string,
-  run: (baseUrl: string) => Promise<void>
+  run: (baseUrl: string) => Promise<void>,
+  options: {
+    openAiApiKey?: string;
+    realtimeModel?: string;
+    fetch?: typeof fetch;
+  } = {}
 ): Promise<void> {
-  const server = createDemoServer({ rootDir, host: "127.0.0.1", port: 0 });
+  const server = createDemoServer({
+    rootDir,
+    host: "127.0.0.1",
+    port: 0,
+    openAiApiKey: options.openAiApiKey,
+    realtimeModel: options.realtimeModel,
+    fetch: options.fetch
+  });
 
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 
@@ -163,4 +348,12 @@ async function withRunningServer(
       server.close((error) => (error ? reject(error) : resolve()));
     });
   }
+}
+
+function getHeader(headers: RequestInit["headers"], name: string): string | null {
+  if (!headers) {
+    return null;
+  }
+
+  return new Headers(headers).get(name);
 }
