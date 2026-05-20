@@ -341,8 +341,11 @@ test("renderApp leads with an executive demo brief that connects evidence, polic
     fallbackRehearsal: buildFallbackRehearsalPlan()
   });
   const briefIndex = html.indexOf('id="executive-brief-title"');
+  const summaryIndex = html.indexOf('id="call-summary-title"');
 
   assert.ok(briefIndex >= 0);
+  assert.ok(summaryIndex > briefIndex);
+  assert.ok(summaryIndex < html.indexOf('id="fallback-title"'));
   assert.ok(briefIndex < html.indexOf('id="fallback-title"'));
   assert.ok(briefIndex < html.indexOf('id="policy-title"'));
   assert.ok(briefIndex < html.indexOf('id="evidence-title"'));
@@ -363,6 +366,11 @@ test("renderApp leads with an executive demo brief that connects evidence, polic
   assert.match(html, /External send blocked/);
   assert.match(html, /Persistent save blocked/);
   assert.match(html, /no production connection/);
+  assert.match(html, /Call summary/);
+  assert.match(html, /山本 花さん/);
+  assert.match(html, /Next action/);
+  assert.match(html, /本人確認/);
+  assert.match(html, /Summary only/);
   assert.doesNotMatch(html, /Live API connected/);
 });
 
@@ -470,6 +478,43 @@ test("renderApp escapes edited operator notes before rendering", () => {
   });
 
   assert.match(html, /Please review &lt;script&gt;alert\(1\)&lt;\/script&gt; before handoff\./);
+  assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
+});
+
+test("renderApp escapes call summary fields before rendering", () => {
+  const html = renderApp({
+    agentName: "Support Ops",
+    assistantSuggestion: "Review safely.",
+    assistantEvidence: {
+      callId: "CALL-HTML",
+      query: "Unsafe <query>",
+      resultCount: 1,
+      results: [
+        {
+          sourcePath: "business_rules/<unsafe>.md",
+          section: "Section <script>alert(1)</script>",
+          snippet: "Snippet <img src=x onerror=alert(1)>",
+          score: 9
+        }
+      ]
+    },
+    activeQueue: [
+      {
+        id: "CALL-HTML",
+        callerName: "User <script>",
+        topic: "Topic <b>",
+        status: "waiting",
+        priority: "normal",
+        waitSeconds: 5,
+        excerpt: "Excerpt <img src=x>"
+      }
+    ]
+  });
+
+  assert.match(html, /User &lt;script&gt;さん/);
+  assert.match(html, /Topic &lt;b&gt;/);
+  assert.match(html, /business_rules\/&lt;unsafe&gt;\.md/);
+  assert.doesNotMatch(html, /<img src=x>/);
   assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
 });
 
