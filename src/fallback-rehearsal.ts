@@ -1,7 +1,7 @@
 import {
   demoScenarioRegressionCases,
   type DemoScenarioRegressionCase
-} from "./demo-scenario-regression.js";
+} from "./demo-scenario-cases.js";
 import type { ResponsePolicyOutcome } from "./response-policy.js";
 
 export type FallbackRehearsalReason =
