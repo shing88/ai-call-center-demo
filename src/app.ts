@@ -34,9 +34,22 @@ export interface QueueItem {
   priority: "normal" | "high";
   waitSeconds: number;
   excerpt: string;
+  customerId?: string;
+  serviceArea?: string;
+  servicePlan?: string;
+  verificationStatus?: "unverified" | "verified";
 }
 
 export type OperatorNotesByCallId = Record<string, string>;
+
+export interface ExecutiveDemoScenario {
+  companyName: string;
+  researchBasis: string;
+  scenarioTitle: string;
+  fictionalCustomerSituation: string;
+  fitPoints: string[];
+  guardrail: string;
+}
 
 export interface OperatorInputSubmitSaveCandidate {
   version: 1;
@@ -65,6 +78,7 @@ export interface DemoState {
   assistantEvidence: AssistantEvidence;
   operatorNotes?: OperatorNotesByCallId;
   fallbackRehearsal?: FallbackRehearsalPlan;
+  executiveScenario?: ExecutiveDemoScenario;
 }
 
 export interface AssistantConversationDraft {
@@ -98,6 +112,27 @@ export interface AssistantInputPreview {
   candidate: OperatorInputSubmitSaveCandidate;
 }
 
+export interface ExecutiveDemoBriefItem {
+  label: string;
+  status: string;
+  detail: string;
+}
+
+export interface ExecutiveDemoBrief {
+  callId: AssistantEvidence["callId"];
+  safetySummary: string;
+  items: ExecutiveDemoBriefItem[];
+}
+
+export interface BuildExecutiveDemoBriefInput {
+  evidence: AssistantEvidence;
+  item?: QueueItem;
+  policy: ResponsePolicyGuard;
+  fallbackRehearsal?: FallbackRehearsalPlan;
+  inputPreview: AssistantInputPreview;
+  scenario?: ExecutiveDemoScenario;
+}
+
 export interface BuildAssistantInputPreviewOptions {
   value?: string;
 }
@@ -112,54 +147,91 @@ export interface QueueSummary {
 
 export const demoState: DemoState = {
   agentName: "Support Ops",
+  executiveScenario: {
+    companyName: "CCNet株式会社",
+    researchBasis: "Public CCNet website review on 2026-05-20",
+    scenarioTitle: "10G/Wi-Fi support and local safety information handoff",
+    fictionalCustomerSituation:
+      "Fictional Kasugai-area subscriber has CCNet光1G おとく割 with mesh Wi-Fi and asks whether CCNet光10G, support service, and 安全・安心123チャンネル can help before heavy rain.",
+    fitPoints: [
+      "Regional cable, internet, and phone provider across Aichi, Gifu, and Mie.",
+      "Cross-service support can reference internet, TV/community channel, fixed phone, My Page, contract terms, important explanations, and support windows.",
+      "Demo should show public-service guidance first, then block customer-specific course changes, fees, cancellation penalties, or promises until identity and service eligibility are confirmed."
+    ],
+    guardrail:
+      "Use only fictional customer details; do not imply real CCNet customer data, external AI send, persistent save, production connection, guaranteed 10G availability, confirmed fees, or completed contract changes."
+  },
   assistantSuggestion:
-    "配送状況の確認後、住所変更の可否を案内し、必要なら人の担当者へ引き継ぎます。",
+    "公開情報で案内できる範囲を先に整理し、契約状態や提供可否は本人確認後に担当者へ引き継ぎます。",
   assistantEvidence: {
-    callId: "CALL-1026",
-    query: "返品受付 サイズが合わなかった商品の返送方法を確認したいです。",
-    resultCount: 2,
+    callId: "CALL-CC-03",
+    query:
+      "CCNet光10G Wi-Fi 不安定 テレワーク 契約状態 安全・安心123チャンネル customer_ccnet_2001 CCNet光1G おとく割 メッシュWi-Fi",
+    resultCount: 3,
     results: [
       {
-        sourcePath: "business_rules/002_refund_policy.md",
-        section: "返金ポリシー > 通常返金",
-        snippet: "返品受付後、本人確認と購入履歴を確認してから返金予定を案内します。",
-        score: 18
+        sourcePath: "business_rules/005_ccnet_public_service_guidance.md",
+        section: "CCNet公開HPベース案内 > 10G・Wi-Fi・料金の一般案内",
+        snippet:
+          "公開HPベースでは10G、Wi-Fi標準提供、メッシュWi-Fi、料金目安を一般案内できるが、提供可否や契約状態は本人確認後に確認する。",
+        score: 28
       },
       {
-        sourcePath: "scenarios/scenario_01_refund_normal.md",
-        section: "通常返金シナリオ > 根拠候補",
-        snippet: "返送方法、受付期限、返金予定は業務ルールと顧客契約を照合して回答します。",
-        score: 11
+        sourcePath: "customer_contracts/customer_ccnet_2001.md",
+        section: "顧客契約: customer_ccnet_2001 > 契約状態",
+        snippet:
+          "架空顧客 customer_ccnet_2001 はCCNet光1G おとく割、テレビ、ケーブルライン、メッシュWi-Fiのデモ契約として扱う。",
+        score: 24
+      },
+      {
+        sourcePath: "scenarios/scenario_05_ccnet_wifi_safety_handoff.md",
+        section: "CCNet Wi-Fi・地域安全情報シナリオ > 根拠候補",
+        snippet:
+          "Wi-Fi不安定、10G相談、安全・安心123チャンネル確認を、送信・保存なしの架空デモとして扱う。",
+        score: 18
       }
     ]
   },
   activeQueue: [
     {
-      id: "CALL-1024",
+      id: "CALL-CC-01",
       callerName: "田中 美咲",
-      topic: "配送予定日の確認",
+      topic: "安全・安心123チャンネル確認",
       status: "ai-handling",
       priority: "normal",
       waitSeconds: 35,
-      excerpt: "注文番号 A-2048 の到着予定を知りたいです。"
+      excerpt: "大雨の前に、テレビで道路・河川カメラや地域情報を確認する方法を知りたいです。",
+      customerId: "customer_ccnet_2002",
+      serviceArea: "小牧市 / 戸建て",
+      servicePlan: "テレビ ファミリーA + 安全・安心123チャンネル",
+      verificationStatus: "unverified"
     },
     {
-      id: "CALL-1025",
+      id: "CALL-CC-02",
       callerName: "佐藤 亮",
-      topic: "住所変更の相談",
+      topic: "障害と補償の相談",
       status: "human-review",
       priority: "high",
       waitSeconds: 142,
-      excerpt: "転居したので、配送先を今日中に変えられますか。"
+      excerpt: "ネットがつながりにくく仕事に影響したので、障害状況と補償可否を上席に確認してほしいです。",
+      customerId: "customer_ccnet_2003",
+      serviceArea: "各務原市 / 集合住宅",
+      servicePlan: "CCNet Air LTE + 無線機器",
+      verificationStatus: "unverified"
     },
     {
-      id: "CALL-1026",
+      id: "CALL-CC-03",
       callerName: "山本 花",
-      topic: "返品受付",
+      topic: "CCNet光10G Wi-Fi 相談",
       status: "waiting",
       priority: "normal",
       waitSeconds: 78,
-      excerpt: "サイズが合わなかった商品の返送方法を確認したいです。"
+      excerpt:
+        "春日井市の自宅でテレワーク中にWi-Fiが不安定です。契約状態を見て CCNet光10G へ変えられるか知りたいです。",
+      customerId: "customer_ccnet_2001",
+      serviceArea: "春日井市 / 戸建て",
+      servicePlan: "CCNet光1G おとく割 + テレビ + ケーブルライン + メッシュWi-Fi",
+      verificationStatus: "unverified"
     }
   ]
 };
@@ -313,6 +385,69 @@ export function buildOperatorInputSubmitSaveCandidate(
   };
 }
 
+export function buildExecutiveDemoBrief(
+  input: BuildExecutiveDemoBriefInput
+): ExecutiveDemoBrief {
+  const fallbackStatus = input.fallbackRehearsal
+    ? `${input.fallbackRehearsal.scenarioCount} local scenarios`
+    : "local plan not loaded";
+  const fallbackDetail = input.fallbackRehearsal
+    ? "Manual rehearsal can proceed without external AI API, Realtime audio, provider SDK, send, or save."
+    : "The app can inject the local fallback plan when the demo runs.";
+  const scenarioItems = input.scenario
+    ? [
+        {
+          label: "CCNet-fit scenario",
+          status: `${input.scenario.companyName} / fictional`,
+          detail: `${input.scenario.scenarioTitle}. ${input.scenario.fictionalCustomerSituation} ${input.scenario.guardrail}`
+        }
+      ]
+    : [];
+  const customerItems = input.item
+    ? [
+        {
+          label: "Fictional customer mockup",
+          status: input.item.customerId ?? input.item.id,
+          detail: `${input.item.callerName} / ${input.item.serviceArea ?? "area unlisted"} / ${
+            input.item.servicePlan ?? "service plan unlisted"
+          } / verification ${input.item.verificationStatus ?? "unverified"}. 本人確認前は契約状態を断定しない。`
+        }
+      ]
+    : [];
+
+  return {
+    callId: input.evidence.callId,
+    safetySummary:
+      "Local deterministic demo only; External send blocked; Persistent save blocked; no production connection.",
+    items: [
+      ...scenarioItems,
+      ...customerItems,
+      {
+        label: "Evidence candidates",
+        status: `${input.evidence.resultCount} sources`,
+        detail: "Review source candidates before reading the response draft."
+      },
+      {
+        label: "Policy guard",
+        status: policyOutcomeLabel(input.policy.outcome),
+        detail: `Scope: ${policyScopeLabel(input.policy.allowedResponseScope)}; customer-specific answer ${
+          input.policy.customerSpecificAnswerAllowed ? "allowed" : "blocked"
+        }; human review ${input.policy.humanReviewRequired ? "required" : "not required"}.`
+      },
+      {
+        label: "Fallback rehearsal",
+        status: fallbackStatus,
+        detail: fallbackDetail
+      },
+      {
+        label: "No-send / no-save boundary",
+        status: "External send blocked; Persistent save blocked",
+        detail: `${input.inputPreview.label} for ${input.inputPreview.callId} is browser-only and is not sent or saved.`
+      }
+    ]
+  };
+}
+
 export function renderApp(state: DemoState = demoState): string {
   const summary = buildQueueSummary(state.activeQueue);
   const selectedCallId = state.assistantEvidence.callId;
@@ -341,6 +476,14 @@ export function renderApp(state: DemoState = demoState): string {
     evidence: state.assistantEvidence,
     conversation: threadPreview,
     operatorInput: inputPreview
+  });
+  const executiveDemoBrief = buildExecutiveDemoBrief({
+    evidence: state.assistantEvidence,
+    item: selectedQueueItem,
+    policy: policyGuard,
+    fallbackRehearsal: state.fallbackRehearsal,
+    inputPreview,
+    scenario: state.executiveScenario
   });
   const queueItems = state.activeQueue
     .map((item) => renderQueueItem(item, selectedCallId))
@@ -397,6 +540,7 @@ export function renderApp(state: DemoState = demoState): string {
               <span>Next best action</span>
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
+            ${renderExecutiveDemoBrief(executiveDemoBrief)}
             ${
               state.fallbackRehearsal
                 ? renderFallbackRehearsalPlan(state.fallbackRehearsal)
@@ -411,6 +555,39 @@ export function renderApp(state: DemoState = demoState): string {
         </section>
       </section>
     </main>
+  `;
+}
+
+function renderExecutiveDemoBrief(brief: ExecutiveDemoBrief): string {
+  const items = brief.items.map(renderExecutiveDemoBriefItem).join("");
+
+  return `
+    <section
+      class="executive-brief"
+      aria-labelledby="executive-brief-title"
+      data-executive-demo-call-id="${escapeHtml(brief.callId)}"
+      data-external-send-allowed="false"
+      data-persistence-allowed="false"
+    >
+      <div class="executive-brief__heading">
+        <h3 id="executive-brief-title">Executive demo brief</h3>
+        <span>${escapeHtml(brief.callId)}</span>
+      </div>
+      <p>${escapeHtml(brief.safetySummary)}</p>
+      <div class="executive-brief__items">
+        ${items}
+      </div>
+    </section>
+  `;
+}
+
+function renderExecutiveDemoBriefItem(item: ExecutiveDemoBriefItem): string {
+  return `
+    <article class="executive-brief__item">
+      <span>${escapeHtml(item.label)}</span>
+      <strong>${escapeHtml(item.status)}</strong>
+      <p>${escapeHtml(item.detail)}</p>
+    </article>
   `;
 }
 
@@ -688,6 +865,15 @@ function renderQueueItem(item: QueueItem, selectedCallId: string): string {
   const isSelected = item.id === selectedCallId;
   const escapedId = escapeHtml(item.id);
   const escapedTopic = escapeHtml(item.topic);
+  const metaItems = [
+    item.id,
+    item.customerId,
+    item.serviceArea,
+    item.servicePlan,
+    item.verificationStatus,
+    item.callerName,
+    formatWaitTime(item.waitSeconds)
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
 
   return `
     <article class="queue-item queue-item--${item.priority}${
@@ -700,9 +886,7 @@ function renderQueueItem(item: QueueItem, selectedCallId: string): string {
         </div>
         <p>${escapeHtml(item.excerpt)}</p>
         <div class="queue-meta">
-          <span>${escapedId}</span>
-          <span>${escapeHtml(item.callerName)}</span>
-          <span>${formatWaitTime(item.waitSeconds)}</span>
+          ${metaItems.map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
         </div>
       </div>
       <button

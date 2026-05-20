@@ -15,17 +15,39 @@ test("buildEvidenceManifest creates a bundle for each demo queue item", () => {
     generatedAt: "2026-05-19T00:00:00.000Z",
     items: demoState.activeQueue,
     knowledgeBase: loadKnowledgeBase(),
-    defaultCallId: "CALL-1026",
+    defaultCallId: "CALL-CC-03",
     limit: 3
   });
 
   assert.equal(manifest.version, 1);
   assert.equal(manifest.generatedAt, "2026-05-19T00:00:00.000Z");
-  assert.equal(manifest.defaultCallId, "CALL-1026");
-  assert.deepEqual(Object.keys(manifest.bundles).sort(), ["CALL-1024", "CALL-1025", "CALL-1026"]);
-  assert.equal(manifest.bundles["CALL-1026"]?.callId, "CALL-1026");
-  assert.match(manifest.bundles["CALL-1026"]?.query ?? "", /返品受付/);
-  assert.ok((manifest.bundles["CALL-1026"]?.resultCount ?? 0) > 0);
+  assert.equal(manifest.defaultCallId, "CALL-CC-03");
+  assert.deepEqual(Object.keys(manifest.bundles).sort(), [
+    "CALL-CC-01",
+    "CALL-CC-02",
+    "CALL-CC-03"
+  ]);
+  assert.equal(manifest.bundles["CALL-CC-03"]?.callId, "CALL-CC-03");
+  assert.match(manifest.bundles["CALL-CC-03"]?.query ?? "", /CCNet光10G/);
+  assert.match(manifest.bundles["CALL-CC-03"]?.query ?? "", /customer_ccnet_2001/);
+  assert.ok((manifest.bundles["CALL-CC-03"]?.resultCount ?? 0) > 0);
+});
+
+test("buildEvidenceManifest keeps CCNet customer contract evidence scoped to the selected fictional customer", () => {
+  const manifest = buildEvidenceManifest({
+    generatedAt: "2026-05-19T00:00:00.000Z",
+    items: demoState.activeQueue,
+    knowledgeBase: loadKnowledgeBase(),
+    defaultCallId: "CALL-CC-03",
+    categories: ["customer_contracts"],
+    limit: 3
+  });
+
+  const sourcePaths = manifest.bundles["CALL-CC-03"]?.results.map((result) => result.sourcePath);
+
+  assert.deepEqual(Array.from(new Set(sourcePaths)), [
+    "customer_contracts/customer_ccnet_2001.md"
+  ]);
 });
 
 test("selectAssistantEvidenceFromManifest uses the preferred bundle and converts display fields", () => {
@@ -33,16 +55,16 @@ test("selectAssistantEvidenceFromManifest uses the preferred bundle and converts
     generatedAt: "2026-05-19T00:00:00.000Z",
     items: demoState.activeQueue,
     knowledgeBase: loadKnowledgeBase(),
-    defaultCallId: "CALL-1026",
+    defaultCallId: "CALL-CC-03",
     limit: 1
   });
   const selected = selectAssistantEvidenceFromManifest(
     manifest,
-    "CALL-1026",
+    "CALL-CC-03",
     demoState.assistantEvidence
   );
 
-  assert.equal(selected.callId, "CALL-1026");
+  assert.equal(selected.callId, "CALL-CC-03");
   assert.equal(selected.resultCount, 1);
   assert.equal(selected.results.length, 1);
   assert.equal(typeof selected.results[0]?.sourcePath, "string");
@@ -69,12 +91,12 @@ test("selectAssistantEvidenceByCallId keeps the current evidence when a bundle i
     generatedAt: "2026-05-19T00:00:00.000Z",
     items: demoState.activeQueue,
     knowledgeBase: loadKnowledgeBase(),
-    defaultCallId: "CALL-1026",
+    defaultCallId: "CALL-CC-03",
     limit: 1
   });
   const selected = selectAssistantEvidenceByCallId(
     manifest,
-    "CALL-1025",
+    "CALL-CC-02",
     demoState.assistantEvidence
   );
   const missing = selectAssistantEvidenceByCallId(
@@ -83,7 +105,7 @@ test("selectAssistantEvidenceByCallId keeps the current evidence when a bundle i
     demoState.assistantEvidence
   );
 
-  assert.equal(selected.callId, "CALL-1025");
+  assert.equal(selected.callId, "CALL-CC-02");
   assert.notEqual(selected, demoState.assistantEvidence);
   assert.equal(selected.resultCount, selected.results.length);
   assert.equal(missing, demoState.assistantEvidence);
@@ -94,10 +116,10 @@ test("toAssistantEvidence strips search-only fields from EvidenceBundle results"
     generatedAt: "2026-05-19T00:00:00.000Z",
     items: demoState.activeQueue,
     knowledgeBase: loadKnowledgeBase(),
-    defaultCallId: "CALL-1026",
+    defaultCallId: "CALL-CC-03",
     limit: 1
   });
-  const bundle = manifest.bundles["CALL-1026"];
+  const bundle = manifest.bundles["CALL-CC-03"];
 
   assert.ok(bundle);
 

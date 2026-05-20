@@ -13,7 +13,7 @@ test("loadEvidenceManifest reads a valid manifest response", async () => {
     generatedAt: "2026-05-19T00:00:00.000Z",
     items: demoState.activeQueue,
     knowledgeBase: loadKnowledgeBase(),
-    defaultCallId: "CALL-1026",
+    defaultCallId: "CALL-CC-03",
     limit: 1
   });
   const loaded = await loadEvidenceManifest({
@@ -23,7 +23,7 @@ test("loadEvidenceManifest reads a valid manifest response", async () => {
     })
   });
 
-  assert.equal(loaded?.defaultCallId, "CALL-1026");
+  assert.equal(loaded?.defaultCallId, "CALL-CC-03");
   assert.equal(Object.keys(loaded?.bundles ?? {}).length, 3);
 });
 
@@ -32,35 +32,35 @@ test("loadAssistantEvidenceFromManifest reads a valid manifest response", async 
     generatedAt: "2026-05-19T00:00:00.000Z",
     items: demoState.activeQueue,
     knowledgeBase: loadKnowledgeBase(),
-    defaultCallId: "CALL-1026",
+    defaultCallId: "CALL-CC-03",
     limit: 1
   });
   const evidence = await loadAssistantEvidenceFromManifest({
     fallback: demoState.assistantEvidence,
-    preferredCallId: "CALL-1026",
+    preferredCallId: "CALL-CC-03",
     fetcher: async () => ({
       ok: true,
       json: async () => manifest
     })
   });
 
-  assert.equal(evidence.callId, "CALL-1026");
+  assert.equal(evidence.callId, "CALL-CC-03");
   assert.equal(evidence.resultCount, 1);
-  assert.match(evidence.query, /返品受付/);
+  assert.match(evidence.query, /CCNet光10G/);
 });
 
 test("loadAssistantEvidenceFromManifest falls back on fetch errors and invalid payloads", async () => {
   const fallback = demoState.assistantEvidence;
   const failed = await loadAssistantEvidenceFromManifest({
     fallback,
-    preferredCallId: "CALL-1026",
+    preferredCallId: "CALL-CC-03",
     fetcher: async () => {
       throw new Error("network down");
     }
   });
   const invalid = await loadAssistantEvidenceFromManifest({
     fallback,
-    preferredCallId: "CALL-1026",
+    preferredCallId: "CALL-CC-03",
     fetcher: async () => ({
       ok: true,
       json: async () => ({ bundles: [] })
@@ -68,7 +68,7 @@ test("loadAssistantEvidenceFromManifest falls back on fetch errors and invalid p
   });
   const notFound = await loadAssistantEvidenceFromManifest({
     fallback,
-    preferredCallId: "CALL-1026",
+    preferredCallId: "CALL-CC-03",
     fetcher: async () => ({
       ok: false,
       json: async () => ({})

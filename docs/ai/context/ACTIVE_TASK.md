@@ -2,9 +2,9 @@
 
 ## タスク
 
-次のタスク: Task 22 `executive-demo-polish`
+次のタスク: Task 23 `call-summary-generation`
 
-状態: Task 21 `fallback-rehearsal-mode`完了。外部AI API、音声、通信が使えない場合でも、代表シナリオをローカルで手動進行できるfallback / rehearsal plan、画面表示、runbookを追加した。次はTask 22で役員デモ向けの見せ方を整える。
+状態: Task 22 `executive-demo-polish`完了。Assistant handoffの冒頭にExecutive demo briefを追加し、CCNetのサービス詳細・約款・重要事項説明ベースの架空顧客モック、根拠候補、policy guard、fallback / rehearsal、送信/保存不可の関係を役員デモで説明しやすくした。次はTask 23で、選択中問い合わせの応対サマリー、判断結果、次アクションをローカル決定的に作る。
 
 ## タスク開始時に必ず読む
 
@@ -13,7 +13,7 @@ AGENTS.md
 docs/ai/context/CURRENT.md
 docs/ai/context/ACTIVE_TASK.md
 docs/ai/context/SOURCE_OF_TRUTH.md
-docs/ai/tasks/22_executive_demo_polish.md
+docs/ai/tasks/23_call_summary_generation.md
 ```
 
 ## 必要な場合のみ読む
@@ -22,11 +22,14 @@ docs/ai/tasks/22_executive_demo_polish.md
 README.md
 package.json
 src/app.ts
-src/main.ts
-src/fallback-rehearsal.ts
+src/response-policy.ts
+src/ai-response-request.ts
+src/ai-response-client.ts
 src/demo-scenario-regression.ts
 tests/**
-docs/ai/demo/fallback-runbook.md
+knowledge/**
+docs/ai/demo/executive-demo-script.md
+docs/ai/demo/ccnet-executive-scenario.md
 docs/ai/specs/draft-task-reconciliation.md
 docs/ai/tests/automated-test-catalog.md
 ```

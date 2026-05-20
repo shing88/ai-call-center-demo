@@ -10,14 +10,16 @@
 - `External send`と`Persistent save`は常に`blocked`として扱う。
 - 代表シナリオは`src/demo-scenario-regression.ts`の固定済みシナリオを使う。
 - Operator noteはブラウザ内の未送信入力として扱い、保存済みとは説明しない。
+- 役員デモ全体の説明順は`docs/ai/demo/executive-demo-script.md`を先に見る。
 
 ## 進行手順
 
-1. `Fallback rehearsal`のstatusを確認する。
-2. `Run order`に表示されたcall idとシナリオ名に沿って説明する。
-3. 対象シナリオのOperator noteを読み上げる。
-4. `Policy guard`のscope、human review、customer-specific answerを確認する。
-5. `External send`と`Persistent save`が`blocked`であることを明示する。
+1. `Executive demo brief`で、fallback / rehearsalがno-send / no-save境界の一部として表示されていることを確認する。
+2. `Fallback rehearsal`のstatusを確認する。
+3. `Run order`に表示されたcall idとシナリオ名に沿って説明する。
+4. 対象シナリオのOperator noteを読み上げる。
+5. `Policy guard`のscope、human review、customer-specific answerを確認する。
+6. `External send`と`Persistent save`が`blocked`であることを明示する。
 
 ## 失敗時の説明
 

@@ -434,6 +434,58 @@ h3 {
   text-align: right;
 }
 
+.executive-brief {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  border: 1px solid #b9c6d6;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fbff;
+}
+
+.executive-brief__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.executive-brief__heading span,
+.executive-brief__item span {
+  color: #526070;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.executive-brief p {
+  margin-bottom: 0;
+  color: #344052;
+  font-size: 0.9rem;
+}
+
+.executive-brief__items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.executive-brief__item {
+  display: grid;
+  gap: 5px;
+  border-top: 1px solid #d9e2ee;
+  padding-top: 10px;
+}
+
+.executive-brief__item strong {
+  color: #17202a;
+  font-size: 0.94rem;
+}
+
+.executive-brief__item p {
+  font-size: 0.84rem;
+}
+
 .policy-panel {
   display: grid;
   gap: 10px;
@@ -585,6 +637,7 @@ h3 {
   .draft-heading,
   .thread-heading,
   .input-heading,
+  .executive-brief__heading,
   .policy-heading,
   .evidence-heading {
     align-items: stretch;
@@ -597,6 +650,10 @@ h3 {
 
   .metric-grid,
   .operations-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .executive-brief__items {
     grid-template-columns: 1fr;
   }
 
