@@ -10,6 +10,13 @@ import {
 } from "./evidence-manifest.js";
 import { loadEvidenceManifest } from "./evidence-manifest-client.js";
 import { buildFallbackRehearsalPlan } from "./fallback-rehearsal.js";
+import {
+  buildRealtimeCallControls,
+  endRealtimeCallSession,
+  startRealtimeCallSession,
+  type RealtimeCallControls,
+  type RealtimeCallSession
+} from "./realtime-call-controls.js";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -30,13 +37,17 @@ const operatorNotes: OperatorNotesByCallId = {};
 const fallbackRehearsal = buildFallbackRehearsalPlan({
   reason: manifest ? "manual-demo" : "network-unavailable"
 });
+let realtimeCallControls: RealtimeCallControls = buildRealtimeCallControls();
+let realtimeCallSession: RealtimeCallSession | undefined;
+let realtimeCallRequestId = 0;
 
 function renderCurrentState(): void {
   appRoot.innerHTML = renderApp({
     ...demoState,
     assistantEvidence: currentEvidence,
     operatorNotes: { ...operatorNotes },
-    fallbackRehearsal
+    fallbackRehearsal,
+    realtimeCallControls
   });
 }
 
@@ -74,6 +85,19 @@ appRoot.addEventListener("click", (event) => {
     return;
   }
 
+  const startCallButton = target.closest<HTMLButtonElement>("[data-realtime-start-call]");
+  const endCallButton = target.closest<HTMLButtonElement>("[data-realtime-end-call]");
+
+  if (startCallButton && appRoot.contains(startCallButton)) {
+    void handleStartRealtimeCall();
+    return;
+  }
+
+  if (endCallButton && appRoot.contains(endCallButton)) {
+    handleEndRealtimeCall();
+    return;
+  }
+
   const button = target.closest<HTMLButtonElement>("[data-queue-open]");
 
   if (!button || !appRoot.contains(button) || !manifest) {
@@ -102,3 +126,49 @@ appRoot.addEventListener("click", (event) => {
 });
 
 renderCurrentState();
+
+async function handleStartRealtimeCall(): Promise<void> {
+  if (!realtimeCallControls.startCallAvailable) {
+    return;
+  }
+
+  const requestId = realtimeCallRequestId + 1;
+  realtimeCallRequestId = requestId;
+  syncRenderedOperatorNote();
+  realtimeCallControls = buildRealtimeCallControls({
+    status: "requesting-client-secret"
+  });
+  renderCurrentState();
+
+  const result = await startRealtimeCallSession({
+    fetch,
+    getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
+    createPeerConnection: () => new RTCPeerConnection()
+  });
+
+  if (requestId !== realtimeCallRequestId) {
+    if (result.session) {
+      endRealtimeCallSession(result.session);
+    }
+    return;
+  }
+
+  realtimeCallSession = result.session;
+  realtimeCallControls = result.controls;
+  renderCurrentState();
+}
+
+function handleEndRealtimeCall(): void {
+  realtimeCallRequestId += 1;
+
+  if (!realtimeCallSession) {
+    realtimeCallControls = buildRealtimeCallControls({ status: "ended" });
+    renderCurrentState();
+    return;
+  }
+
+  syncRenderedOperatorNote();
+  realtimeCallControls = endRealtimeCallSession(realtimeCallSession);
+  realtimeCallSession = undefined;
+  renderCurrentState();
+}

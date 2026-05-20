@@ -15,6 +15,10 @@ import {
   type RealtimeConnectionBoundary,
   type RealtimeConnectionRequirement
 } from "./realtime-connection.js";
+import {
+  buildRealtimeCallControls,
+  type RealtimeCallControls
+} from "./realtime-call-controls.js";
 
 export type CallStatus = "waiting" | "ai-handling" | "human-review";
 
@@ -86,6 +90,7 @@ export interface DemoState {
   fallbackRehearsal?: FallbackRehearsalPlan;
   executiveScenario?: ExecutiveDemoScenario;
   realtimeConnection?: RealtimeConnectionBoundary;
+  realtimeCallControls?: RealtimeCallControls;
 }
 
 export interface AssistantConversationDraft {
@@ -501,6 +506,8 @@ export function renderApp(state: DemoState = demoState): string {
   });
   const realtimeConnection =
     state.realtimeConnection ?? buildRealtimeConnectionBoundary();
+  const realtimeCallControls =
+    state.realtimeCallControls ?? buildRealtimeCallControls();
   const queueItems = state.activeQueue
     .map((item) => renderQueueItem(item, selectedCallId))
     .join("");
@@ -557,7 +564,7 @@ export function renderApp(state: DemoState = demoState): string {
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
             ${renderCallWorkspace(selectedQueueItem, callSummary, policyGuard)}
-            ${renderRealtimeConnectionBoundary(realtimeConnection)}
+            ${renderRealtimeConnectionBoundary(realtimeConnection, realtimeCallControls)}
             ${renderExecutiveDemoBrief(executiveDemoBrief)}
             ${renderCallSummary(callSummary)}
             ${
@@ -578,7 +585,8 @@ export function renderApp(state: DemoState = demoState): string {
 }
 
 function renderRealtimeConnectionBoundary(
-  boundary: RealtimeConnectionBoundary
+  boundary: RealtimeConnectionBoundary,
+  callControls: RealtimeCallControls
 ): string {
   const tokenEndpointContractLabel = `${boundary.tokenEndpointContract.localEndpoint.method} ${boundary.tokenEndpointContract.localEndpoint.path}`;
   const requirements = boundary.requirements
@@ -611,6 +619,7 @@ function renderRealtimeConnectionBoundary(
         <span>${escapeHtml(boundary.officialDocs.verifiedOn)}</span>
       </div>
       <p>${escapeHtml(boundary.operatorMessage)}</p>
+      ${renderRealtimeCallControls(callControls)}
       <dl>
         <div>
           <dt>Browser API key</dt>
@@ -658,6 +667,37 @@ function renderRealtimeConnectionBoundary(
         </div>
       </div>
     </section>
+  `;
+}
+
+function renderRealtimeCallControls(controls: RealtimeCallControls): string {
+  return `
+    <div
+      class="realtime-call-controls"
+      data-realtime-call-status="${escapeHtml(controls.status)}"
+      data-microphone-permission-state="${escapeHtml(controls.microphonePermissionState)}"
+      data-realtime-token-endpoint="${escapeHtml(controls.tokenEndpointPath)}"
+      data-realtime-webrtc-endpoint="${escapeHtml(controls.webRtcCallsEndpoint)}"
+      data-realtime-browser-api-key-allowed="false"
+    >
+      <div>
+        <span>Realtime call controls</span>
+        <strong>${escapeHtml(controls.statusText)}</strong>
+        <p>${escapeHtml(controls.detail)}</p>
+      </div>
+      <div class="realtime-control-actions">
+        <button
+          type="button"
+          data-realtime-start-call
+          ${controls.startCallAvailable ? "" : "disabled"}
+        >Start call</button>
+        <button
+          type="button"
+          data-realtime-end-call
+          ${controls.endCallAvailable ? "" : "disabled"}
+        >End call</button>
+      </div>
+    </div>
   `;
 }
 

@@ -107,7 +107,7 @@ export function buildRealtimeConnectionBoundary(
         ? "Realtime not configured"
         : "Realtime setup captured, session start disabled",
     operatorMessage:
-      "Realtime browser use requires a server-minted ephemeral client secret. The server token endpoint can mint a client secret only when configured, while the browser still does not request microphone permission, start a session, send audio, save audio, or connect to a production phone line.",
+      "Realtime browser use requires a server-minted ephemeral client secret. The server token endpoint can mint a client secret only when configured, and the browser does not request microphone permission until Start call receives that short-lived token. The demo still does not save audio or connect to a production phone line.",
     tokenEndpointContract,
     tokenEndpointAdapter,
     tokenEndpointConfigured,
