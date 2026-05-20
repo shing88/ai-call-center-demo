@@ -1,7 +1,9 @@
 import {
+  buildDisabledRealtimeTokenEndpointResult,
   buildRealtimeTokenEndpointContract,
   OPENAI_REALTIME_CLIENT_SECRETS_REFERENCE_URL,
   OPENAI_REALTIME_WEBRTC_GUIDE_URL,
+  type RealtimeTokenEndpointDisabledAdapterResult,
   type RealtimeTokenEndpointContract
 } from "./realtime-token-endpoint.js";
 
@@ -40,7 +42,9 @@ export interface RealtimeConnectionBoundary {
   statusText: string;
   operatorMessage: string;
   tokenEndpointContract: RealtimeTokenEndpointContract;
+  tokenEndpointAdapter: RealtimeTokenEndpointDisabledAdapterResult;
   tokenEndpointConfigured: boolean;
+  localFallbackAvailable: boolean;
   ephemeralClientSecretRequired: true;
   ephemeralClientSecretAvailable: boolean;
   standardApiKeyAllowedInBrowser: false;
@@ -58,6 +62,7 @@ export interface RealtimeConnectionBoundary {
 
 export interface BuildRealtimeConnectionBoundaryOptions {
   tokenEndpointContract?: RealtimeTokenEndpointContract;
+  tokenEndpointAdapter?: RealtimeTokenEndpointDisabledAdapterResult;
   tokenEndpointConfigured?: boolean;
   ephemeralClientSecretAvailable?: boolean;
   microphonePermissionState?: RealtimeMicrophonePermissionState;
@@ -77,6 +82,9 @@ export function buildRealtimeConnectionBoundary(
 ): RealtimeConnectionBoundary {
   const tokenEndpointContract =
     options.tokenEndpointContract ?? buildRealtimeTokenEndpointContract();
+  const tokenEndpointAdapter =
+    options.tokenEndpointAdapter ??
+    buildDisabledRealtimeTokenEndpointResult(tokenEndpointContract);
   const tokenEndpointConfigured = options.tokenEndpointConfigured ?? false;
   const ephemeralClientSecretAvailable = options.ephemeralClientSecretAvailable ?? false;
   const microphonePermissionState =
@@ -99,9 +107,11 @@ export function buildRealtimeConnectionBoundary(
         ? "Realtime not configured"
         : "Realtime setup captured, session start disabled",
     operatorMessage:
-      "Realtime browser use requires a server-minted ephemeral client secret. This demo does not request microphone permission, start a session, send audio, save audio, or connect to a production phone line.",
+      "Realtime browser use requires a server-minted ephemeral client secret. The disabled adapter returns a local fallback and does not request microphone permission, start a session, send audio, save audio, or connect to a production phone line.",
     tokenEndpointContract,
+    tokenEndpointAdapter,
     tokenEndpointConfigured,
+    localFallbackAvailable: tokenEndpointAdapter.response.body.fallback.available,
     ephemeralClientSecretRequired: true,
     ephemeralClientSecretAvailable,
     standardApiKeyAllowedInBrowser: false,
@@ -157,6 +167,8 @@ function buildBlockedReasons(input: {
   if (!input.tokenEndpointConfigured) {
     reasons.push("Server token endpoint is not configured.");
   }
+
+  reasons.push("Server token endpoint adapter is disabled.");
 
   if (!input.ephemeralClientSecretAvailable) {
     reasons.push("Ephemeral client secret is not available.");

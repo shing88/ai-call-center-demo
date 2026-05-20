@@ -16,7 +16,7 @@
 
 - 静的TypeScriptデモとして、Live queue、Assistant handoff、Call workspace、Realtime boundary、Executive demo brief、Call summary、Response draft、Conversation preview、Operator note、Policy guard、Evidence candidatesを表示する。
 - `Call workspace`は選択中call id、Review mode、Phone connection not connected、架空顧客モック、サービス文脈、policy lane、next actionを1枚で確認するレビュー専用UI。
-- `Realtime boundary`は`Realtime not configured`を表示し、contract-only token endpoint `POST /api/realtime/client-secret`、server-minted ephemeral client secret、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、実電話接続blockedを明示する。実Realtime sessionは開始しない。
+- `Realtime boundary`は`Realtime not configured`を表示し、contract-only token endpoint `POST /api/realtime/client-secret`、disabled adapterの`not-configured` / local fallback、server-minted ephemeral client secret、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、実電話接続blockedを明示する。実Realtime sessionは開始しない。
 - ブラウザ入口`src/main.ts`のruntime dependency graphはNode-only moduleを含めない。fallback rehearsalはbrowser-safeな`src/demo-scenario-cases.ts`を使い、knowledge loaderはブラウザ入口から到達しない。
 - キュー項目の「開く」操作で、該当call idの根拠候補、サマリー、ドラフト、会話プレビュー、Operator note、policyが切り替わる。
 - evidence manifestは読み込み時にbundle/result単位まで検証し、不正なmanifestはfallback表示へ戻す。
@@ -27,7 +27,7 @@
 
 - `src/app.ts`: デモ状態、HTML描画、escape、Call workspace、Realtime boundary、Executive demo brief、Call summary、会話プレビュー、Operator note、Policy guard、Evidence candidates。
 - `src/realtime-connection.ts`: Realtime未接続境界、contract-only token endpoint表示、公式Docs確認URL、ephemeral client secret前提、ブラウザAPI key禁止、session start disabledのguardrail。
-- `src/realtime-token-endpoint.ts`: `POST /api/realtime/client-secret`のcontract-only境界、OpenAI側`/v1/realtime/client_secrets`へのserver-only前提、`value` / `expires_at` / `session` response field、secret非露出enablement。
+- `src/realtime-token-endpoint.ts`: `POST /api/realtime/client-secret`のcontract-only境界、OpenAI側`/v1/realtime/client_secrets`へのserver-only前提、`value` / `expires_at` / `session` response field、secret非露出enablement、未設定時のdisabled adapter / local fallback response。
 - `src/main.ts`: manifest取得、キュー選択、Operator noteのブラウザ内メモリ保持、再描画。
 - `src/knowledge.ts`: knowledge Markdown loader / chunk model。
 - `src/knowledge-search.ts`: ローカル決定的keyword search。
@@ -45,7 +45,7 @@
 - ローカルテスト: `npm.cmd test`（POSIX/CIでは`npm test`）。
 - ローカルビルド: `npm.cmd run build`（POSIX/CIでは`npm run build`）。
 - Docker確認: `docker build -t ai-call-center-demo:codex-two-angle-review .`、`docker run -p 4174:4173 ai-call-center-demo:codex-two-angle-review`でHTTP 200を確認。
-- `npm test`は90件。Call workspaceのreview-only表示、Realtime boundaryのnot configured表示、contract-only token endpoint、manifest validation、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabled、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないことも固定している。
+- `npm test`は92件。Call workspaceのreview-only表示、Realtime boundaryのnot configured表示、contract-only token endpoint、disabled adapterのnot-configured fallback、manifest validation、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabled、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないことも固定している。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -57,7 +57,6 @@
 
 ## 次のハンドオフ
 
-- 別枠ブランチ`codex/two-angle-review`でDocker化、デモ担当者向けREADME更新、manifest validation堅牢化を実施した。通常の次Task指定は変更していない。
-- Task 26 `realtime-token-endpoint-contract`は実装済み。PRではcontract-only token endpoint、公式Docs確認URL、未接続UIへの表示、secret非露出guardrail tests、安全監査、テストカタログを確認する。
-- 次の実装タスクはTask 27 `realtime-token-endpoint-disabled-adapter`。実OpenAI API keyや実network呼び出しを入れず、未設定時のserver-side adapter / fallback responseを決定的に扱う。
-- 後続計画としてTask 28 `browser-realtime-voice-demo`を追加した。電話番号ではなく、ヘッドセット利用者が画面の`Start call`を押してAIオペレータと音声会話し、業務ルールに基づく回答と記録を残す完成形へ段階的に進める。
+- 別枠ブランチ`codex/two-angle-review`でDocker化、デモ担当者向けREADME更新、manifest validation堅牢化を実施済み。
+- Task 27 `realtime-token-endpoint-disabled-adapter`は実装済み。実OpenAI API keyや実network呼び出しを入れず、未設定時のserver-side disabled adapter / fallback response、browser credential拒否、secret非ログ化前提を固定した。
+- 次の実装タスクはTask 28 `browser-realtime-voice-demo`。電話番号ではなく、ヘッドセット利用者が画面の`Start call`を押してAIオペレータと音声会話し、業務ルールに基づく回答と記録を残す完成形へ段階的に進める。Task 28は1PRで完成形を全部入れず、推奨PR分割の1段階だけを進める。

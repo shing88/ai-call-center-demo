@@ -600,6 +600,7 @@ function renderRealtimeConnectionBoundary(
       data-persistent-save-allowed="false"
       data-production-phone-connection-allowed="false"
       data-tool-calling-allowed="false"
+      data-token-endpoint-adapter-status="${escapeHtml(boundary.tokenEndpointAdapter.status)}"
       data-token-endpoint-contract-path="${escapeHtml(boundary.tokenEndpointContract.localEndpoint.path)}"
     >
       <div class="realtime-heading">
@@ -626,6 +627,12 @@ function renderRealtimeConnectionBoundary(
         <div>
           <dt>Token contract</dt>
           <dd>${escapeHtml(tokenEndpointContractLabel)} / contract only</dd>
+        </div>
+        <div>
+          <dt>Disabled adapter</dt>
+          <dd>${escapeHtml(boundary.tokenEndpointAdapter.status)} / ${
+            boundary.localFallbackAvailable ? "local fallback" : "fallback unavailable"
+          }</dd>
         </div>
         <div>
           <dt>Microphone</dt>

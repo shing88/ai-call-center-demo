@@ -19,6 +19,9 @@ test("buildRealtimeConnectionBoundary defaults to a not-configured browser-safe 
   assert.equal(boundary.tokenEndpointContract.localEndpoint.path, REALTIME_TOKEN_ENDPOINT_PATH);
   assert.equal(boundary.tokenEndpointContract.localEndpoint.acceptsStandardApiKeyFromBrowser, false);
   assert.equal(boundary.tokenEndpointConfigured, false);
+  assert.equal(boundary.tokenEndpointAdapter.status, "not-configured");
+  assert.equal(boundary.tokenEndpointAdapter.response.body.fallback.available, true);
+  assert.equal(boundary.localFallbackAvailable, true);
   assert.equal(boundary.microphonePermissionState, "not-requested");
   assert.deepEqual(boundary.guardrails, {
     browserApiKeyAllowed: false,
@@ -31,6 +34,7 @@ test("buildRealtimeConnectionBoundary defaults to a not-configured browser-safe 
   assert.match(boundary.operatorMessage, /server-minted ephemeral client secret/);
   assert.match(boundary.operatorMessage, /does not request microphone permission/);
   assert.ok(boundary.blockedReasons.includes("Server token endpoint is not configured."));
+  assert.ok(boundary.blockedReasons.includes("Server token endpoint adapter is disabled."));
   assert.ok(boundary.blockedReasons.includes("Microphone permission has not been requested."));
   assert.equal(boundary.requirements[0]?.label, "Token endpoint contract");
   assert.equal(boundary.requirements[0]?.satisfied, true);
@@ -53,6 +57,7 @@ test("buildRealtimeConnectionBoundary keeps the review gate closed even when set
   assert.equal(boundary.status, "review-gated");
   assert.equal(boundary.sessionStartAllowed, false);
   assert.equal(boundary.tokenEndpointConfigured, true);
+  assert.equal(boundary.tokenEndpointAdapter.status, "not-configured");
   assert.equal(boundary.ephemeralClientSecretAvailable, true);
   assert.equal(boundary.microphonePermissionState, "granted");
   assert.ok(boundary.blockedReasons.includes("Current demo mode keeps Realtime session start disabled."));

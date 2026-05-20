@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
+  buildDisabledRealtimeTokenEndpointAdapter,
   buildRealtimeTokenEndpointContract,
   OPENAI_REALTIME_CLIENT_SECRETS_REFERENCE_URL,
   OPENAI_REALTIME_CLIENT_SECRETS_REST_PATH,
@@ -52,6 +53,68 @@ test("buildRealtimeTokenEndpointContract keeps every Realtime enablement gate di
     productionPhoneConnectionAllowed: false,
     toolCallingAllowed: false
   });
+});
+
+test("buildDisabledRealtimeTokenEndpointAdapter returns a deterministic not-configured fallback", () => {
+  const contract = buildRealtimeTokenEndpointContract();
+  const adapter = buildDisabledRealtimeTokenEndpointAdapter(contract);
+  const result = adapter.handle({
+    method: "POST",
+    path: REALTIME_TOKEN_ENDPOINT_PATH,
+    body: {
+      callId: "CALL-1",
+      operatorSessionId: "operator-session-1",
+      reviewGateId: "review-gate-1"
+    }
+  });
+
+  assert.equal(adapter.state, "disabled");
+  assert.equal(result.status, "not-configured");
+  assert.equal(result.contractVersion, 1);
+  assert.equal(result.localEndpointPath, REALTIME_TOKEN_ENDPOINT_PATH);
+  assert.equal(result.upstreamRequestAttempted, false);
+  assert.equal(result.networkRequestAllowed, false);
+  assert.equal(result.requestAccepted, false);
+  assert.equal(result.response.statusCode, 503);
+  assert.equal(result.response.body.error.code, "realtime_token_endpoint_not_configured");
+  assert.equal(result.response.body.fallback.mode, "local-rehearsal");
+  assert.equal(result.response.body.fallback.available, true);
+  assert.equal(result.response.body.guardrails.realtimeSessionStartAllowed, false);
+  assert.equal(result.response.body.guardrails.microphonePermissionAllowed, false);
+  assert.equal(result.auditLog.secretValueIncluded, false);
+  assert.equal(result.auditLog.headersLogged, false);
+  assert.equal(result.auditLog.requestBodyLogged, false);
+});
+
+test("disabled adapter rejects browser-supplied credentials without forwarding a request", () => {
+  const adapter = buildDisabledRealtimeTokenEndpointAdapter();
+  const result = adapter.handle({
+    method: "POST",
+    path: REALTIME_TOKEN_ENDPOINT_PATH,
+    headers: {
+      authorization: "redacted browser credential",
+      "x-openai-api-key": "redacted browser key"
+    },
+    body: {
+      apiKey: "redacted standard key",
+      clientSecret: "redacted ephemeral credential",
+      env: {
+        OPENAI_API_KEY: "redacted environment key"
+      }
+    }
+  });
+
+  assert.equal(result.status, "not-configured");
+  assert.equal(result.sensitiveInputRejected, true);
+  assert.equal(result.upstreamRequestAttempted, false);
+  assert.equal(result.networkRequestAllowed, false);
+  assert.match(result.rejectedBrowserCredentialReasons.join("\n"), /authorization header/i);
+  assert.match(result.rejectedBrowserCredentialReasons.join("\n"), /browser API key/i);
+  assert.match(result.rejectedBrowserCredentialReasons.join("\n"), /client secret/i);
+  assert.match(result.rejectedBrowserCredentialReasons.join("\n"), /environment-sourced value/i);
+  assert.doesNotMatch(JSON.stringify(result), /redacted browser credential/);
+  assert.doesNotMatch(JSON.stringify(result), /redacted standard key/);
+  assert.doesNotMatch(JSON.stringify(result), /redacted ephemeral credential/);
 });
 
 test("compiled browser-facing Realtime token contract contains no concrete secrets", () => {
