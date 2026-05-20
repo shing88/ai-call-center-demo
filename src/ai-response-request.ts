@@ -6,6 +6,10 @@ import {
   type OperatorInputSubmitSaveCandidate,
   type QueueItem
 } from "./app.js";
+import {
+  buildResponsePolicyGuard,
+  type ResponsePolicyGuard
+} from "./response-policy.js";
 
 export interface AiResponseRequestEvidenceItem {
   sourcePath: string;
@@ -55,6 +59,7 @@ export interface AiResponseRequest {
     statusText: string;
     submitSaveCandidate: OperatorInputSubmitSaveCandidate;
   };
+  policy: ResponsePolicyGuard;
   guardrails: {
     externalSendAllowed: false;
     persistenceAllowed: false;
@@ -80,6 +85,12 @@ export function buildAiResponseRequest(input: BuildAiResponseRequestInput): AiRe
   const conversation = buildConversationThreadPreview(input.item, draft);
   const operatorInput = buildAssistantInputPreview(input.item, draft, {
     value: input.operatorNoteValue
+  });
+  const policy = buildResponsePolicyGuard({
+    item: input.item,
+    evidence: input.evidence,
+    conversation,
+    operatorInput
   });
 
   return {
@@ -126,10 +137,14 @@ export function buildAiResponseRequest(input: BuildAiResponseRequestInput): AiRe
       statusText: operatorInput.statusText,
       submitSaveCandidate: operatorInput.candidate
     },
+    policy,
     guardrails: {
       externalSendAllowed: false,
       persistenceAllowed: false,
-      humanReviewRequired: input.item.priority === "high" || input.item.status === "human-review"
+      humanReviewRequired:
+        policy.humanReviewRequired ||
+        input.item.priority === "high" ||
+        input.item.status === "human-review"
     }
   };
 }

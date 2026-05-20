@@ -76,6 +76,23 @@ function aiResponseRequest(overrides: Partial<AiResponseRequest> = {}): AiRespon
         }
       }
     },
+    policy: {
+      version: 1,
+      outcome: "customer-specific-answer-blocked",
+      allowedResponseScope: "general-information-only",
+      identityVerification: "unverified",
+      customerSpecificAnswerAllowed: false,
+      humanReviewRequired: false,
+      allowedTopics: ["一般的な受付時間・手続き", "本人確認が必要になる理由"],
+      blockedResponseTypes: ["顧客別の返金可否・返金額・返金予定"],
+      reasons: ["本人確認前のため、顧客別の返金予定は回答しない。"],
+      evidenceReferences: ["business_rules/001_identity_verification.md / 本人確認ルール"],
+      guardrails: {
+        externalSendAllowed: false,
+        persistenceAllowed: false,
+        policyDecisionOnly: true
+      }
+    },
     guardrails: {
       externalSendAllowed: false,
       persistenceAllowed: false,
@@ -105,6 +122,23 @@ function aiResponseClientResult(
       persistenceAllowed: false,
       humanReviewRequired: false,
       reviewReason: null
+    },
+    policy: {
+      version: 1,
+      outcome: "customer-specific-answer-blocked",
+      allowedResponseScope: "general-information-only",
+      identityVerification: "unverified",
+      customerSpecificAnswerAllowed: false,
+      humanReviewRequired: false,
+      allowedTopics: ["一般的な受付時間・手続き", "本人確認が必要になる理由"],
+      blockedResponseTypes: ["顧客別の返金可否・返金額・返金予定"],
+      reasons: ["本人確認前のため、顧客別の返金予定は回答しない。"],
+      evidenceReferences: ["business_rules/001_identity_verification.md / 本人確認ルール"],
+      guardrails: {
+        externalSendAllowed: false,
+        persistenceAllowed: false,
+        policyDecisionOnly: true
+      }
     },
     diagnostics: {
       evidenceCount: 1,
@@ -152,6 +186,7 @@ test("createAiResponseNetworkClient posts the request through the injected fetch
   assert.equal(body.provider, "provider-proxy");
   assert.equal(body.model, "demo-model");
   assert.equal(body.request?.callId, "CALL-5001");
+  assert.equal(body.request?.policy.outcome, "customer-specific-answer-blocked");
   assert.equal(body.request?.guardrails.externalSendAllowed, false);
   assert.equal(body.request?.guardrails.persistenceAllowed, false);
 });

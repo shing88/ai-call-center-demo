@@ -1,4 +1,10 @@
 import type { EvidenceBundle } from "./evidence-bridge.js";
+import {
+  buildResponsePolicyGuard,
+  type ResponsePolicyAllowedScope,
+  type ResponsePolicyGuard,
+  type ResponsePolicyOutcome
+} from "./response-policy.js";
 
 export type CallStatus = "waiting" | "ai-handling" | "human-review";
 
@@ -325,6 +331,12 @@ export function renderApp(state: DemoState = demoState): string {
       value: operatorNoteValue
     }
   );
+  const policyGuard = buildResponsePolicyGuard({
+    item: selectedQueueItem,
+    evidence: state.assistantEvidence,
+    conversation: threadPreview,
+    operatorInput: inputPreview
+  });
   const queueItems = state.activeQueue
     .map((item) => renderQueueItem(item, selectedCallId))
     .join("");
@@ -383,6 +395,7 @@ export function renderApp(state: DemoState = demoState): string {
             ${renderConversationDraft(conversationDraft)}
             ${renderConversationThreadPreview(threadPreview)}
             ${renderAssistantInputPreview(inputPreview)}
+            ${renderResponsePolicyGuard(policyGuard)}
             ${renderAssistantEvidence(state.assistantEvidence)}
           </aside>
         </section>
@@ -472,6 +485,79 @@ function selectOperatorNoteValue(
   }
 
   return operatorNotes[callId];
+}
+
+function renderResponsePolicyGuard(policy: ResponsePolicyGuard): string {
+  const allowedTopics = policy.allowedTopics
+    .map((topic) => `<li>${escapeHtml(topic)}</li>`)
+    .join("");
+  const blockedResponseTypes = policy.blockedResponseTypes
+    .map((blockedType) => `<li>${escapeHtml(blockedType)}</li>`)
+    .join("");
+
+  return `
+    <section class="policy-panel" aria-labelledby="policy-title">
+      <div class="policy-heading">
+        <h3 id="policy-title">Policy guard</h3>
+        <span>${escapeHtml(policyOutcomeLabel(policy.outcome))}</span>
+      </div>
+      <p>${escapeHtml(policy.reasons[0] ?? "Policy decision is ready for review.")}</p>
+      <dl>
+        <div>
+          <dt>Scope</dt>
+          <dd>${escapeHtml(policyScopeLabel(policy.allowedResponseScope))}</dd>
+        </div>
+        <div>
+          <dt>Human review</dt>
+          <dd>${policy.humanReviewRequired ? "required" : "not required"}</dd>
+        </div>
+        <div>
+          <dt>Customer-specific answer</dt>
+          <dd>${policy.customerSpecificAnswerAllowed ? "allowed" : "blocked"}</dd>
+        </div>
+        <div>
+          <dt>External send</dt>
+          <dd>blocked</dd>
+        </div>
+        <div>
+          <dt>Persistent save</dt>
+          <dd>blocked</dd>
+        </div>
+      </dl>
+      <div class="policy-lists">
+        <div>
+          <span>Allowed</span>
+          <ul>${allowedTopics}</ul>
+        </div>
+        ${
+          policy.blockedResponseTypes.length > 0
+            ? `<div><span>Blocked</span><ul>${blockedResponseTypes}</ul></div>`
+            : ""
+        }
+      </div>
+    </section>
+  `;
+}
+
+function policyOutcomeLabel(outcome: ResponsePolicyOutcome): string {
+  const labels: Record<ResponsePolicyOutcome, string> = {
+    "general-guidance-only": "General guidance only",
+    "customer-specific-answer-blocked": "Customer-specific answer blocked",
+    "human-review-required": "Human review required",
+    "scoped-draft-allowed": "Scoped draft allowed"
+  };
+
+  return labels[outcome];
+}
+
+function policyScopeLabel(scope: ResponsePolicyAllowedScope): string {
+  const labels: Record<ResponsePolicyAllowedScope, string> = {
+    "general-information-only": "General information only",
+    "handoff-only": "Handoff only",
+    "verified-customer-context": "Verified customer context"
+  };
+
+  return labels[scope];
 }
 
 function renderConversationDraft(draft: AssistantConversationDraft): string {

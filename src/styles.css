@@ -434,6 +434,80 @@ h3 {
   text-align: right;
 }
 
+.policy-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid #d6dde8;
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.policy-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.policy-heading span,
+.policy-lists span {
+  color: #667085;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.policy-panel p {
+  margin-bottom: 0;
+  color: #344052;
+  font-size: 0.9rem;
+}
+
+.policy-panel dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.policy-panel dl div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.policy-panel dt,
+.policy-panel dd {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.policy-panel dt {
+  color: #667085;
+  font-weight: 700;
+}
+
+.policy-panel dd {
+  color: #17202a;
+  font-weight: 800;
+  text-align: right;
+}
+
+.policy-lists {
+  display: grid;
+  gap: 8px;
+}
+
+.policy-lists ul {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: #344052;
+  font-size: 0.84rem;
+}
+
 .evidence-panel {
   margin-top: 18px;
   border-top: 1px solid #d7dde5;
@@ -511,6 +585,7 @@ h3 {
   .draft-heading,
   .thread-heading,
   .input-heading,
+  .policy-heading,
   .evidence-heading {
     align-items: stretch;
     flex-direction: column;
