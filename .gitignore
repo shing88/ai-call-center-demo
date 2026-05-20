@@ -17,6 +17,8 @@ coverage/
 # Test artifacts
 test-results/
 playwright-report/
+data/*.json
+data/*.tmp
 
 # Environment
 .env

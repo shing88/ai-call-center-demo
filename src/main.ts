@@ -24,6 +24,8 @@ import { buildCallSummary, type CallSummary } from "./call-summary.js";
 import {
   buildRealtimeCallHandoffRecord,
   createRealtimeTranscriptCollector,
+  loadRealtimeCallHandoffRecords,
+  saveRealtimeCallHandoffRecord,
   type RealtimeCallHandoffRecord,
   type RealtimeTranscriptCollector
 } from "./realtime-call-recording.js";
@@ -60,6 +62,7 @@ let realtimeCallSession: RealtimeCallSession | undefined;
 let realtimeTranscriptCollector: RealtimeTranscriptCollector | undefined;
 let realtimeCallHandoff: RealtimeCallHandoffRecord | undefined;
 let realtimeCallRequestId = 0;
+let realtimeHandoffLoadRequestId = 0;
 
 function renderCurrentState(): void {
   appRoot.innerHTML = renderApp({
@@ -145,9 +148,11 @@ appRoot.addEventListener("click", (event) => {
   currentEvidence = nextEvidence;
   realtimeCallHandoff = undefined;
   renderCurrentState();
+  void loadCurrentPersistedRealtimeCallHandoff();
 });
 
 renderCurrentState();
+void loadCurrentPersistedRealtimeCallHandoff();
 
 async function handleStartRealtimeCall(): Promise<void> {
   if (!realtimeCallControls.startCallAvailable) {
@@ -194,6 +199,7 @@ function handleEndRealtimeCall(): void {
     realtimeCallHandoff = buildCurrentRealtimeCallHandoff("fallback-recorded");
     realtimeCallControls = buildRealtimeCallControls({ status: "ended" });
     renderCurrentState();
+    void persistCurrentRealtimeCallHandoff();
     return;
   }
 
@@ -203,6 +209,7 @@ function handleEndRealtimeCall(): void {
   realtimeCallSession = undefined;
   realtimeTranscriptCollector = undefined;
   renderCurrentState();
+  void persistCurrentRealtimeCallHandoff();
 }
 
 interface CurrentCallReviewContext {
@@ -270,4 +277,40 @@ function buildCurrentRealtimeCallHandoff(
     policy: context.policy,
     transcript: realtimeTranscriptCollector?.getTranscript() ?? []
   });
+}
+
+async function persistCurrentRealtimeCallHandoff(): Promise<void> {
+  if (!realtimeCallHandoff) {
+    return;
+  }
+
+  try {
+    await saveRealtimeCallHandoffRecord(fetch, realtimeCallHandoff);
+  } catch (_error) {
+    return;
+  }
+}
+
+async function loadCurrentPersistedRealtimeCallHandoff(): Promise<void> {
+  const requestId = realtimeHandoffLoadRequestId + 1;
+  realtimeHandoffLoadRequestId = requestId;
+  const callId = currentEvidence.callId;
+
+  try {
+    const records = await loadRealtimeCallHandoffRecords(fetch, callId);
+
+    if (
+      requestId !== realtimeHandoffLoadRequestId ||
+      currentEvidence.callId !== callId ||
+      realtimeCallHandoff ||
+      records.length === 0
+    ) {
+      return;
+    }
+
+    realtimeCallHandoff = records[0];
+    renderCurrentState();
+  } catch (_error) {
+    return;
+  }
 }

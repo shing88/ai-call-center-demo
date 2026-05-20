@@ -657,7 +657,7 @@ test("renderApp displays the Realtime call handoff record after End call without
   assert.match(html, /business_rules\/demo\.md \/ Demo section/);
   assert.match(html, /Customer-specific answer blocked/);
   assert.match(html, /Next action/);
-  assert.match(html, /browser state only/);
+  assert.match(html, /browser state plus server local JSON/);
   assert.doesNotMatch(html, /saved successfully/i);
   assert.doesNotMatch(html, /sent successfully/i);
 });

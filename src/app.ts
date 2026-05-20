@@ -767,7 +767,7 @@ function renderRealtimeCallHandoffRecord(
         </div>
         <div>
           <dt>Storage</dt>
-          <dd>browser state only</dd>
+          <dd>browser state plus server local JSON</dd>
         </div>
       </dl>
       <div class="summary-evidence">
