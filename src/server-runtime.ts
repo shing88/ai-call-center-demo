@@ -1,13 +1,18 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { basename, extname, resolve, sep } from "node:path";
+import { basename, dirname, extname, resolve, sep } from "node:path";
 import {
   buildDisabledRealtimeTokenEndpointAdapter,
   buildDisabledRealtimeTokenEndpointResult,
   OPENAI_REALTIME_CLIENT_SECRETS_REST_PATH,
   REALTIME_TOKEN_ENDPOINT_PATH
 } from "./realtime-token-endpoint.js";
+import {
+  isRealtimeCallHandoffRecord,
+  REALTIME_HANDOFFS_ENDPOINT_PATH,
+  type RealtimeCallHandoffRecord
+} from "./realtime-call-recording.js";
 
 export { REALTIME_TOKEN_ENDPOINT_PATH } from "./realtime-token-endpoint.js";
 
@@ -18,12 +23,14 @@ export interface DemoServerOptions {
   openAiApiKey?: string;
   realtimeModel?: string;
   fetch?: typeof fetch;
+  handoffStorePath?: string;
 }
 
 interface RuntimeConfig {
   openAiApiKey?: string;
   realtimeModel: string;
   fetch: typeof fetch;
+  handoffStorePath: string;
 }
 
 const contentTypes = new Map([
@@ -42,6 +49,7 @@ const apiBaseUrl = "https://api.openai.com";
 const clientSecretTtlSeconds = 600;
 const defaultRealtimeModel = "gpt-realtime";
 const serverOnlyStaticFiles = new Set(["server-runtime.js"]);
+const maxStoredHandoffs = 100;
 
 export function createDemoServer(options: DemoServerOptions) {
   const rootDir = resolve(options.rootDir);
@@ -98,7 +106,70 @@ async function handleApiRequest(
     return;
   }
 
+  if (url.pathname === REALTIME_HANDOFFS_ENDPOINT_PATH) {
+    await handleRealtimeHandoffsRequest(request, response, url, runtime);
+    return;
+  }
+
   writeJson(response, 404, { error: { code: "api_route_not_found" } });
+}
+
+async function handleRealtimeHandoffsRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  url: URL,
+  runtime: RuntimeConfig
+): Promise<void> {
+  if (request.method === "GET" || request.method === "HEAD") {
+    const records = filterHandoffsByCallId(
+      await readHandoffRecords(runtime.handoffStorePath),
+      url.searchParams.get("callId")
+    );
+
+    writeJson(response, 200, {
+      status: "ready",
+      storage: { mode: "local-json" },
+      records: request.method === "HEAD" ? [] : records
+    });
+    return;
+  }
+
+  if (request.method !== "POST") {
+    writeJson(response, 405, { error: { code: "method_not_allowed" } });
+    return;
+  }
+
+  const parsedBody = await readJsonRequestBody(request);
+
+  if (!parsedBody.ok) {
+    writeJson(response, parsedBody.statusCode, parsedBody.body);
+    return;
+  }
+
+  if (
+    !isRealtimeCallHandoffRecord(parsedBody.body) ||
+    containsCredentialLikeValue(parsedBody.body)
+  ) {
+    writeJson(response, 400, {
+      status: "rejected",
+      error: {
+        code: "handoff_record_rejected",
+        message:
+          "Realtime handoff records must match the local persistence contract and must not contain credential-like values."
+      }
+    });
+    return;
+  }
+
+  const records = await readHandoffRecords(runtime.handoffStorePath);
+  const nextRecords = [...records, parsedBody.body].slice(-maxStoredHandoffs);
+  await writeHandoffRecords(runtime.handoffStorePath, nextRecords);
+
+  writeJson(response, 201, {
+    status: "stored",
+    storage: { mode: "local-json" },
+    record: parsedBody.body
+  });
 }
 
 async function handleRealtimeClientSecretRequest(
@@ -349,8 +420,55 @@ function buildRuntimeConfig(options: DemoServerOptions): RuntimeConfig {
   return {
     openAiApiKey: normalizeOptionalText(options.openAiApiKey),
     realtimeModel: normalizeOptionalText(options.realtimeModel) ?? defaultRealtimeModel,
-    fetch: options.fetch ?? fetch
+    fetch: options.fetch ?? fetch,
+    handoffStorePath:
+      normalizeOptionalText(options.handoffStorePath) ??
+      resolve(options.rootDir, "..", "data", "realtime-handoffs.json")
   };
+}
+
+async function readHandoffRecords(
+  handoffStorePath: string
+): Promise<RealtimeCallHandoffRecord[]> {
+  try {
+    const parsed: unknown = JSON.parse(await readFile(handoffStorePath, "utf8"));
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(isRealtimeCallHandoffRecord);
+  } catch {
+    return [];
+  }
+}
+
+async function writeHandoffRecords(
+  handoffStorePath: string,
+  records: RealtimeCallHandoffRecord[]
+): Promise<void> {
+  await mkdir(dirname(handoffStorePath), { recursive: true });
+  await writeFile(handoffStorePath, `${JSON.stringify(records, null, 2)}\n`, "utf8");
+}
+
+function filterHandoffsByCallId(
+  records: RealtimeCallHandoffRecord[],
+  callId: string | null
+): RealtimeCallHandoffRecord[] {
+  const filtered =
+    callId && callId.length > 0
+      ? records.filter((record) => record.callId === callId)
+      : records;
+
+  return filtered.slice(-20).reverse();
+}
+
+function containsCredentialLikeValue(value: unknown): boolean {
+  const serialized = JSON.stringify(value);
+
+  return /(?:\bsk-[A-Za-z0-9_-]+|Bearer\s+\S+|OPENAI_API_KEY|ek_[A-Za-z0-9_-]+)/i.test(
+    serialized
+  );
 }
 
 function redactHeaderValues(

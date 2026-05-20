@@ -6,3 +6,6 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: 4173
+      HANDOFF_STORE_PATH: /app/data/realtime-handoffs.json
+    volumes:
+      - ./data:/app/data

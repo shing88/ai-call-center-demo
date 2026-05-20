@@ -2,7 +2,7 @@
 
 AIコールセンターの応対支援デモです。ブラウザで開くと、架空の受付キュー、Assistant handoff、根拠候補、応答ドラフト、会話プレビュー、Operator note、Policy guard、Realtime boundary、Realtime call controls、Realtime handoff record、fallback rehearsalを1画面で確認できます。
 
-このリポジトリはデモ用です。Realtime音声はブラウザの`Start call`から短命client secretで接続するデモ境界だけを扱い、実電話、認証、DB、永続保存、実顧客データには接続していません。デモ中に表示される顧客・契約・問い合わせ情報はすべて架空データです。
+このリポジトリはデモ用です。Realtime音声はブラウザの`Start call`から短命client secretで接続するデモ境界だけを扱い、実電話、認証、本番DB、実顧客データには接続していません。デモ中に表示される顧客・契約・問い合わせ情報はすべて架空データです。`End call`後のhandoff recordだけ、デモ継続用にserver-side local JSONへ保存できます。
 
 ## すぐデモを起動する
 
@@ -38,7 +38,7 @@ docker run --rm -p 4173:4173 ai-call-center-demo
 3. `Evidence candidates`で、回答がMarkdown knowledge base由来の候補に基づくことを説明します。
 4. `Policy guard`で、本人確認前や上席確認が必要なケースでは確定回答を避けるデモ境界を説明します。
 5. `Realtime boundary`で、標準API keyはブラウザに出さず、短命client secretだけでブラウザ接続することを説明します。`Start call`はserver token endpointが設定済みのときだけWebRTC接続へ進み、未設定や失敗時はfallback rehearsalに戻ります。
-6. `End call`後の`Realtime handoff record`で、transcript、summary、evidence references、policy decision、next actionがbrowser stateに残り、外部送信・永続保存・実電話接続はblockedのままであることを見せます。
+6. `End call`後の`Realtime handoff record`で、transcript、summary、evidence references、policy decision、next actionが画面に残り、server-side local JSONにも保存されることを見せます。外部送信・実電話接続・本番DB保存はblockedのままです。
 7. `Fallback rehearsal`で、外部AIや通話連携がなくてもデモ進行できることを見せます。
 
 ## ローカル開発
@@ -57,6 +57,8 @@ npm run dev
 ```text
 GET /api/health
 POST /api/realtime/client-secret
+GET /api/realtime/handoffs
+POST /api/realtime/handoffs
 ```
 
 `OPENAI_API_KEY`が未設定の場合、`POST /api/realtime/client-secret`はOpenAIへ接続せず、`not-configured` / `local-rehearsal`のJSON fallbackを返します。`OPENAI_API_KEY`がserver-side環境変数として設定されている場合だけ、OpenAI Realtimeの`/v1/realtime/client_secrets`へserver-side requestを行い、短命client secretを返します。標準API keyやbrowser-supplied credentialは受け付けず、ブラウザbundleや静的ファイルへAPI keyを埋め込みません。
@@ -72,7 +74,9 @@ OPENAI_API_KEY=...
 REALTIME_MODEL=gpt-realtime
 ```
 
-ブラウザの`Start call`は選択中callの根拠候補、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、`POST /api/realtime/client-secret`へ送ります。server runtimeは標準API keyをserver-sideだけで使い、OpenAI Realtimeのclient secret sessionにそのinstructionsを設定します。短命client secret取得後にだけマイク権限を要求し、OpenAI Realtime WebRTC calls endpointへSDP offerを送ります。未設定時や接続失敗時はマイクやWebRTCを進めず、`local-rehearsal`のfallback表示に戻ります。`End call`後のhandoff recordはbrowser stateのみで、DB保存、外部送信、実電話接続はまだ開始しません。
+ブラウザの`Start call`は選択中callの根拠候補、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、`POST /api/realtime/client-secret`へ送ります。server runtimeは標準API keyをserver-sideだけで使い、OpenAI Realtimeのclient secret sessionにそのinstructionsを設定します。短命client secret取得後にだけマイク権限を要求し、OpenAI Realtime WebRTC calls endpointへSDP offerを送ります。未設定時や接続失敗時はマイクやWebRTCを進めず、`local-rehearsal`のfallback表示に戻ります。
+
+`End call`後のhandoff recordは`POST /api/realtime/handoffs`でserver-side local JSONへ保存され、画面読み込み時に`GET /api/realtime/handoffs?callId=...`から最新recordを復元します。Docker Composeでは`./data:/app/data`をmountし、既定の保存先は`/app/data/realtime-handoffs.json`です。このJSONはGit管理外です。外部送信、実電話接続、本番DB保存はまだ開始しません。
 
 テストとビルドは次で確認します。
 
@@ -95,6 +99,7 @@ npm.cmd run build
 - HTML描画とデモ状態: `src/app.ts`
 - Realtime browser call controls: `src/realtime-call-controls.ts`
 - Realtime call recording / handoff: `src/realtime-call-recording.ts`
+- Realtime handoff local JSON API: `src/server-runtime.ts`
 - Realtime session grounding: `src/realtime-session-context.ts`
 - knowledge loader / search: `src/knowledge.ts`, `src/knowledge-search.ts`
 - 根拠候補bridge: `src/evidence-bridge.ts`
@@ -116,7 +121,7 @@ build時に `dist/assets/evidence-bundles.json` を生成し、ブラウザUIは
 ## 現在つないでいないもの
 
 - 実電話接続
-- 認証・DB・永続保存
+- 認証・本番DB
 - 実顧客データ
 
-これらはデモ境界として画面上にも明示しています。実電話接続や記録DBを追加する場合は、別タスクで安全なserver-side adapter、設定、ログ、fallbackを確認してから進めます。
+これらはデモ境界として画面上にも明示しています。実電話接続や本番DBを追加する場合は、別タスクで安全なserver-side adapter、設定、ログ、fallbackを確認してから進めます。

@@ -12,7 +12,8 @@ const server = createDemoServer({
   host,
   port,
   openAiApiKey: process.env.OPENAI_API_KEY,
-  realtimeModel: process.env.REALTIME_MODEL
+  realtimeModel: process.env.REALTIME_MODEL,
+  handoffStorePath: process.env.HANDOFF_STORE_PATH
 });
 
 server.listen(port, host, () => {

@@ -5,6 +5,8 @@ import type {
   ResponsePolicyOutcome
 } from "./response-policy.js";
 
+export const REALTIME_HANDOFFS_ENDPOINT_PATH = "/api/realtime/handoffs";
+
 export type RealtimeTranscriptRole = "customer" | "assistant";
 
 export interface RealtimeTranscriptEntry {
@@ -51,6 +53,22 @@ export interface BuildRealtimeCallHandoffRecordInput {
   callSummary: CallSummary;
   policy: ResponsePolicyGuard;
   transcript: RealtimeTranscriptEntry[];
+}
+
+export interface RealtimeHandoffPersistenceResult {
+  status: "stored";
+  storage: {
+    mode: "local-json";
+  };
+  record: RealtimeCallHandoffRecord;
+}
+
+export interface RealtimeHandoffListResult {
+  status: "ready";
+  storage: {
+    mode: "local-json";
+  };
+  records: RealtimeCallHandoffRecord[];
 }
 
 export function createRealtimeTranscriptCollector(): RealtimeTranscriptCollector {
@@ -194,8 +212,177 @@ export function buildRealtimeCallHandoffRecord(
   };
 }
 
+export async function saveRealtimeCallHandoffRecord(
+  fetchFn: typeof fetch,
+  record: RealtimeCallHandoffRecord
+): Promise<RealtimeHandoffPersistenceResult | undefined> {
+  const response = await fetchFn(REALTIME_HANDOFFS_ENDPOINT_PATH, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    },
+    body: JSON.stringify(record)
+  });
+
+  if (!response.ok) {
+    return undefined;
+  }
+
+  const body: unknown = await response.json();
+  return isRealtimeHandoffPersistenceResult(body) ? body : undefined;
+}
+
+export async function loadRealtimeCallHandoffRecords(
+  fetchFn: typeof fetch,
+  callId: string
+): Promise<RealtimeCallHandoffRecord[]> {
+  const params = new URLSearchParams({ callId });
+  const response = await fetchFn(`${REALTIME_HANDOFFS_ENDPOINT_PATH}?${params.toString()}`, {
+    headers: { Accept: "application/json" }
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const body: unknown = await response.json();
+  return isRealtimeHandoffListResult(body) ? body.records : [];
+}
+
+export function isRealtimeCallHandoffRecord(
+  value: unknown
+): value is RealtimeCallHandoffRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    candidate.version === 1 &&
+    typeof candidate.callId === "string" &&
+    candidate.callId.length > 0 &&
+    candidate.callId.length <= 80 &&
+    (candidate.status === "recorded" || candidate.status === "fallback-recorded") &&
+    isTranscript(candidate.transcript) &&
+    isBoundedString(candidate.summary, 4_000) &&
+    isStringArray(candidate.evidenceReferences, 50, 500) &&
+    isPolicyDecision(candidate.policyDecision) &&
+    isBoundedString(candidate.nextAction, 2_000) &&
+    isGuardrails(candidate.guardrails)
+  );
+}
+
 function getEventType(event: unknown): string | undefined {
   return getStringProperty(event, "type");
+}
+
+function isRealtimeHandoffPersistenceResult(
+  value: unknown
+): value is RealtimeHandoffPersistenceResult {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    candidate.status === "stored" &&
+    isStorage(candidate.storage) &&
+    isRealtimeCallHandoffRecord(candidate.record)
+  );
+}
+
+function isRealtimeHandoffListResult(
+  value: unknown
+): value is RealtimeHandoffListResult {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    candidate.status === "ready" &&
+    isStorage(candidate.storage) &&
+    Array.isArray(candidate.records) &&
+    candidate.records.every(isRealtimeCallHandoffRecord)
+  );
+}
+
+function isStorage(value: unknown): value is { mode: "local-json" } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return (value as Record<string, unknown>).mode === "local-json";
+}
+
+function isTranscript(value: unknown): value is RealtimeTranscriptEntry[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= 100 &&
+    value.every((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return false;
+      }
+
+      const candidate = entry as Record<string, unknown>;
+
+      return (
+        (candidate.role === "customer" || candidate.role === "assistant") &&
+        isBoundedString(candidate.text, 4_000) &&
+        isBoundedString(candidate.sourceEventType, 120) &&
+        typeof candidate.final === "boolean"
+      );
+    })
+  );
+}
+
+function isPolicyDecision(
+  value: unknown
+): value is RealtimeCallHandoffPolicyDecision {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    typeof candidate.outcome === "string" &&
+    typeof candidate.allowedResponseScope === "string" &&
+    typeof candidate.customerSpecificAnswerAllowed === "boolean" &&
+    typeof candidate.humanReviewRequired === "boolean" &&
+    isStringArray(candidate.blockedResponseTypes, 50, 500)
+  );
+}
+
+function isGuardrails(value: unknown): value is RealtimeCallHandoffRecord["guardrails"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    candidate.browserOnly === true &&
+    candidate.persistentSaveAllowed === false &&
+    candidate.externalSendAllowed === false &&
+    candidate.productionPhoneConnectionAllowed === false
+  );
+}
+
+function isStringArray(value: unknown, maxItems: number, maxLength: number): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= maxItems &&
+    value.every((item) => isBoundedString(item, maxLength))
+  );
+}
+
+function isBoundedString(value: unknown, maxLength: number): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= maxLength;
 }
 
 function getStringProperty(value: unknown, property: string): string {

@@ -259,6 +259,87 @@ test("configured Realtime client-secret endpoint rejects browser credentials bef
   }
 });
 
+test("server runtime stores and reloads Realtime handoff records from local JSON", async () => {
+  const fixture = await createServerFixture();
+  const handoffStorePath = join(fixture.rootDir, "data", "realtime-handoffs.json");
+
+  try {
+    await withRunningServer(
+      fixture.rootDir,
+      async (baseUrl) => {
+        const saveResponse = await fetch(`${baseUrl}/api/realtime/handoffs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sampleRealtimeHandoffRecord("CALL-LOCAL-1"))
+        });
+        const saveBody = await saveResponse.json();
+
+        assert.equal(saveResponse.status, 201);
+        assert.equal(saveBody.status, "stored");
+        assert.equal(saveBody.storage.mode, "local-json");
+        assert.equal(saveBody.record.callId, "CALL-LOCAL-1");
+        assert.equal(saveBody.record.transcript[0].text, "Please verify identity first.");
+        assert.equal(saveBody.record.guardrails.externalSendAllowed, false);
+      },
+      { handoffStorePath }
+    );
+
+    await withRunningServer(
+      fixture.rootDir,
+      async (baseUrl) => {
+        const loadResponse = await fetch(
+          `${baseUrl}/api/realtime/handoffs?callId=CALL-LOCAL-1`
+        );
+        const loadBody = await loadResponse.json();
+
+        assert.equal(loadResponse.status, 200);
+        assert.equal(loadBody.status, "ready");
+        assert.equal(loadBody.storage.mode, "local-json");
+        assert.equal(loadBody.records.length, 1);
+        assert.equal(loadBody.records[0].callId, "CALL-LOCAL-1");
+        assert.equal(loadBody.records[0].nextAction, "Verify identity before account-specific guidance.");
+        assert.doesNotMatch(JSON.stringify(loadBody), /server-standard-key|sk-|Bearer/);
+      },
+      { handoffStorePath }
+    );
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test("server runtime rejects Realtime handoff records that contain credential-like values", async () => {
+  const fixture = await createServerFixture();
+
+  try {
+    await withRunningServer(fixture.rootDir, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/realtime/handoffs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...sampleRealtimeHandoffRecord("CALL-SECRET"),
+          transcript: [
+            {
+              role: "assistant",
+              text: "Use sk-browser-secret in the next request.",
+              sourceEventType: "response.output_audio_transcript.done",
+              final: true
+            }
+          ]
+        })
+      });
+      const body = await response.json();
+      const serialized = JSON.stringify(body);
+
+      assert.equal(response.status, 400);
+      assert.equal(body.status, "rejected");
+      assert.equal(body.error.code, "handoff_record_rejected");
+      assert.doesNotMatch(serialized, /sk-browser-secret/);
+    });
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
 test("server runtime keeps static app serving and blocks path traversal", async () => {
   const fixture = await createServerFixture();
 
@@ -335,6 +416,7 @@ async function withRunningServer(
     openAiApiKey?: string;
     realtimeModel?: string;
     fetch?: typeof fetch;
+    handoffStorePath?: string;
   } = {}
 ): Promise<void> {
   const server = createDemoServer({
@@ -343,7 +425,8 @@ async function withRunningServer(
     port: 0,
     openAiApiKey: options.openAiApiKey,
     realtimeModel: options.realtimeModel,
-    fetch: options.fetch
+    fetch: options.fetch,
+    handoffStorePath: options.handoffStorePath
   });
 
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -363,6 +446,38 @@ async function withRunningServer(
       server.close((error) => (error ? reject(error) : resolve()));
     });
   }
+}
+
+function sampleRealtimeHandoffRecord(callId: string): Record<string, unknown> {
+  return {
+    version: 1,
+    callId,
+    status: "recorded",
+    transcript: [
+      {
+        role: "assistant",
+        text: "Please verify identity first.",
+        sourceEventType: "response.output_audio_transcript.done",
+        final: true
+      }
+    ],
+    summary: "Customer asks for account-specific guidance.",
+    evidenceReferences: ["business_rules/demo.md / Demo"],
+    policyDecision: {
+      outcome: "customer-specific-answer-blocked",
+      allowedResponseScope: "general-information-only",
+      customerSpecificAnswerAllowed: false,
+      humanReviewRequired: false,
+      blockedResponseTypes: ["account-specific contract change"]
+    },
+    nextAction: "Verify identity before account-specific guidance.",
+    guardrails: {
+      browserOnly: true,
+      persistentSaveAllowed: false,
+      externalSendAllowed: false,
+      productionPhoneConnectionAllowed: false
+    }
+  };
 }
 
 function getHeader(headers: RequestInit["headers"], name: string): string | null {
