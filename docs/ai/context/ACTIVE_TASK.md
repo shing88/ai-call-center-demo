@@ -2,9 +2,9 @@
 
 ## タスク
 
-次のタスク: Task 26 `realtime-token-endpoint-contract`
+次のタスク: Task 27 `realtime-token-endpoint-disabled-adapter`
 
-状態: Task 25 `realtime-api-connection-boundary`実装済み。Realtime boundaryは`Realtime not configured`を表示し、server-minted ephemeral client secret前提、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、実電話接続blocked、session start disabledを固定している。次は標準API keyをブラウザへ出さず、サーバー側でephemeral client secretを発行するためのcontractを定義する。
+状態: Task 26 `realtime-token-endpoint-contract`実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、contract-only token endpoint `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、`value` / `expires_at` / `session` response field、ブラウザAPI key禁止、マイク未要求、外部音声送信blocked、session start disabledを固定している。次は実OpenAI API keyや実network呼び出しを入れず、未設定時のdisabled adapter / fallback responseを決定的に扱う。
 
 ## タスク開始時に必ず読む
 
@@ -13,7 +13,7 @@ AGENTS.md
 docs/ai/context/CURRENT.md
 docs/ai/context/ACTIVE_TASK.md
 docs/ai/context/SOURCE_OF_TRUTH.md
-docs/ai/tasks/26_realtime_token_endpoint_contract.md
+docs/ai/tasks/27_realtime_token_endpoint_disabled_adapter.md
 ```
 
 ## 必要な場合のみ読む
@@ -22,11 +22,10 @@ docs/ai/tasks/26_realtime_token_endpoint_contract.md
 README.md
 package.json
 src/app.ts
-src/main.ts
 src/realtime-connection.ts
-src/ai-response-network-client.ts
+src/realtime-token-endpoint.ts
 tests/**
-docs/ai/security/realtime-api-connection-boundary-safety-audit.md
+docs/ai/security/realtime-token-endpoint-contract-safety-audit.md
 docs/ai/specs/draft-task-reconciliation.md
 docs/ai/tests/automated-test-catalog.md
 ```

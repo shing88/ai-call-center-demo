@@ -597,13 +597,17 @@ test("renderApp displays the Realtime connection boundary as not configured", ()
   assert.match(html, /Realtime not configured/);
   assert.match(html, /server-minted ephemeral client secret/);
   assert.match(html, /does not request microphone permission/);
+  assert.match(html, /Token contract/);
+  assert.match(html, /POST \/api\/realtime\/client-secret \/ contract only/);
   assert.match(html, /data-realtime-status="not-configured"/);
+  assert.match(html, /data-token-endpoint-contract-path="\/api\/realtime\/client-secret"/);
   assert.match(html, /data-browser-api-key-allowed="false"/);
   assert.match(html, /data-microphone-capture-allowed="false"/);
   assert.match(html, /data-external-audio-send-allowed="false"/);
   assert.match(html, /data-production-phone-connection-allowed="false"/);
   assert.doesNotMatch(html, /OPENAI_API_KEY/);
   assert.doesNotMatch(html, /sk-[A-Za-z0-9]/);
+  assert.doesNotMatch(html, /ek_[A-Za-z0-9]/);
   assert.doesNotMatch(html, /Realtime connected/i);
 });
 
