@@ -580,6 +580,7 @@ export function renderApp(state: DemoState = demoState): string {
 function renderRealtimeConnectionBoundary(
   boundary: RealtimeConnectionBoundary
 ): string {
+  const tokenEndpointContractLabel = `${boundary.tokenEndpointContract.localEndpoint.method} ${boundary.tokenEndpointContract.localEndpoint.path}`;
   const requirements = boundary.requirements
     .map(renderRealtimeConnectionRequirement)
     .join("");
@@ -599,6 +600,7 @@ function renderRealtimeConnectionBoundary(
       data-persistent-save-allowed="false"
       data-production-phone-connection-allowed="false"
       data-tool-calling-allowed="false"
+      data-token-endpoint-contract-path="${escapeHtml(boundary.tokenEndpointContract.localEndpoint.path)}"
     >
       <div class="realtime-heading">
         <div>
@@ -620,6 +622,10 @@ function renderRealtimeConnectionBoundary(
         <div>
           <dt>Token endpoint</dt>
           <dd>${boundary.tokenEndpointConfigured ? "configured" : "not configured"}</dd>
+        </div>
+        <div>
+          <dt>Token contract</dt>
+          <dd>${escapeHtml(tokenEndpointContractLabel)} / contract only</dd>
         </div>
         <div>
           <dt>Microphone</dt>

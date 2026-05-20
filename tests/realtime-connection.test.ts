@@ -5,6 +5,7 @@ import {
   OPENAI_REALTIME_CLIENT_SECRETS_REFERENCE_URL,
   OPENAI_REALTIME_WEBRTC_GUIDE_URL
 } from "../src/realtime-connection.js";
+import { REALTIME_TOKEN_ENDPOINT_PATH } from "../src/realtime-token-endpoint.js";
 
 test("buildRealtimeConnectionBoundary defaults to a not-configured browser-safe state", () => {
   const boundary = buildRealtimeConnectionBoundary();
@@ -14,6 +15,9 @@ test("buildRealtimeConnectionBoundary defaults to a not-configured browser-safe 
   assert.equal(boundary.sessionStartAllowed, false);
   assert.equal(boundary.standardApiKeyAllowedInBrowser, false);
   assert.equal(boundary.ephemeralClientSecretRequired, true);
+  assert.equal(boundary.tokenEndpointContract.implementationState, "contract-only");
+  assert.equal(boundary.tokenEndpointContract.localEndpoint.path, REALTIME_TOKEN_ENDPOINT_PATH);
+  assert.equal(boundary.tokenEndpointContract.localEndpoint.acceptsStandardApiKeyFromBrowser, false);
   assert.equal(boundary.tokenEndpointConfigured, false);
   assert.equal(boundary.microphonePermissionState, "not-requested");
   assert.deepEqual(boundary.guardrails, {
@@ -28,6 +32,10 @@ test("buildRealtimeConnectionBoundary defaults to a not-configured browser-safe 
   assert.match(boundary.operatorMessage, /does not request microphone permission/);
   assert.ok(boundary.blockedReasons.includes("Server token endpoint is not configured."));
   assert.ok(boundary.blockedReasons.includes("Microphone permission has not been requested."));
+  assert.equal(boundary.requirements[0]?.label, "Token endpoint contract");
+  assert.equal(boundary.requirements[0]?.satisfied, true);
+  assert.equal(boundary.requirements[1]?.label, "Server token endpoint implementation");
+  assert.equal(boundary.requirements[1]?.satisfied, false);
   assert.equal(boundary.officialDocs.webRtcGuideUrl, OPENAI_REALTIME_WEBRTC_GUIDE_URL);
   assert.equal(
     boundary.officialDocs.clientSecretsReferenceUrl,

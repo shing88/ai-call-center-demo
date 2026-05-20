@@ -1,7 +1,14 @@
-export const OPENAI_REALTIME_WEBRTC_GUIDE_URL =
-  "https://platform.openai.com/docs/guides/realtime-webrtc";
-export const OPENAI_REALTIME_CLIENT_SECRETS_REFERENCE_URL =
-  "https://platform.openai.com/docs/api-reference/realtime-sessions/create";
+import {
+  buildRealtimeTokenEndpointContract,
+  OPENAI_REALTIME_CLIENT_SECRETS_REFERENCE_URL,
+  OPENAI_REALTIME_WEBRTC_GUIDE_URL,
+  type RealtimeTokenEndpointContract
+} from "./realtime-token-endpoint.js";
+
+export {
+  OPENAI_REALTIME_CLIENT_SECRETS_REFERENCE_URL,
+  OPENAI_REALTIME_WEBRTC_GUIDE_URL
+} from "./realtime-token-endpoint.js";
 
 export type RealtimeConnectionStatus =
   | "not-configured"
@@ -32,6 +39,7 @@ export interface RealtimeConnectionBoundary {
   status: RealtimeConnectionStatus;
   statusText: string;
   operatorMessage: string;
+  tokenEndpointContract: RealtimeTokenEndpointContract;
   tokenEndpointConfigured: boolean;
   ephemeralClientSecretRequired: true;
   ephemeralClientSecretAvailable: boolean;
@@ -49,6 +57,7 @@ export interface RealtimeConnectionBoundary {
 }
 
 export interface BuildRealtimeConnectionBoundaryOptions {
+  tokenEndpointContract?: RealtimeTokenEndpointContract;
   tokenEndpointConfigured?: boolean;
   ephemeralClientSecretAvailable?: boolean;
   microphonePermissionState?: RealtimeMicrophonePermissionState;
@@ -66,6 +75,8 @@ const defaultGuardrails: RealtimeConnectionGuardrails = {
 export function buildRealtimeConnectionBoundary(
   options: BuildRealtimeConnectionBoundaryOptions = {}
 ): RealtimeConnectionBoundary {
+  const tokenEndpointContract =
+    options.tokenEndpointContract ?? buildRealtimeTokenEndpointContract();
   const tokenEndpointConfigured = options.tokenEndpointConfigured ?? false;
   const ephemeralClientSecretAvailable = options.ephemeralClientSecretAvailable ?? false;
   const microphonePermissionState =
@@ -89,6 +100,7 @@ export function buildRealtimeConnectionBoundary(
         : "Realtime setup captured, session start disabled",
     operatorMessage:
       "Realtime browser use requires a server-minted ephemeral client secret. This demo does not request microphone permission, start a session, send audio, save audio, or connect to a production phone line.",
+    tokenEndpointContract,
     tokenEndpointConfigured,
     ephemeralClientSecretRequired: true,
     ephemeralClientSecretAvailable,
@@ -98,6 +110,7 @@ export function buildRealtimeConnectionBoundary(
     guardrails: defaultGuardrails,
     blockedReasons,
     requirements: buildRequirements({
+      tokenEndpointContract,
       tokenEndpointConfigured,
       ephemeralClientSecretAvailable,
       microphonePermissionState
@@ -163,14 +176,21 @@ function buildBlockedReasons(input: {
 }
 
 function buildRequirements(input: {
+  tokenEndpointContract: RealtimeTokenEndpointContract;
   tokenEndpointConfigured: boolean;
   ephemeralClientSecretAvailable: boolean;
   microphonePermissionState: RealtimeMicrophonePermissionState;
 }): RealtimeConnectionRequirement[] {
   return [
     {
-      label: "Server token endpoint",
-      detail: "Mint an ephemeral client secret server-side before browser setup.",
+      label: "Token endpoint contract",
+      detail: `${input.tokenEndpointContract.localEndpoint.method} ${input.tokenEndpointContract.localEndpoint.path} is documented as contract-only; implementation still disabled.`,
+      satisfied: true
+    },
+    {
+      label: "Server token endpoint implementation",
+      detail:
+        "Mint an ephemeral client secret server-side before browser setup without accepting a browser API key.",
       satisfied: input.tokenEndpointConfigured
     },
     {
