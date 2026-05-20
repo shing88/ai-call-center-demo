@@ -119,7 +119,20 @@ test("server runtime mints a Realtime client secret through a server-side reques
           body: JSON.stringify({
             callId: "CALL-1",
             operatorSessionId: "operator-session-1",
-            reviewGateId: "review-gate-1"
+            reviewGateId: "review-gate-1",
+            realtimeGrounding: {
+              version: 1,
+              instructions:
+                "# Role and Objective\nUse the selected call evidence and policy guard.",
+              evidenceReferences: ["knowledge/business_rules/demo.md / Demo"],
+              policy: {
+                outcome: "general-guidance-only",
+                allowedResponseScope: "general-information-only",
+                customerSpecificAnswerAllowed: false,
+                humanReviewRequired: false,
+                blockedResponseTypes: ["顧客別の契約状態・請求状態の断定"]
+              }
+            }
           })
         });
         const body = await response.json();
@@ -186,7 +199,9 @@ test("server runtime mints a Realtime client secret through a server-side reques
       },
       session: {
         type: "realtime",
-        model: "gpt-realtime-2"
+        model: "gpt-realtime-2",
+        instructions:
+          "# Role and Objective\nUse the selected call evidence and policy guard."
       }
     });
   } finally {

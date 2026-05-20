@@ -69,6 +69,23 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
   }> = [];
 
   const result = await startRealtimeCallSession({
+    tokenRequestBody: {
+      callId: "CALL-1",
+      operatorSessionId: "operator-demo-CALL-1",
+      reviewGateId: "policy-general-guidance-only",
+      realtimeGrounding: {
+        version: 1,
+        instructions: "# Role and Objective\nUse the selected call evidence.",
+        evidenceReferences: ["knowledge/business_rules/demo.md / Demo"],
+        policy: {
+          outcome: "general-guidance-only",
+          allowedResponseScope: "general-information-only",
+          customerSpecificAnswerAllowed: false,
+          humanReviewRequired: false,
+          blockedResponseTypes: ["顧客別の契約状態・請求状態の断定"]
+        }
+      }
+    },
     fetch: async (url, init) => {
       const headers = normalizeHeaders(init?.headers);
       requests.push({
@@ -114,6 +131,28 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
   });
   assert.equal(requests.length, 2);
   assert.equal(requests[0]?.url, REALTIME_TOKEN_ENDPOINT_PATH);
+  assert.equal(requests[0]?.method, "POST");
+  assert.equal(
+    normalizeHeaders(requests[0]?.headers)["Content-Type"],
+    "application/json"
+  );
+  assert.deepEqual(JSON.parse(String(requests[0]?.body)), {
+    callId: "CALL-1",
+    operatorSessionId: "operator-demo-CALL-1",
+    reviewGateId: "policy-general-guidance-only",
+    realtimeGrounding: {
+      version: 1,
+      instructions: "# Role and Objective\nUse the selected call evidence.",
+      evidenceReferences: ["knowledge/business_rules/demo.md / Demo"],
+      policy: {
+        outcome: "general-guidance-only",
+        allowedResponseScope: "general-information-only",
+        customerSpecificAnswerAllowed: false,
+        humanReviewRequired: false,
+        blockedResponseTypes: ["顧客別の契約状態・請求状態の断定"]
+      }
+    }
+  });
   assert.equal(requests[1]?.url, OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT);
 });
 

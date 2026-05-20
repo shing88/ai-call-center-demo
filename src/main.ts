@@ -1,4 +1,7 @@
 import {
+  buildAssistantConversationDraft,
+  buildAssistantInputPreview,
+  buildConversationThreadPreview,
   demoState,
   renderApp,
   type AssistantEvidence,
@@ -17,6 +20,11 @@ import {
   type RealtimeCallControls,
   type RealtimeCallSession
 } from "./realtime-call-controls.js";
+import {
+  buildRealtimeOperatorSessionContext,
+  buildRealtimeTokenRequestBody
+} from "./realtime-session-context.js";
+import { buildResponsePolicyGuard } from "./response-policy.js";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -141,6 +149,7 @@ async function handleStartRealtimeCall(): Promise<void> {
   renderCurrentState();
 
   const result = await startRealtimeCallSession({
+    tokenRequestBody: buildCurrentRealtimeTokenRequestBody(),
     fetch,
     getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
     createPeerConnection: () => new RTCPeerConnection()
@@ -171,4 +180,41 @@ function handleEndRealtimeCall(): void {
   realtimeCallControls = endRealtimeCallSession(realtimeCallSession);
   realtimeCallSession = undefined;
   renderCurrentState();
+}
+
+function buildCurrentRealtimeTokenRequestBody(): unknown {
+  const selectedQueueItem = demoState.activeQueue.find(
+    (item) => item.id === currentEvidence.callId
+  );
+  const conversationDraft = buildAssistantConversationDraft(
+    selectedQueueItem,
+    currentEvidence
+  );
+  const conversation = buildConversationThreadPreview(
+    selectedQueueItem,
+    conversationDraft
+  );
+  const operatorNoteValue = operatorNotes[conversationDraft.callId];
+  const operatorInput = buildAssistantInputPreview(
+    selectedQueueItem,
+    conversationDraft,
+    {
+      value: operatorNoteValue
+    }
+  );
+  const policy = buildResponsePolicyGuard({
+    item: selectedQueueItem,
+    evidence: currentEvidence,
+    conversation,
+    operatorInput
+  });
+  const context = buildRealtimeOperatorSessionContext({
+    item: selectedQueueItem,
+    evidence: currentEvidence,
+    conversation,
+    operatorInput,
+    policy
+  });
+
+  return buildRealtimeTokenRequestBody(context);
 }

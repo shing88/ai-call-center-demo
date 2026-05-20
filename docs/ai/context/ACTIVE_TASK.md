@@ -4,13 +4,13 @@
 
 次のタスク: Task 28 `browser-realtime-voice-demo`
 
-現在のPR段階: Browser call controls
+現在のPR段階: Business-rule grounded operator behavior
 
-Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementationは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否を固定している。
+Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controlsは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否を固定している。
 
-このPRでは、Task 28の推奨PR分割のBrowser call controlsだけを扱う。`Start call` / `End call`、connection status、mic permission stateを追加し、`Start call`は短命client secret取得後にだけマイク権限とOpenAI Realtime WebRTC calls endpointへのSDP offerへ進める。未設定や接続失敗時はfallback rehearsalへ戻す。`.env.local`や実secretはcommitしない。業務ルール注入、記録DB、実電話接続はまだ入れない。
+このPRでは、Task 28の推奨PR分割のBusiness-rule grounded operator behaviorだけを扱う。選択中callのevidence candidates、業務ルール、架空顧客モック、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、server-side client secret session configへ渡す。根拠外の断定、本人確認前の顧客別断定、送信・保存・変更済みの主張は禁止する。`.env.local`や実secretはcommitしない。記録DB、実電話接続、transcript/summary保存はまだ入れない。
 
-後続計画: Task 28の次PRは業務ルールgrounding。Realtime接続後に参照するルール注入を小さく追加し、transcript/summary記録はさらに後続PRへ分割する。
+後続計画: Task 28の次PRはCall recording and handoff。transcript、summary、evidence references、policy decision、next actionを画面に残す最小実装へ進める。
 
 ## タスク開始時に必ず読む
 
@@ -34,6 +34,7 @@ src/app.ts
 src/main.ts
 src/realtime-connection.ts
 src/realtime-call-controls.ts
+src/realtime-session-context.ts
 src/realtime-token-endpoint.ts
 src/evidence-bridge.ts
 src/evidence-manifest.ts
