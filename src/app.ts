@@ -10,6 +10,11 @@ import type {
   FallbackRehearsalStep
 } from "./fallback-rehearsal.js";
 import { buildCallSummary, type CallSummary } from "./call-summary.js";
+import {
+  buildRealtimeConnectionBoundary,
+  type RealtimeConnectionBoundary,
+  type RealtimeConnectionRequirement
+} from "./realtime-connection.js";
 
 export type CallStatus = "waiting" | "ai-handling" | "human-review";
 
@@ -80,6 +85,7 @@ export interface DemoState {
   operatorNotes?: OperatorNotesByCallId;
   fallbackRehearsal?: FallbackRehearsalPlan;
   executiveScenario?: ExecutiveDemoScenario;
+  realtimeConnection?: RealtimeConnectionBoundary;
 }
 
 export interface AssistantConversationDraft {
@@ -493,6 +499,8 @@ export function renderApp(state: DemoState = demoState): string {
     operatorInput: inputPreview,
     policy: policyGuard
   });
+  const realtimeConnection =
+    state.realtimeConnection ?? buildRealtimeConnectionBoundary();
   const queueItems = state.activeQueue
     .map((item) => renderQueueItem(item, selectedCallId))
     .join("");
@@ -549,6 +557,7 @@ export function renderApp(state: DemoState = demoState): string {
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
             ${renderCallWorkspace(selectedQueueItem, callSummary, policyGuard)}
+            ${renderRealtimeConnectionBoundary(realtimeConnection)}
             ${renderExecutiveDemoBrief(executiveDemoBrief)}
             ${renderCallSummary(callSummary)}
             ${
@@ -565,6 +574,90 @@ export function renderApp(state: DemoState = demoState): string {
         </section>
       </section>
     </main>
+  `;
+}
+
+function renderRealtimeConnectionBoundary(
+  boundary: RealtimeConnectionBoundary
+): string {
+  const requirements = boundary.requirements
+    .map(renderRealtimeConnectionRequirement)
+    .join("");
+  const blockedReasons = boundary.blockedReasons
+    .map((reason) => `<li>${escapeHtml(reason)}</li>`)
+    .join("");
+
+  return `
+    <section
+      class="realtime-panel"
+      aria-labelledby="realtime-boundary-title"
+      data-realtime-status="${escapeHtml(boundary.status)}"
+      data-session-start-allowed="false"
+      data-browser-api-key-allowed="false"
+      data-microphone-capture-allowed="false"
+      data-external-audio-send-allowed="false"
+      data-persistent-save-allowed="false"
+      data-production-phone-connection-allowed="false"
+      data-tool-calling-allowed="false"
+    >
+      <div class="realtime-heading">
+        <div>
+          <p class="eyebrow">Realtime boundary</p>
+          <h3 id="realtime-boundary-title">${escapeHtml(boundary.statusText)}</h3>
+        </div>
+        <span>${escapeHtml(boundary.officialDocs.verifiedOn)}</span>
+      </div>
+      <p>${escapeHtml(boundary.operatorMessage)}</p>
+      <dl>
+        <div>
+          <dt>Browser API key</dt>
+          <dd>blocked</dd>
+        </div>
+        <div>
+          <dt>Client secret</dt>
+          <dd>${boundary.ephemeralClientSecretAvailable ? "available" : "server required"}</dd>
+        </div>
+        <div>
+          <dt>Token endpoint</dt>
+          <dd>${boundary.tokenEndpointConfigured ? "configured" : "not configured"}</dd>
+        </div>
+        <div>
+          <dt>Microphone</dt>
+          <dd>${escapeHtml(boundary.microphonePermissionState)}</dd>
+        </div>
+        <div>
+          <dt>External audio send</dt>
+          <dd>blocked</dd>
+        </div>
+        <div>
+          <dt>Session start</dt>
+          <dd>disabled</dd>
+        </div>
+      </dl>
+      <div class="realtime-lists">
+        <div>
+          <span>Required before enablement</span>
+          <ul>${requirements}</ul>
+        </div>
+        <div>
+          <span>Blocked now</span>
+          <ul>${blockedReasons}</ul>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderRealtimeConnectionRequirement(
+  requirement: RealtimeConnectionRequirement
+): string {
+  const status = requirement.satisfied ? "ready" : "pending";
+
+  return `
+    <li>
+      <strong>${escapeHtml(requirement.label)} (${status})</strong>
+      ${escapeHtml(requirement.detail)}
+    </li>
   `;
 }
 
