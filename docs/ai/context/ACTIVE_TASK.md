@@ -4,7 +4,7 @@
 
 次のタスク: Task 28 `browser-realtime-voice-demo`
 
-現在のPR段階: Local JSON handoff persistence
+現在のPR段階: Live Realtime audio verification readiness
 
 Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controlsは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否を固定している。
 
@@ -12,9 +12,11 @@ Task 28のBusiness-rule grounded operator behaviorも実装済み。選択中cal
 
 Task 28のCall recording and handoffも実装済み。`End call`後にtranscript、summary、evidence references、policy decision、next actionをhandoff recordとして画面に残す。
 
-このPRでは、Task 28の後続としてLocal JSON handoff persistenceだけを扱う。`/api/realtime/handoffs`でhandoff recordをserver-side local JSONへ保存・取得し、Docker Composeでは`./data:/app/data`に保存する。`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信はまだ入れない。
+Task 28のLocal JSON handoff persistenceも実装済み。`/api/realtime/handoffs`でhandoff recordをserver-side local JSONへ保存・取得し、Docker Composeでは`./data:/app/data`に保存する。
 
-後続計画: `OPENAI_API_KEY`をGit管理外で用意できる場合だけ、実Realtime音声ブラウザ確認を別PR/別検証で扱う。
+後続計画: `OPENAI_API_KEY`をGit管理外の`.env.local`またはserver-side環境変数で用意できる場合だけ、実Realtime音声ブラウザ確認を別PR/別検証で扱う。keyがない環境では実Realtime接続成功を主張しない。`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存112件のテストだけを確認し、live音声確認はkey準備後に回す。
+
+この段階では`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信はまだ入れない。
 
 ## タスク開始時に必ず読む
 

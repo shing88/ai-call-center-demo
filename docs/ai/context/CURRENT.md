@@ -66,5 +66,7 @@
 
 ## 次のハンドオフ
 
-- Task 28 `browser-realtime-voice-demo`のlocal JSON handoff persistenceをPR化する。
-- 次のTask 28候補は、`OPENAI_API_KEY`をGit管理外で用意できる場合の実Realtime音声ブラウザ確認。実電話接続、認証、本番DB、外部送信は引き続き対象外。
+- Task 28 `browser-realtime-voice-demo`はlocal JSON handoff persistenceまでPR化・merge済み。
+- 次のTask 28候補は、`OPENAI_API_KEY`をGit管理外の`.env.local`またはserver-side環境変数で用意できる場合の実Realtime音声ブラウザ確認。
+- keyがない環境では実Realtime接続成功を主張しない。`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存112件のテストだけを確認し、live音声確認はkey準備後に回す。
+- 実電話接続、認証、本番DB、外部送信は引き続き対象外。
