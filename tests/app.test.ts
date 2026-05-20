@@ -585,6 +585,28 @@ test("renderApp frames the selected call as a review-only call workspace", () =>
   assert.doesNotMatch(html, /saved successfully/i);
 });
 
+test("renderApp displays the Realtime connection boundary as not configured", () => {
+  const html = renderApp();
+  const realtimeIndex = html.indexOf('id="realtime-boundary-title"');
+  const workspaceIndex = html.indexOf('id="call-workspace-title"');
+  const summaryIndex = html.indexOf('id="call-summary-title"');
+
+  assert.ok(realtimeIndex > workspaceIndex);
+  assert.ok(summaryIndex > realtimeIndex);
+  assert.match(html, /Realtime boundary/);
+  assert.match(html, /Realtime not configured/);
+  assert.match(html, /server-minted ephemeral client secret/);
+  assert.match(html, /does not request microphone permission/);
+  assert.match(html, /data-realtime-status="not-configured"/);
+  assert.match(html, /data-browser-api-key-allowed="false"/);
+  assert.match(html, /data-microphone-capture-allowed="false"/);
+  assert.match(html, /data-external-audio-send-allowed="false"/);
+  assert.match(html, /data-production-phone-connection-allowed="false"/);
+  assert.doesNotMatch(html, /OPENAI_API_KEY/);
+  assert.doesNotMatch(html, /sk-[A-Za-z0-9]/);
+  assert.doesNotMatch(html, /Realtime connected/i);
+});
+
 test("renderApp keeps the assistant panel stable without evidence candidates", () => {
   const state: DemoState = {
     agentName: "Support Ops",
