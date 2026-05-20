@@ -51,6 +51,15 @@ npm run dev
 
 `npm run dev` はTypeScriptをビルドし、`dist/assets/evidence-bundles.json`を生成してから、`dist/`を `http://127.0.0.1:4173/` で配信します。
 
+配信はNode server runtimeで行います。静的なデモ画面に加えて、ヘルスチェックとRealtime client secret用の未設定fallback APIを持ちます。
+
+```text
+GET /api/health
+POST /api/realtime/client-secret
+```
+
+現時点の`POST /api/realtime/client-secret`は実OpenAI接続を開始しません。`OPENAI_API_KEY`を使わず、標準API keyやbrowser-supplied credentialを転送せず、`not-configured` / `local-rehearsal` のJSON fallbackを返します。実Realtime client secret発行はTask 28の次PRで、server-side環境変数だけを使って追加します。
+
 テストとビルドは次で確認します。
 
 ```bash
@@ -73,7 +82,7 @@ npm.cmd run build
 - knowledge loader / search: `src/knowledge.ts`, `src/knowledge-search.ts`
 - 根拠候補bridge: `src/evidence-bridge.ts`
 - manifest生成: `scripts/generate-evidence-manifest.mjs`
-- 静的配信: `scripts/serve-static.mjs`
+- Node server runtime / 静的配信: `src/server-runtime.ts`, `scripts/serve-static.mjs`
 - Docker起動: `Dockerfile`, `docker-compose.yml`
 - テスト: `tests/*.test.ts`
 
