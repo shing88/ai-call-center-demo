@@ -66,6 +66,7 @@ export interface StartRealtimeCallSessionDependencies {
   fetch: typeof fetch;
   getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
   createPeerConnection: () => RealtimePeerConnectionLike;
+  tokenRequestBody?: unknown;
 }
 
 interface RealtimeClientSecretResponse {
@@ -106,7 +107,10 @@ export async function startRealtimeCallSession(
   let dataChannel: RealtimeDataChannelLike | undefined;
 
   try {
-    const clientSecret = await requestEphemeralClientSecret(dependencies.fetch);
+    const clientSecret = await requestEphemeralClientSecret(
+      dependencies.fetch,
+      dependencies.tokenRequestBody
+    );
 
     if (!clientSecret) {
       return {
@@ -184,13 +188,19 @@ export function endRealtimeCallSession(session: RealtimeCallSession): RealtimeCa
 }
 
 async function requestEphemeralClientSecret(
-  fetchFn: typeof fetch
+  fetchFn: typeof fetch,
+  tokenRequestBody?: unknown
 ): Promise<string | undefined> {
   const response = await fetchFn(REALTIME_TOKEN_ENDPOINT_PATH, {
     method: "POST",
     headers: {
-      Accept: "application/json"
-    }
+      Accept: "application/json",
+      ...(tokenRequestBody === undefined
+        ? {}
+        : { "Content-Type": "application/json" })
+    },
+    body:
+      tokenRequestBody === undefined ? undefined : JSON.stringify(tokenRequestBody)
   });
 
   if (!response.ok) {

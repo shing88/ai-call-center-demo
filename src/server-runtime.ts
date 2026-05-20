@@ -281,7 +281,8 @@ async function createRealtimeClientSecret(
           },
           session: {
             type: "realtime",
-            model: runtime.realtimeModel
+            model: runtime.realtimeModel,
+            ...buildRealtimeSessionGrounding(requestBody)
           }
         })
       }
@@ -369,6 +370,38 @@ function buildSafetyIdentifier(requestBody: unknown): string {
   const stableInput = source.length > 0 ? source : "anonymous-demo-operator";
 
   return `sha256:${createHash("sha256").update(stableInput).digest("hex")}`;
+}
+
+function buildRealtimeSessionGrounding(
+  requestBody: unknown
+): { instructions?: string } {
+  const instructions = readNestedStringField(
+    requestBody,
+    "realtimeGrounding",
+    "instructions"
+  );
+
+  return instructions ? { instructions } : {};
+}
+
+function readNestedStringField(
+  value: unknown,
+  parentKey: string,
+  childKey: string
+): string | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const parent = (value as Record<string, unknown>)[parentKey];
+
+  if (!parent || typeof parent !== "object" || Array.isArray(parent)) {
+    return undefined;
+  }
+
+  const child = (parent as Record<string, unknown>)[childKey];
+
+  return typeof child === "string" && child.trim().length > 0 ? child : undefined;
 }
 
 function readStringField(value: unknown, key: string): string | undefined {

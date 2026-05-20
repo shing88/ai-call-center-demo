@@ -18,13 +18,14 @@
 - `Call workspace`は選択中call id、review mode、phone connection not connected、架空顧客モック、サービス文脈、policy lane、next actionを1枠で確認するレビュー専用UI。
 - `Realtime boundary`は`Realtime not configured`を表示し、server-side token endpoint adapter、未設定時の`not-configured` / local fallback、server-minted ephemeral client secret、ブラウザAPI key禁止、実電話接続blockedを示す。
 - `Realtime call controls`は`Start call` / `End call`、connection status、mic permission stateを表示する。`Start call`は`POST /api/realtime/client-secret`で短命client secretを取得できた場合だけマイク権限とWebRTC SDP offerへ進み、失敗時はfallback rehearsalへ戻る。
+- `Start call`は選択中callのevidence candidates、業務ルール、架空顧客モック、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、server-side client secret session configへ渡す。根拠外の断定、本人確認前の顧客別断定、送信・保存・変更済みの主張は禁止する。
 - Node server runtime foundationとして、`src/server-runtime.ts`が静的配信、`GET /api/health`、`POST /api/realtime/client-secret`のdisabled/fallback JSONを扱う。
 - `POST /api/realtime/client-secret`は、`OPENAI_API_KEY`未設定時にOpenAIへ接続せず、`not-configured` / `local-rehearsal`を返す。`OPENAI_API_KEY`がserver-side環境変数として設定されている場合だけ、OpenAI `/v1/realtime/client_secrets`へserver-side requestし、短命client secretを返す。
 - 標準API keyやbrowser-supplied credentialは受け付けず、server-only runtime fileは静的配信から除外している。`REALTIME_MODEL`未設定時の既定modelは`gpt-realtime`。
 - ブラウザ入口`src/main.ts`のruntime dependency graphはNode-only moduleを含めない。fallback rehearsalはbrowser-safeな`src/demo-scenario-cases.ts`を使う。knowledge loaderはブラウザ入口から到達しない。
 - evidence manifestは読み込み時にbundle/result単位まで検証し、不正なmanifestはfallback表示へ戻す。
 - CCNet向けデモは公開HP、サービス詳細、約款、重要事項説明に合わせた架空シナリオと架空顧客モックを使う。実顧客データは使わない。
-- 実電話、DB保存、認証、本番接続は未実装。Realtime音声はブラウザの`Start call`から短命client secretで接続するデモ境界のみ。Operator noteはbrowser-onlyの未送信・未保存値。
+- 実電話、DB保存、認証、本番接続、transcript/summary記録は未実装。Realtime音声はブラウザの`Start call`から短命client secretで接続するデモ境界のみ。Operator noteはbrowser-onlyの未送信・未保存値。
 
 ## 現在の主要コード
 
@@ -32,8 +33,9 @@
 - `src/server-runtime.ts`: Node server runtime、静的配信、`/api/health`、未設定時のdisabled Realtime client-secret fallback、設定時のserver-side OpenAI client secret request、browser credential拒否、server-only runtime fileの静的配信拒否、path traversal拒否。
 - `src/realtime-connection.ts`: Realtime未接続境界、contract-only token endpoint表示、公式Docs確認URL、ephemeral client secret前提、ブラウザAPI key禁止、session start disabledのguardrail。
 - `src/realtime-call-controls.ts`: browser-safeな`Start call` / `End call`状態、OpenAI Realtime WebRTC calls endpoint、ephemeral client secret取得、mic permission、SDP offer/answer、fallback復帰、local track/peer connection cleanup。
+- `src/realtime-session-context.ts`: 選択中callのevidence、policy guard、conversation preview、Operator noteをRealtime session instructionsとtoken request bodyへ変換するbrowser-safe contract。
 - `src/realtime-token-endpoint.ts`: `POST /api/realtime/client-secret`のserver-adapter境界、OpenAI側`/v1/realtime/client_secrets`へのserver-only前提、`value` / `expires_at` / `session` response field、secret非露出enablement、未設定時のdisabled adapter / local fallback response。
-- `src/main.ts`: manifest取得、キュー選択、Operator noteのブラウザ内メモリ保持、Realtime call controlsのクリック処理、再描画。
+- `src/main.ts`: manifest取得、キュー選択、Operator noteのブラウザ内メモリ保持、Realtime call controlsのクリック処理、選択中callのRealtime grounding request生成、再描画。
 - `src/knowledge.ts`: knowledge Markdown loader / chunk model。
 - `src/knowledge-search.ts`: ローカル決定的keyword search。
 - `src/evidence-bridge.ts`: キュー項目とknowledge検索結果の橋渡し。
@@ -50,7 +52,7 @@
 - ローカルテスト: `npm.cmd test`。POSIX/CIでは`npm test`。
 - ローカルビルド: `npm.cmd run build`。POSIX/CIでは`npm run build`。
 - Docker確認: `docker compose up --build`後、`http://localhost:4173/`と`http://localhost:4173/api/health`を確認する。
-- `npm test`は103件。Call workspace、Realtime boundary、Realtime call controls、server-side token endpoint adapter、disabled fallback、Node server runtime、OpenAI client secret request境界、WebRTC SDP offer/answer、fallback復帰、manifest validation、ブラウザAPI key禁止、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないことを固定している。
+- `npm test`は105件。Call workspace、Realtime boundary、Realtime call controls、Realtime session grounding、server-side token endpoint adapter、disabled fallback、Node server runtime、OpenAI client secret request境界、WebRTC SDP offer/answer、fallback復帰、manifest validation、ブラウザAPI key禁止、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないことを固定している。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -62,5 +64,5 @@
 
 ## 次のハンドオフ
 
-- Task 28 `browser-realtime-voice-demo`のBrowser call controlsをPR化する。
-- 次のTask 28 PR段階は業務ルールgrounding。Realtime接続後に参照するルール注入を小さく追加し、transcript/summary記録はさらに後続PRへ分割する。
+- Task 28 `browser-realtime-voice-demo`のBusiness-rule grounded operator behaviorをPR化する。
+- 次のTask 28 PR段階はCall recording and handoff。transcript、summary、evidence references、policy decision、next actionを画面に残す最小実装へ進める。

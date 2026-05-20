@@ -71,7 +71,7 @@ OPENAI_API_KEY=...
 REALTIME_MODEL=gpt-realtime
 ```
 
-ブラウザの`Start call`は`POST /api/realtime/client-secret`で短命client secretを取得してからマイク権限を要求し、OpenAI Realtime WebRTC calls endpointへSDP offerを送ります。未設定時や接続失敗時はマイクやWebRTCを進めず、`local-rehearsal`のfallback表示に戻ります。通話記録、DB保存、実電話接続はまだ開始しません。
+ブラウザの`Start call`は選択中callの根拠候補、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、`POST /api/realtime/client-secret`へ送ります。server runtimeは標準API keyをserver-sideだけで使い、OpenAI Realtimeのclient secret sessionにそのinstructionsを設定します。短命client secret取得後にだけマイク権限を要求し、OpenAI Realtime WebRTC calls endpointへSDP offerを送ります。未設定時や接続失敗時はマイクやWebRTCを進めず、`local-rehearsal`のfallback表示に戻ります。通話記録、DB保存、実電話接続はまだ開始しません。
 
 テストとビルドは次で確認します。
 
@@ -93,6 +93,7 @@ npm.cmd run build
 - アプリ起動: `src/main.ts`
 - HTML描画とデモ状態: `src/app.ts`
 - Realtime browser call controls: `src/realtime-call-controls.ts`
+- Realtime session grounding: `src/realtime-session-context.ts`
 - knowledge loader / search: `src/knowledge.ts`, `src/knowledge-search.ts`
 - 根拠候補bridge: `src/evidence-bridge.ts`
 - manifest生成: `scripts/generate-evidence-manifest.mjs`
@@ -116,4 +117,4 @@ build時に `dist/assets/evidence-bundles.json` を生成し、ブラウザUIは
 - 認証・DB・永続保存
 - 実顧客データ
 
-これらはデモ境界として画面上にも明示しています。実電話接続、記録DB、業務ルールgroundingを追加する場合は、別タスクで安全なserver-side adapter、設定、ログ、fallbackを確認してから進めます。
+これらはデモ境界として画面上にも明示しています。実電話接続や記録DBを追加する場合は、別タスクで安全なserver-side adapter、設定、ログ、fallbackを確認してから進めます。
