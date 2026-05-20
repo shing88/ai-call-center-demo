@@ -2,83 +2,52 @@
 
 最終更新: 2026-05-20
 
-このファイルには、現在確認済みの状態だけを書く。長い履歴ログとして使わない。
+このファイルには現在確認済みの状態だけを書く。長い履歴ログとして使わない。
 
 ## 現在の入口
 
 - リポジトリ運用の初期ファイルは`AGENTS.md`と`docs/ai/`配下にある。
-- 最小Webアプリの入口は`index.html`、実行時の接続点は`src/main.ts`。
-- Assistant handoffにはExecutive demo brief、Call summary、build時に生成した根拠候補manifestの内容、デモ用応答ドラフト、会話履歴風プレビュー、未送信のOperator note入力欄、送信/保存候補payload境界、policy guard判定が表示され、キュー項目の選択に応じて該当call idのサマリー、根拠候補、ドラフト、プレビュー、入力欄、policyへ切り替わる。
-- デモ用knowledge baselineは`knowledge/README.md`、`knowledge/business_rules/`、`knowledge/customer_contracts/`、`knowledge/scenarios/`にある。
-- knowledgeには架空顧客データに加えて、CCNet株式会社の公開HP、サービス詳細、約款、重要事項説明に合わせた役員デモ用の一般案内文書、架空顧客モック、架空シナリオがある。実在顧客・契約・問い合わせ履歴は含めない。
-- Markdown loader / chunk modelは`src/knowledge.ts`にある。
-- keyword search / 根拠候補抽出は`src/knowledge-search.ts`にある。
-- キュー項目とknowledge検索結果をつなぐ根拠候補bridgeは`src/evidence-bridge.ts`にある。
-- evidence manifestのbrowser-safe helperは`src/evidence-manifest.ts`、build専用builderは`src/evidence-manifest-builder.ts`、browser fetch helperは`src/evidence-manifest-client.ts`にある。
-- 外部AI API連携前の送信用payload契約とbuilderは`src/ai-response-request.ts`にある。
-- AI response client adapter契約と実外部通信を行わない決定的stubは`src/ai-response-client.ts`にある。
-- AI response HTTP network adapter境界は`src/ai-response-network-client.ts`にある。`fetcher`注入でテストでき、provider固有SDKやsecret参照は持たない。
-- 回答範囲、上席確認要否、回答不可種別を決定的に判定するpolicy guardは`src/response-policy.ts`にある。
-- 問い合わせ要約、根拠参照、policy判断、Operator note状態、次アクションをローカル決定的に作るCall summaryは`src/call-summary.ts`にある。
-- 代表シナリオごとの根拠候補、Operator note、policy guard、AI response request/client結果を固定する回帰runnerは`src/demo-scenario-regression.ts`にある。
-- 外部AI API、音声、通信が使えない場合に備えたfallback / rehearsal planは`src/fallback-rehearsal.ts`にあり、`src/main.ts`から画面へ注入される。
-- fallback時のデモ進行手順は`docs/ai/demo/fallback-runbook.md`にある。
-- 役員デモの説明順と安全文言は`docs/ai/demo/executive-demo-script.md`にあり、CCNet株式会社の公開HPに合わせた架空シナリオは`docs/ai/demo/ccnet-executive-scenario.md`にある。
-- `npm run build`で`dist/index.html`、`dist/assets/*.js`、`dist/assets/evidence-bundles.json`を生成する。
+- Webアプリの入口は`index.html`、ブラウザ実行時の接続先は`src/main.ts`。
 - 開発時は`npm run dev`で`dist/`をローカル配信する。
+- `npm run build`で`dist/index.html`、`dist/assets/*.js`、`dist/assets/evidence-bundles.json`を生成する。
 
-## 現在のアーキテクチャ / 契約
+## 現在のデモ状態
 
-- アプリケーションスタックはTypeScript + Node.js標準ライブラリ。
-- `src/app.ts`にデモ用のキュー状態、集計、HTML描画、escapingを置いている。
-- `src/app.ts`は`AssistantEvidence`表示用データを受け取り、出典、section、snippet、scoreをAssistant handoffに表示し、選択中キューと根拠候補からCCNet-fit scenario、架空顧客ID、エリア、サービスプラン、本人未確認状態を含むExecutive demo brief、Call summary、デモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、browser-onlyの送信/保存候補payload、policy guard表示を決定的に作る。
-- `src/knowledge.ts`は`knowledge/`配下の架空Markdownを読み込み、`KnowledgeDocument` / `KnowledgeChunk`へ変換する。
-- chunkは文書タイトルと`##`見出し単位で作られ、カテゴリ、相対パス、見出しパス、安定ID、本文を持つ。
-- `src/knowledge-search.ts`は`KnowledgeChunk`配列からキーワード検索し、`sourcePath`、`section`、`snippet`、`score`、`matchedTerms`を持つ根拠候補を返す。ランキングはタイトル、見出し、本文、source pathの一致に加えて、クエリ内の複数語が同じchunk内で近く出る候補を加点する。
-- `src/evidence-bridge.ts`は`QueueItem`の`topic`、`excerpt`、架空`customerId`、サービスエリア、サービスプランから検索クエリを作り、`EvidenceBundle`として根拠候補を返す。顧客契約検索では`customerId`で対象顧客を絞る。
-- `scripts/generate-evidence-manifest.mjs`はbuild後のcompiled modulesを使い、demo queue向けの`evidence-bundles.json`を生成する。
-- `src/main.ts`はmanifest取得に成功した場合はその根拠候補を表示し、キュー項目の「開く」操作で該当bundleをAssistant handoffへ反映する。Operator noteの編集値はブラウザ内メモリでcall id別に保持し、表示再描画時に応答ドラフト、会話履歴風プレビュー、未送信入力欄も選択中call idへ追従する。manifest取得失敗時や該当bundleなしの場合は既存表示を維持する。
-- `src/response-policy.ts`はキュー項目、根拠候補、会話プレビュー、Operator noteから、本人確認前の顧客別回答ブロック、上席確認必須、本人確認済みscoped draft許可を決定的に判定する。
-- `src/call-summary.ts`は選択中キュー項目、根拠候補、会話プレビュー、Operator note、policy guardから、問い合わせ要約、根拠参照、policy判断、Operator note状態、次アクションをローカル決定的に返す。外部送信、永続保存、LLM生成済み履歴は扱わない。
-- `src/ai-response-request.ts`は選択中キュー項目、根拠候補、応答ドラフト、会話プレビュー、未送信Operator note、送信/保存候補payload、policy guardをprovider非依存の送信用payloadへまとめる。現時点では`externalSendAllowed`と`persistenceAllowed`は常に`false`で、外部通信や保存は行わない。
-- `src/ai-response-client.ts`は`AiResponseRequest`を消費するclient adapter境界を定義し、決定的stubでprovider/model識別子、応答ドラフト、根拠参照、policy guard、human review要否、送信/保存不可guardrailを返す。
-- `src/ai-response-network-client.ts`は`AiResponseRequest`をJSON POSTし、policy guardを含む`AiResponseClientResult`を受け取るHTTP adapterを定義する。response payload、HTTPエラー、call id不一致を検証するが、本番provider SDK、API key、環境変数は扱わない。
-- `src/demo-scenario-regression.ts`は本人確認前、本人確認済み、上席確認必須の代表シナリオを、現在のknowledge検索、Operator note、policy guard、request/client境界に通すためのfixtureとrunnerを持つ。
-- `src/fallback-rehearsal.ts`は代表シナリオを手動進行するためのrun orderと、外部送信なし、保存なし、Realtime音声不要、provider SDK不要のguardrailを決定的に返す。
-- 顧客契約検索は`customerId`で対象顧客を絞れる。CCNet向けのデモ顧客は`customer_ccnet_2001`、`customer_ccnet_2002`、`customer_ccnet_2003`として追加済み。
-- 現時点ではloader/search/evidence bridgeはNode.js側のbuild時境界であり、ブラウザUIは生成済みmanifestだけをfetchする。
-- 外部AI APIのprovider固有本番接続、LLM応答生成、会話履歴保存、通話連携、認証、DBはまだ存在しない。
-- 機械可読な契約はTypeScriptの`KnowledgeDocument` / `KnowledgeChunk` / `KnowledgeSearchResult` / `EvidenceBundle` / `ResponsePolicyGuard` / `AiResponseRequest` / `AiResponseClient` / `AiResponseClientResult` / `AiResponseNetworkFetcher`型として存在する。
+- 静的TypeScriptデモとして、Live queue、Assistant handoff、Call workspace、Executive demo brief、Call summary、Response draft、Conversation preview、Operator note、Policy guard、Evidence candidatesを表示する。
+- `Call workspace`は選択中call id、Review mode、Phone connection not connected、架空顧客モック、サービス文脈、policy lane、next actionを1枚で確認するレビュー専用UI。
+- キュー項目の「開く」操作で、該当call idの根拠候補、サマリー、ドラフト、会話プレビュー、Operator note、policyが切り替わる。
+- CCNet向けデモは公開HP、サービス詳細、約款、重要事項説明に合わせた架空シナリオと架空顧客モックを使う。実在顧客データは使わない。
+- 外部AI API、Realtime音声、実電話、DB保存、認証、本番接続は未実装。Operator noteはbrowser-onlyの未送信・未保存候補。
+
+## 現在の主要コード
+
+- `src/app.ts`: デモ状態、HTML描画、escape、Call workspace、Executive demo brief、Call summary、会話プレビュー、Operator note、Policy guard、Evidence candidates。
+- `src/main.ts`: manifest取得、キュー選択、Operator noteのブラウザ内メモリ保持、再描画。
+- `src/knowledge.ts`: knowledge Markdown loader / chunk model。
+- `src/knowledge-search.ts`: ローカル決定的keyword search。
+- `src/evidence-bridge.ts`: キュー項目とknowledge検索結果の橋渡し。
+- `src/evidence-manifest.ts` / `src/evidence-manifest-builder.ts` / `src/evidence-manifest-client.ts`: browser-safe evidence manifest。
+- `src/response-policy.ts`: 本人確認前の顧客別回答ブロック、上席確認必須、本人確認済みscoped draft許可の決定的判定。
+- `src/call-summary.ts`: 問い合わせ要約、根拠参照、policy判断、Operator note状態、次アクションのローカル決定的生成。
+- `src/ai-response-request.ts` / `src/ai-response-client.ts` / `src/ai-response-network-client.ts`: provider非依存payload、決定的stub、HTTP adapter境界。現時点では外部送信・永続保存を許可しない。
+- `src/demo-scenario-regression.ts`: 代表シナリオをknowledge検索、Operator note、policy guard、request/client境界に通す回帰runner。
+- `src/fallback-rehearsal.ts`: 外部通信なしで進行するfallback / rehearsal plan。
 
 ## 現在のテスト / CI
 
-- ローカルテストコマンドは`npm test`。
-- ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffのExecutive demo briefと架空顧客モック表示、Call summary、根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、call id別の未送信入力プレビュー、browser-only送信/保存候補payload、policy guard、代表デモシナリオ回帰、fallback / rehearsal plan表示、AI response request payload、AI response client adapter、AI response network adapter、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
+- ローカルテスト: `npm.cmd test`（POSIX/CIでは`npm test`）。
+- ローカルビルド: `npm.cmd run build`（POSIX/CIでは`npm run build`）。
+- `npm test`は82件。Call workspaceのreview-only表示、選択中call id、主要パネル順、送信済み/保存済み/外部AI生成済みを示さないことも固定している。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
 
-- エージェントは`AGENTS.md`、このコンテキストパック、アクティブなタスク指示から開始する。
-- GPT Proや外部ツールの計画ドラフトは`docs/ai/inbox/pro-instructions/`に置き、実行前に変換する。
+- エージェントは`AGENTS.md`、このcontext pack、アクティブなタスク指示から開始する。
+- GPT Proなどの外部計画ドラフトは`docs/ai/inbox/pro-instructions/`に置けるが、source of truthではない。実装前に`docs/ai/tasks/`配下の実行可能タスクへ変換する。
 - GPT Proドラフトと実行済みTaskの対応、未実装項目、次の大きめPR候補は`docs/ai/specs/draft-task-reconciliation.md`にある。
-- Operator note送信/保存境界の安全監査メモは`docs/ai/security/operator-input-submit-save-design-safety-audit.md`にある。
-- Policy guardの安全監査メモは`docs/ai/security/response-policy-guard-safety-audit.md`にある。
-- CCNet向け架空顧客モックの安全監査メモは`docs/ai/security/ccnet-mock-customer-data-safety-audit.md`にある。
-- Call summaryの安全監査メモは`docs/ai/security/call-summary-generation-safety-audit.md`にある。
-
-## 既知の未完了項目
-
-- 次の実装タスクはTask 24 `browser-call-style-ui`。現在の安全境界と決定的なCall summaryを保ったまま、役員に見せる通話風UIへ整える。
-- LLM応答生成、会話履歴保存、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
-
-## 参照元リンク
-
-- `AGENTS.md`
-- `docs/ai/context/ACTIVE_TASK.md`
-- `docs/ai/context/SOURCE_OF_TRUTH.md`
+- 安全監査メモは`docs/ai/security/`配下にある。Task 24のUI安全監査は`docs/ai/security/browser-call-style-ui-safety-audit.md`。
 
 ## 次のハンドオフ
 
-- Task 23 `call-summary-generation`は完了。選択中問い合わせ、根拠候補、会話プレビュー、Operator note、policy guardから、ローカル決定的なCall summaryと次アクションを表示できる。
-- 次はTask 24 `browser-call-style-ui`に着手する。
+- Task 24 `browser-call-style-ui`は実装済み。PRではレビュー専用Call workspace、レスポンシブCSS、表示順テスト、デモ台本、テストカタログ、安全監査を確認する。
+- 次の実装タスクはTask 25 `realtime-api-connection-boundary`。Realtimeへ進む前に公式ドキュメント確認と、API key・ephemeral token・マイク許可・外部送信境界の安全設計を必須にする。

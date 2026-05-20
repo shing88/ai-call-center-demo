@@ -548,6 +548,7 @@ export function renderApp(state: DemoState = demoState): string {
               <span>Next best action</span>
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
+            ${renderCallWorkspace(selectedQueueItem, callSummary, policyGuard)}
             ${renderExecutiveDemoBrief(executiveDemoBrief)}
             ${renderCallSummary(callSummary)}
             ${
@@ -564,6 +565,70 @@ export function renderApp(state: DemoState = demoState): string {
         </section>
       </section>
     </main>
+  `;
+}
+
+function renderCallWorkspace(
+  item: QueueItem | undefined,
+  summary: CallSummary,
+  policy: ResponsePolicyGuard
+): string {
+  const escapedCallId = escapeHtml(summary.callId);
+  const customerLine = item
+    ? `${item.callerName} / ${item.customerId ?? item.id}`
+    : "Queue item not selected";
+  const serviceLine = item
+    ? `${item.serviceArea ?? "Area pending"} / ${item.servicePlan ?? "Service plan pending"}`
+    : "Service context pending";
+  const statusText = item ? statusLabel(item.status) : "Queue item not matched";
+  const topicText = item?.topic ?? "No queue topic selected";
+
+  return `
+    <section
+      class="call-workspace"
+      aria-labelledby="call-workspace-title"
+      data-call-workspace-call-id="${escapedCallId}"
+      data-phone-connection="not-connected"
+      data-external-send-allowed="false"
+      data-persistence-allowed="false"
+    >
+      <div class="call-workspace__header">
+        <div>
+          <p class="eyebrow">Call workspace</p>
+          <h3 id="call-workspace-title">Review mode</h3>
+        </div>
+        <span>${escapedCallId}</span>
+      </div>
+      <p class="call-workspace__boundary">
+        Phone connection is not connected. Browser-only review; external send and persistent save stay blocked.
+      </p>
+      <dl class="call-workspace__details">
+        <div>
+          <dt>Selected call</dt>
+          <dd>${escapeHtml(topicText)}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>${escapeHtml(statusText)}</dd>
+        </div>
+        <div>
+          <dt>Customer mockup</dt>
+          <dd>${escapeHtml(customerLine)}</dd>
+        </div>
+        <div>
+          <dt>Service context</dt>
+          <dd>${escapeHtml(serviceLine)}</dd>
+        </div>
+        <div>
+          <dt>Policy lane</dt>
+          <dd>${escapeHtml(policyScopeLabel(policy.allowedResponseScope))}</dd>
+        </div>
+        <div>
+          <dt>Next action</dt>
+          <dd>${escapeHtml(summary.nextAction)}</dd>
+        </div>
+      </dl>
+    </section>
   `;
 }
 
