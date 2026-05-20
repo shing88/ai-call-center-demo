@@ -1,8 +1,8 @@
 # AI Call Center Demo
 
-AIコールセンターの応対支援デモです。ブラウザで開くと、架空の受付キュー、Assistant handoff、根拠候補、応答ドラフト、会話プレビュー、Operator note、Policy guard、Realtime boundary、fallback rehearsalを1画面で確認できます。
+AIコールセンターの応対支援デモです。ブラウザで開くと、架空の受付キュー、Assistant handoff、根拠候補、応答ドラフト、会話プレビュー、Operator note、Policy guard、Realtime boundary、Realtime call controls、fallback rehearsalを1画面で確認できます。
 
-このリポジトリはデモ用です。外部AI API、実通話、認証、DB、永続保存、実顧客データには接続していません。デモ中に表示される顧客・契約・問い合わせ情報はすべて架空データです。
+このリポジトリはデモ用です。Realtime音声はブラウザの`Start call`から短命client secretで接続するデモ境界だけを扱い、実電話、認証、DB、永続保存、実顧客データには接続していません。デモ中に表示される顧客・契約・問い合わせ情報はすべて架空データです。
 
 ## すぐデモを起動する
 
@@ -37,7 +37,7 @@ docker run --rm -p 4173:4173 ai-call-center-demo
 2. `開く`ボタンで問い合わせを切り替え、選択したcall idに合わせて根拠候補、応答ドラフト、会話プレビュー、Operator noteが変わることを確認します。
 3. `Evidence candidates`で、回答がMarkdown knowledge base由来の候補に基づくことを説明します。
 4. `Policy guard`で、本人確認前や上席確認が必要なケースでは確定回答を避けるデモ境界を説明します。
-5. `Realtime boundary`で、Realtime APIはまだ未接続で、ブラウザAPI key、マイク取得、外部音声送信、実電話接続、永続保存を行わないことを説明します。
+5. `Realtime boundary`で、標準API keyはブラウザに出さず、短命client secretだけでブラウザ接続することを説明します。`Start call`はserver token endpointが設定済みのときだけWebRTC接続へ進み、未設定や失敗時はfallback rehearsalに戻ります。
 6. `Fallback rehearsal`で、外部AIや通話連携がなくてもデモ進行できることを見せます。
 
 ## ローカル開発
@@ -71,7 +71,7 @@ OPENAI_API_KEY=...
 REALTIME_MODEL=gpt-realtime
 ```
 
-現時点では、client secret発行までが実装済みです。ブラウザの`Start call`、WebRTC接続、マイク権限要求、音声送信、通話記録はまだ開始しません。
+ブラウザの`Start call`は`POST /api/realtime/client-secret`で短命client secretを取得してからマイク権限を要求し、OpenAI Realtime WebRTC calls endpointへSDP offerを送ります。未設定時や接続失敗時はマイクやWebRTCを進めず、`local-rehearsal`のfallback表示に戻ります。通話記録、DB保存、実電話接続はまだ開始しません。
 
 テストとビルドは次で確認します。
 
@@ -92,6 +92,7 @@ npm.cmd run build
 - ブラウザ入口: `index.html`
 - アプリ起動: `src/main.ts`
 - HTML描画とデモ状態: `src/app.ts`
+- Realtime browser call controls: `src/realtime-call-controls.ts`
 - knowledge loader / search: `src/knowledge.ts`, `src/knowledge-search.ts`
 - 根拠候補bridge: `src/evidence-bridge.ts`
 - manifest生成: `scripts/generate-evidence-manifest.mjs`
@@ -111,11 +112,8 @@ build時に `dist/assets/evidence-bundles.json` を生成し、ブラウザUIは
 
 ## 現在つないでいないもの
 
-- Realtime client secret発行以外の外部AI APIへの実送信
-- Realtime音声セッション
-- マイク権限要求
 - 実電話接続
 - 認証・DB・永続保存
 - 実顧客データ
 
-これらはデモ境界として画面上にも明示しています。実接続を追加する場合は、別タスクで安全なserver-side adapter、設定、ログ、fallbackを確認してから進めます。
+これらはデモ境界として画面上にも明示しています。実電話接続、記録DB、業務ルールgroundingを追加する場合は、別タスクで安全なserver-side adapter、設定、ログ、fallbackを確認してから進めます。

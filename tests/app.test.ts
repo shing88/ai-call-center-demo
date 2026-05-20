@@ -12,6 +12,7 @@ import {
   type DemoState
 } from "../src/app.js";
 import { buildFallbackRehearsalPlan } from "../src/fallback-rehearsal.js";
+import { buildRealtimeCallControls } from "../src/realtime-call-controls.js";
 
 test("buildQueueSummary counts statuses and average wait time", () => {
   const summary = buildQueueSummary([
@@ -612,6 +613,27 @@ test("renderApp displays the Realtime connection boundary as not configured", ()
   assert.doesNotMatch(html, /sk-[A-Za-z0-9]/);
   assert.doesNotMatch(html, /ek_[A-Za-z0-9]/);
   assert.doesNotMatch(html, /Realtime connected/i);
+});
+
+test("renderApp displays browser Realtime call controls without exposing secrets", () => {
+  const html = renderApp({
+    ...demoState,
+    realtimeCallControls: buildRealtimeCallControls({
+      status: "connected",
+      microphonePermissionState: "granted"
+    })
+  });
+
+  assert.match(html, /Realtime call controls/);
+  assert.match(html, /Start call/);
+  assert.match(html, /End call/);
+  assert.match(html, /Realtime call connected/);
+  assert.match(html, /data-realtime-call-status="connected"/);
+  assert.match(html, /data-microphone-permission-state="granted"/);
+  assert.match(html, /data-realtime-start-call/);
+  assert.match(html, /data-realtime-end-call/);
+  assert.doesNotMatch(html, /ek_test_ephemeral_client_secret/);
+  assert.doesNotMatch(html, /server-standard-key/);
 });
 
 test("renderApp keeps the assistant panel stable without evidence candidates", () => {

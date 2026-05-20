@@ -4,13 +4,13 @@
 
 次のタスク: Task 28 `browser-realtime-voice-demo`
 
-現在のPR段階: Realtime client secret implementation
+現在のPR段階: Browser call controls
 
-Task 27 `realtime-token-endpoint-disabled-adapter`と、Task 28の1段階目Server runtime foundationは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否、マイク未要求、外部音声送信blocked、session start disabledを固定している。
+Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementationは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否を固定している。
 
-このPRでは、Task 28の推奨PR分割の2段階目だけを扱う。`OPENAI_API_KEY`をserver-side環境変数として読み、未設定時はdeterministicな`not-configured` fallbackを維持し、設定時だけserver-sideからOpenAIの`/v1/realtime/client_secrets`へrequestしてbrowserへephemeral client secretを返す。`.env.local`や実secretはcommitしない。WebRTC接続、マイク権限、Start call UI、業務ルール注入、記録DBはまだ入れない。
+このPRでは、Task 28の推奨PR分割のBrowser call controlsだけを扱う。`Start call` / `End call`、connection status、mic permission stateを追加し、`Start call`は短命client secret取得後にだけマイク権限とOpenAI Realtime WebRTC calls endpointへのSDP offerへ進める。未設定や接続失敗時はfallback rehearsalへ戻す。`.env.local`や実secretはcommitしない。業務ルール注入、記録DB、実電話接続はまだ入れない。
 
-後続計画: Task 28の次PRはBrowser call controls。`Start call` / `End call` / connection status / mic permission stateを追加し、Realtime WebRTC接続の開始・終了へ進める。接続失敗時はfallback rehearsalへ戻せる表示にする。
+後続計画: Task 28の次PRは業務ルールgrounding。Realtime接続後に参照するルール注入を小さく追加し、transcript/summary記録はさらに後続PRへ分割する。
 
 ## タスク開始時に必ず読む
 
@@ -33,6 +33,7 @@ src/server-runtime.ts
 src/app.ts
 src/main.ts
 src/realtime-connection.ts
+src/realtime-call-controls.ts
 src/realtime-token-endpoint.ts
 src/evidence-bridge.ts
 src/evidence-manifest.ts
