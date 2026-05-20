@@ -10,7 +10,7 @@
 - Webアプリの入口は`index.html`、ブラウザ実行時の接続点は`src/main.ts`。
 - 開発時は`npm run dev`で`dist/`をローカル配信する。
 - `npm run build`で`dist/index.html`、`dist/assets/*.js`、`dist/assets/evidence-bundles.json`を生成する。
-- デモ担当者向けにはDocker起動を用意している。`docker compose up --build`でコンテナを起動し、`http://localhost:4173/`を開く。
+- デモ担当者向けにはDocker起動を用意している。通常は`docker compose up --build`で起動し、Realtime client secret確認時はGit管理外の`.env.local`を用意して`docker compose --env-file .env.local up --build`で起動し、`http://localhost:4173/`を開く。
 
 ## 現在のデモ状態
 
@@ -21,7 +21,8 @@
 - `Start call`は選択中callのevidence candidates、業務ルール、架空顧客モック、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、server-side client secret session configへ渡す。根拠外の断定、本人確認前の顧客別断定、送信・保存・変更済みの主張は禁止する。
 - `End call`後はdata channel `oai-events`で受け取ったRealtime transcript eventをhandoff recordへまとめ、summary、evidence references、policy decision、next actionと一緒に画面へ残す。recordは`POST /api/realtime/handoffs`でserver-side local JSONへ保存し、画面読み込み時に`GET /api/realtime/handoffs?callId=...`から最新recordを復元する。外部送信・実電話接続・本番DB保存は引き続きblocked。
 - Node server runtime foundationとして、`src/server-runtime.ts`が静的配信、`GET /api/health`、`POST /api/realtime/client-secret`のdisabled/fallback JSONを扱う。
-- `POST /api/realtime/client-secret`は、`OPENAI_API_KEY`未設定時にOpenAIへ接続せず、`not-configured` / `local-rehearsal`を返す。`OPENAI_API_KEY`がserver-side環境変数として設定されている場合だけ、OpenAI `/v1/realtime/client_secrets`へserver-side requestし、短命client secretを返す。
+- `POST /api/realtime/client-secret`は、`OPENAI_API_KEY`未設定時にOpenAIへ接続せず、`not-configured` / `local-rehearsal`を返す。`OPENAI_API_KEY`がserver-side環境変数として設定されている場合だけ、OpenAI `/v1/realtime/client_secrets`へserver-side requestし、短命client secretを返す。Docker Composeは`.env.local`の`OPENAI_API_KEY` / `REALTIME_MODEL`をコンテナ環境へ渡す。
+- OpenAI Realtime requestの`OpenAI-Safety-Identifier`は、上限64文字に収まるserver-derived hash値だけを送る。
 - 標準API keyやbrowser-supplied credentialは受け付けず、server-only runtime fileは静的配信から除外している。`REALTIME_MODEL`未設定時の既定modelは`gpt-realtime`。
 - ブラウザ入口`src/main.ts`のruntime dependency graphはNode-only moduleを含めない。fallback rehearsalはbrowser-safeな`src/demo-scenario-cases.ts`を使う。knowledge loaderはブラウザ入口から到達しない。
 - evidence manifestは読み込み時にbundle/result単位まで検証し、不正なmanifestはfallback表示へ戻す。
@@ -67,6 +68,7 @@
 ## 次のハンドオフ
 
 - Task 28 `browser-realtime-voice-demo`はlocal JSON handoff persistenceまでPR化・merge済み。
-- 次のTask 28候補は、`OPENAI_API_KEY`をGit管理外の`.env.local`またはserver-side環境変数で用意できる場合の実Realtime音声ブラウザ確認。
-- keyがない環境では実Realtime接続成功を主張しない。`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存112件のテストだけを確認し、live音声確認はkey準備後に回す。
+- `OPENAI_API_KEY`をGit管理外の`.env.local`で用意したDocker環境では、`GET /api/health`が`configured` / `ready`を返し、`POST /api/realtime/client-secret`が`HTTP 200` / `status=ready` / `valueあり`を返すところまで確認済み。secret値は表示・保存しない。
+- Codex in-app browserでは`Start call`後に`Realtime unavailable, using fallback rehearsal`へ戻り、実Realtime音声接続完了までは確認できていない。次は実マイクを許可できる通常ブラウザで、接続状態を見たらすぐ`End call`する短時間確認を行う。
+- keyがない環境では実Realtime接続成功を主張しない。`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存112件のテストだけを確認し、live音声確認はkey準備後または実ブラウザ確認時に回す。
 - 実電話接続、認証、本番DB、外部送信は引き続き対象外。
