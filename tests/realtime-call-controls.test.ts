@@ -61,6 +61,7 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
   const peer = new FakeRealtimePeerConnection();
   const audioTrack = new FakeMediaTrack();
   const stream = new FakeMediaStream([audioTrack]);
+  const serverEvents: unknown[] = [];
   const requests: Array<{
     url: string;
     method?: string;
@@ -114,7 +115,10 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
       assert.deepEqual(constraints, { audio: true });
       return stream as unknown as MediaStream;
     },
-    createPeerConnection: () => peer
+    createPeerConnection: () => peer,
+    onServerEvent: (event) => {
+      serverEvents.push(event);
+    }
   });
 
   assert.equal(result.controls.status, "connected");
@@ -154,6 +158,18 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
     }
   });
   assert.equal(requests[1]?.url, OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT);
+  peer.dataChannel.dispatchMessage(
+    JSON.stringify({
+      type: "response.output_audio_transcript.done",
+      transcript: "Realtime handoff transcript."
+    })
+  );
+  assert.deepEqual(serverEvents, [
+    {
+      type: "response.output_audio_transcript.done",
+      transcript: "Realtime handoff transcript."
+    }
+  ]);
 });
 
 test("endRealtimeCallSession closes the data channel, tracks, and peer connection", () => {
@@ -208,6 +224,7 @@ function normalizeHeaders(headers: HeadersInit | undefined): Record<string, stri
 class FakeRealtimePeerConnection implements RealtimePeerConnectionLike {
   public addedTracks: Array<{ track: MediaStreamTrack; stream: MediaStream }> = [];
   public createdDataChannelLabel = "";
+  public dataChannel = new FakeDataChannel("oai-events");
   public remoteDescription: RTCSessionDescriptionInit | undefined;
   public closed = false;
 
@@ -217,7 +234,8 @@ class FakeRealtimePeerConnection implements RealtimePeerConnectionLike {
 
   public createDataChannel(label: string): FakeDataChannel {
     this.createdDataChannelLabel = label;
-    return new FakeDataChannel(label);
+    this.dataChannel = new FakeDataChannel(label);
+    return this.dataChannel;
   }
 
   public async createOffer(): Promise<RTCSessionDescriptionInit> {
@@ -239,11 +257,27 @@ class FakeRealtimePeerConnection implements RealtimePeerConnectionLike {
 
 class FakeDataChannel {
   public closed = false;
+  private readonly messageListeners: Array<(event: { data: string }) => void> = [];
 
   public constructor(public readonly label: string) {}
 
   public close(): void {
     this.closed = true;
+  }
+
+  public addEventListener(
+    type: "message",
+    listener: (event: { data: string }) => void
+  ): void {
+    if (type === "message") {
+      this.messageListeners.push(listener);
+    }
+  }
+
+  public dispatchMessage(data: string): void {
+    for (const listener of this.messageListeners) {
+      listener({ data });
+    }
   }
 }
 

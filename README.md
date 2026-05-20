@@ -1,6 +1,6 @@
 # AI Call Center Demo
 
-AIコールセンターの応対支援デモです。ブラウザで開くと、架空の受付キュー、Assistant handoff、根拠候補、応答ドラフト、会話プレビュー、Operator note、Policy guard、Realtime boundary、Realtime call controls、fallback rehearsalを1画面で確認できます。
+AIコールセンターの応対支援デモです。ブラウザで開くと、架空の受付キュー、Assistant handoff、根拠候補、応答ドラフト、会話プレビュー、Operator note、Policy guard、Realtime boundary、Realtime call controls、Realtime handoff record、fallback rehearsalを1画面で確認できます。
 
 このリポジトリはデモ用です。Realtime音声はブラウザの`Start call`から短命client secretで接続するデモ境界だけを扱い、実電話、認証、DB、永続保存、実顧客データには接続していません。デモ中に表示される顧客・契約・問い合わせ情報はすべて架空データです。
 
@@ -38,7 +38,8 @@ docker run --rm -p 4173:4173 ai-call-center-demo
 3. `Evidence candidates`で、回答がMarkdown knowledge base由来の候補に基づくことを説明します。
 4. `Policy guard`で、本人確認前や上席確認が必要なケースでは確定回答を避けるデモ境界を説明します。
 5. `Realtime boundary`で、標準API keyはブラウザに出さず、短命client secretだけでブラウザ接続することを説明します。`Start call`はserver token endpointが設定済みのときだけWebRTC接続へ進み、未設定や失敗時はfallback rehearsalに戻ります。
-6. `Fallback rehearsal`で、外部AIや通話連携がなくてもデモ進行できることを見せます。
+6. `End call`後の`Realtime handoff record`で、transcript、summary、evidence references、policy decision、next actionがbrowser stateに残り、外部送信・永続保存・実電話接続はblockedのままであることを見せます。
+7. `Fallback rehearsal`で、外部AIや通話連携がなくてもデモ進行できることを見せます。
 
 ## ローカル開発
 
@@ -71,7 +72,7 @@ OPENAI_API_KEY=...
 REALTIME_MODEL=gpt-realtime
 ```
 
-ブラウザの`Start call`は選択中callの根拠候補、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、`POST /api/realtime/client-secret`へ送ります。server runtimeは標準API keyをserver-sideだけで使い、OpenAI Realtimeのclient secret sessionにそのinstructionsを設定します。短命client secret取得後にだけマイク権限を要求し、OpenAI Realtime WebRTC calls endpointへSDP offerを送ります。未設定時や接続失敗時はマイクやWebRTCを進めず、`local-rehearsal`のfallback表示に戻ります。通話記録、DB保存、実電話接続はまだ開始しません。
+ブラウザの`Start call`は選択中callの根拠候補、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、`POST /api/realtime/client-secret`へ送ります。server runtimeは標準API keyをserver-sideだけで使い、OpenAI Realtimeのclient secret sessionにそのinstructionsを設定します。短命client secret取得後にだけマイク権限を要求し、OpenAI Realtime WebRTC calls endpointへSDP offerを送ります。未設定時や接続失敗時はマイクやWebRTCを進めず、`local-rehearsal`のfallback表示に戻ります。`End call`後のhandoff recordはbrowser stateのみで、DB保存、外部送信、実電話接続はまだ開始しません。
 
 テストとビルドは次で確認します。
 
@@ -93,6 +94,7 @@ npm.cmd run build
 - アプリ起動: `src/main.ts`
 - HTML描画とデモ状態: `src/app.ts`
 - Realtime browser call controls: `src/realtime-call-controls.ts`
+- Realtime call recording / handoff: `src/realtime-call-recording.ts`
 - Realtime session grounding: `src/realtime-session-context.ts`
 - knowledge loader / search: `src/knowledge.ts`, `src/knowledge-search.ts`
 - 根拠候補bridge: `src/evidence-bridge.ts`

@@ -680,7 +680,8 @@ h3 {
   font-size: 0.84rem;
 }
 
-.summary-panel {
+.summary-panel,
+.realtime-handoff {
   display: grid;
   gap: 10px;
   margin-top: 14px;
@@ -711,29 +712,35 @@ h3 {
   font-size: 0.9rem;
 }
 
-.summary-panel dl {
+.summary-panel dl,
+.realtime-handoff dl {
   display: grid;
   gap: 8px;
   margin: 0;
 }
 
-.summary-panel dl div {
+.summary-panel dl div,
+.realtime-handoff dl div {
   display: grid;
   gap: 3px;
 }
 
 .summary-panel dt,
-.summary-panel dd {
+.summary-panel dd,
+.realtime-handoff dt,
+.realtime-handoff dd {
   margin: 0;
   font-size: 0.84rem;
 }
 
-.summary-panel dt {
+.summary-panel dt,
+.realtime-handoff dt {
   color: #667085;
   font-weight: 800;
 }
 
-.summary-panel dd {
+.summary-panel dd,
+.realtime-handoff dd {
   color: #17202a;
   overflow-wrap: anywhere;
 }
@@ -746,6 +753,13 @@ h3 {
   color: #344052;
   font-size: 0.82rem;
   overflow-wrap: anywhere;
+}
+
+.summary-evidence li span {
+  display: block;
+  margin-top: 2px;
+  color: #667085;
+  font-size: 0.75rem;
 }
 
 .policy-panel {

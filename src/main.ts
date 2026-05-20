@@ -20,11 +20,21 @@ import {
   type RealtimeCallControls,
   type RealtimeCallSession
 } from "./realtime-call-controls.js";
+import { buildCallSummary, type CallSummary } from "./call-summary.js";
+import {
+  buildRealtimeCallHandoffRecord,
+  createRealtimeTranscriptCollector,
+  type RealtimeCallHandoffRecord,
+  type RealtimeTranscriptCollector
+} from "./realtime-call-recording.js";
 import {
   buildRealtimeOperatorSessionContext,
   buildRealtimeTokenRequestBody
 } from "./realtime-session-context.js";
-import { buildResponsePolicyGuard } from "./response-policy.js";
+import {
+  buildResponsePolicyGuard,
+  type ResponsePolicyGuard
+} from "./response-policy.js";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -47,6 +57,8 @@ const fallbackRehearsal = buildFallbackRehearsalPlan({
 });
 let realtimeCallControls: RealtimeCallControls = buildRealtimeCallControls();
 let realtimeCallSession: RealtimeCallSession | undefined;
+let realtimeTranscriptCollector: RealtimeTranscriptCollector | undefined;
+let realtimeCallHandoff: RealtimeCallHandoffRecord | undefined;
 let realtimeCallRequestId = 0;
 
 function renderCurrentState(): void {
@@ -55,7 +67,8 @@ function renderCurrentState(): void {
     assistantEvidence: currentEvidence,
     operatorNotes: { ...operatorNotes },
     fallbackRehearsal,
-    realtimeCallControls
+    realtimeCallControls,
+    realtimeCallHandoff
   });
 }
 
@@ -130,6 +143,7 @@ appRoot.addEventListener("click", (event) => {
 
   syncRenderedOperatorNote();
   currentEvidence = nextEvidence;
+  realtimeCallHandoff = undefined;
   renderCurrentState();
 });
 
@@ -143,22 +157,28 @@ async function handleStartRealtimeCall(): Promise<void> {
   const requestId = realtimeCallRequestId + 1;
   realtimeCallRequestId = requestId;
   syncRenderedOperatorNote();
+  realtimeCallHandoff = undefined;
+  realtimeTranscriptCollector = createRealtimeTranscriptCollector();
   realtimeCallControls = buildRealtimeCallControls({
     status: "requesting-client-secret"
   });
   renderCurrentState();
 
   const result = await startRealtimeCallSession({
-    tokenRequestBody: buildCurrentRealtimeTokenRequestBody(),
+    tokenRequestBody: buildRealtimeTokenRequestBody(
+      buildCurrentCallReviewContext().realtimeContext
+    ),
     fetch,
     getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
-    createPeerConnection: () => new RTCPeerConnection()
+    createPeerConnection: () => new RTCPeerConnection(),
+    onServerEvent: (event) => realtimeTranscriptCollector?.recordServerEvent(event)
   });
 
   if (requestId !== realtimeCallRequestId) {
     if (result.session) {
       endRealtimeCallSession(result.session);
     }
+    realtimeTranscriptCollector = undefined;
     return;
   }
 
@@ -171,18 +191,27 @@ function handleEndRealtimeCall(): void {
   realtimeCallRequestId += 1;
 
   if (!realtimeCallSession) {
+    realtimeCallHandoff = buildCurrentRealtimeCallHandoff("fallback-recorded");
     realtimeCallControls = buildRealtimeCallControls({ status: "ended" });
     renderCurrentState();
     return;
   }
 
   syncRenderedOperatorNote();
+  realtimeCallHandoff = buildCurrentRealtimeCallHandoff("recorded");
   realtimeCallControls = endRealtimeCallSession(realtimeCallSession);
   realtimeCallSession = undefined;
+  realtimeTranscriptCollector = undefined;
   renderCurrentState();
 }
 
-function buildCurrentRealtimeTokenRequestBody(): unknown {
+interface CurrentCallReviewContext {
+  realtimeContext: ReturnType<typeof buildRealtimeOperatorSessionContext>;
+  callSummary: CallSummary;
+  policy: ResponsePolicyGuard;
+}
+
+function buildCurrentCallReviewContext(): CurrentCallReviewContext {
   const selectedQueueItem = demoState.activeQueue.find(
     (item) => item.id === currentEvidence.callId
   );
@@ -215,6 +244,30 @@ function buildCurrentRealtimeTokenRequestBody(): unknown {
     operatorInput,
     policy
   });
+  const callSummary = buildCallSummary({
+    item: selectedQueueItem,
+    evidence: currentEvidence,
+    conversation,
+    operatorInput,
+    policy
+  });
 
-  return buildRealtimeTokenRequestBody(context);
+  return {
+    realtimeContext: context,
+    callSummary,
+    policy
+  };
+}
+
+function buildCurrentRealtimeCallHandoff(
+  status: RealtimeCallHandoffRecord["status"]
+): RealtimeCallHandoffRecord {
+  const context = buildCurrentCallReviewContext();
+
+  return buildRealtimeCallHandoffRecord({
+    status,
+    callSummary: context.callSummary,
+    policy: context.policy,
+    transcript: realtimeTranscriptCollector?.getTranscript() ?? []
+  });
 }

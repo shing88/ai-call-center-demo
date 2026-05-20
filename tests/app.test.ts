@@ -13,6 +13,7 @@ import {
 } from "../src/app.js";
 import { buildFallbackRehearsalPlan } from "../src/fallback-rehearsal.js";
 import { buildRealtimeCallControls } from "../src/realtime-call-controls.js";
+import type { RealtimeCallHandoffRecord } from "../src/realtime-call-recording.js";
 
 test("buildQueueSummary counts statuses and average wait time", () => {
   const summary = buildQueueSummary([
@@ -636,6 +637,51 @@ test("renderApp displays browser Realtime call controls without exposing secrets
   assert.doesNotMatch(html, /server-standard-key/);
 });
 
+test("renderApp displays the Realtime call handoff record after End call without implying save or send", () => {
+  const html = renderApp({
+    ...demoState,
+    realtimeCallHandoff: sampleRealtimeCallHandoff
+  });
+  const handoffIndex = html.indexOf('id="realtime-handoff-title"');
+  const controlsIndex = html.indexOf("Realtime call controls");
+  const summaryIndex = html.indexOf('id="call-summary-title"');
+
+  assert.ok(handoffIndex > controlsIndex);
+  assert.ok(summaryIndex > handoffIndex);
+  assert.match(html, /Realtime handoff record/);
+  assert.match(html, /data-realtime-handoff-status="recorded"/);
+  assert.match(html, /data-realtime-handoff-call-id="CALL-CC-03"/);
+  assert.match(html, /data-persistent-save-allowed="false"/);
+  assert.match(html, /data-external-send-allowed="false"/);
+  assert.match(html, /Identity verification is needed/);
+  assert.match(html, /business_rules\/demo\.md \/ Demo section/);
+  assert.match(html, /Customer-specific answer blocked/);
+  assert.match(html, /Next action/);
+  assert.match(html, /browser state only/);
+  assert.doesNotMatch(html, /saved successfully/i);
+  assert.doesNotMatch(html, /sent successfully/i);
+});
+
+test("renderApp escapes Realtime handoff transcript text", () => {
+  const html = renderApp({
+    ...demoState,
+    realtimeCallHandoff: {
+      ...sampleRealtimeCallHandoff,
+      transcript: [
+        {
+          role: "assistant",
+          text: "Review <script>alert(1)</script> before handoff.",
+          sourceEventType: "response.output_audio_transcript.done",
+          final: true
+        }
+      ]
+    }
+  });
+
+  assert.match(html, /Review &lt;script&gt;alert\(1\)&lt;\/script&gt; before handoff\./);
+  assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
+});
+
 test("renderApp keeps the assistant panel stable without evidence candidates", () => {
   const state: DemoState = {
     agentName: "Support Ops",
@@ -657,3 +703,33 @@ test("renderApp keeps the assistant panel stable without evidence candidates", (
 test("escapeHtml escapes the HTML-sensitive characters", () => {
   assert.equal(escapeHtml(`"<tag>&'`), "&quot;&lt;tag&gt;&amp;&#39;");
 });
+
+const sampleRealtimeCallHandoff: RealtimeCallHandoffRecord = {
+  version: 1,
+  callId: "CALL-CC-03",
+  status: "recorded",
+  transcript: [
+    {
+      role: "assistant",
+      text: "Identity verification is needed before account-specific changes.",
+      sourceEventType: "response.output_audio_transcript.done",
+      final: true
+    }
+  ],
+  summary: "Customer asks about an account-specific contract change.",
+  evidenceReferences: ["business_rules/demo.md / Demo section"],
+  policyDecision: {
+    outcome: "customer-specific-answer-blocked",
+    allowedResponseScope: "general-information-only",
+    customerSpecificAnswerAllowed: false,
+    humanReviewRequired: false,
+    blockedResponseTypes: ["account-specific contract change"]
+  },
+  nextAction: "Complete identity verification before account-specific guidance.",
+  guardrails: {
+    browserOnly: true,
+    persistentSaveAllowed: false,
+    externalSendAllowed: false,
+    productionPhoneConnectionAllowed: false
+  }
+};

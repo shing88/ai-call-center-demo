@@ -19,6 +19,10 @@ import {
   buildRealtimeCallControls,
   type RealtimeCallControls
 } from "./realtime-call-controls.js";
+import type {
+  RealtimeCallHandoffRecord,
+  RealtimeTranscriptEntry
+} from "./realtime-call-recording.js";
 
 export type CallStatus = "waiting" | "ai-handling" | "human-review";
 
@@ -91,6 +95,7 @@ export interface DemoState {
   executiveScenario?: ExecutiveDemoScenario;
   realtimeConnection?: RealtimeConnectionBoundary;
   realtimeCallControls?: RealtimeCallControls;
+  realtimeCallHandoff?: RealtimeCallHandoffRecord;
 }
 
 export interface AssistantConversationDraft {
@@ -565,6 +570,11 @@ export function renderApp(state: DemoState = demoState): string {
             </div>
             ${renderCallWorkspace(selectedQueueItem, callSummary, policyGuard)}
             ${renderRealtimeConnectionBoundary(realtimeConnection, realtimeCallControls)}
+            ${
+              state.realtimeCallHandoff
+                ? renderRealtimeCallHandoffRecord(state.realtimeCallHandoff)
+                : ""
+            }
             ${renderExecutiveDemoBrief(executiveDemoBrief)}
             ${renderCallSummary(callSummary)}
             ${
@@ -698,6 +708,97 @@ function renderRealtimeCallControls(controls: RealtimeCallControls): string {
         >End call</button>
       </div>
     </div>
+  `;
+}
+
+function renderRealtimeCallHandoffRecord(
+  record: RealtimeCallHandoffRecord
+): string {
+  const evidenceItems = record.evidenceReferences
+    .map((reference) => `<li>${escapeHtml(reference)}</li>`)
+    .join("");
+  const transcriptItems = record.transcript
+    .map(renderRealtimeTranscriptEntry)
+    .join("");
+  const blockedItems = record.policyDecision.blockedResponseTypes
+    .map((blockedType) => `<li>${escapeHtml(blockedType)}</li>`)
+    .join("");
+
+  return `
+    <section
+      class="realtime-handoff"
+      aria-labelledby="realtime-handoff-title"
+      data-realtime-handoff-status="${escapeHtml(record.status)}"
+      data-realtime-handoff-call-id="${escapeHtml(record.callId)}"
+      data-browser-only="true"
+      data-persistent-save-allowed="false"
+      data-external-send-allowed="false"
+      data-production-phone-connection-allowed="false"
+    >
+      <div class="summary-heading">
+        <h3 id="realtime-handoff-title">Realtime handoff record</h3>
+        <span>${escapeHtml(record.callId)}</span>
+      </div>
+      <p class="summary-main">${escapeHtml(record.summary)}</p>
+      <dl>
+        <div>
+          <dt>Status</dt>
+          <dd>${record.status === "recorded" ? "Recorded in browser state" : "Fallback record in browser state"}</dd>
+        </div>
+        <div>
+          <dt>Policy decision</dt>
+          <dd>${escapeHtml(policyOutcomeLabel(record.policyDecision.outcome))}</dd>
+        </div>
+        <div>
+          <dt>Policy lane</dt>
+          <dd>${escapeHtml(policyScopeLabel(record.policyDecision.allowedResponseScope))}</dd>
+        </div>
+        <div>
+          <dt>Customer-specific answer</dt>
+          <dd>${record.policyDecision.customerSpecificAnswerAllowed ? "allowed" : "blocked"}</dd>
+        </div>
+        <div>
+          <dt>Human review</dt>
+          <dd>${record.policyDecision.humanReviewRequired ? "required" : "not required"}</dd>
+        </div>
+        <div>
+          <dt>Next action</dt>
+          <dd>${escapeHtml(record.nextAction)}</dd>
+        </div>
+        <div>
+          <dt>Storage</dt>
+          <dd>browser state only</dd>
+        </div>
+      </dl>
+      <div class="summary-evidence">
+        <span>Transcript</span>
+        ${
+          record.transcript.length > 0
+            ? `<ul>${transcriptItems}</ul>`
+            : `<p class="summary-empty">No transcript events captured before handoff.</p>`
+        }
+      </div>
+      ${
+        record.evidenceReferences.length > 0
+          ? `<div class="summary-evidence"><span>Evidence references</span><ul>${evidenceItems}</ul></div>`
+          : ""
+      }
+      ${
+        record.policyDecision.blockedResponseTypes.length > 0
+          ? `<div class="summary-evidence"><span>Blocked response types</span><ul>${blockedItems}</ul></div>`
+          : ""
+      }
+    </section>
+  `;
+}
+
+function renderRealtimeTranscriptEntry(entry: RealtimeTranscriptEntry): string {
+  return `
+    <li>
+      <strong>${entry.role === "customer" ? "Customer" : "Assistant"}</strong>
+      ${escapeHtml(entry.text)}
+      <span>${entry.final ? "final" : "partial"} / ${escapeHtml(entry.sourceEventType)}</span>
+    </li>
   `;
 }
 
