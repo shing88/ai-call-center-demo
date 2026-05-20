@@ -626,7 +626,7 @@ function renderRealtimeConnectionBoundary(
         </div>
         <div>
           <dt>Token contract</dt>
-          <dd>${escapeHtml(tokenEndpointContractLabel)} / contract only</dd>
+          <dd>${escapeHtml(tokenEndpointContractLabel)} / server adapter</dd>
         </div>
         <div>
           <dt>Disabled adapter</dt>

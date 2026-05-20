@@ -4,13 +4,13 @@
 
 次のタスク: Task 28 `browser-realtime-voice-demo`
 
-現在のPR段階: Server runtime foundation
+現在のPR段階: Realtime client secret implementation
 
-Task 27 `realtime-token-endpoint-disabled-adapter`は実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、contract-only token endpoint `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、disabled adapterの`not-configured` / local fallback、ブラウザAPI key拒否、マイク未要求、外部音声送信blocked、session start disabledを固定している。
+Task 27 `realtime-token-endpoint-disabled-adapter`と、Task 28の1段階目Server runtime foundationは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否、マイク未要求、外部音声送信blocked、session start disabledを固定している。
 
-このPRでは、Task 28の推奨PR分割の1段階目だけを扱う。静的配信を維持しつつNode server runtimeを追加し、`GET /api/health`と`POST /api/realtime/client-secret`のdisabled/fallback responseをDocker起動パスでも提供する。実OpenAI API key、実network呼び出し、WebRTC接続、マイク権限、Start call UIはまだ入れない。
+このPRでは、Task 28の推奨PR分割の2段階目だけを扱う。`OPENAI_API_KEY`をserver-side環境変数として読み、未設定時はdeterministicな`not-configured` fallbackを維持し、設定時だけserver-sideからOpenAIの`/v1/realtime/client_secrets`へrequestしてbrowserへephemeral client secretを返す。`.env.local`や実secretはcommitしない。WebRTC接続、マイク権限、Start call UI、業務ルール注入、記録DBはまだ入れない。
 
-後続計画: Task 28の次PRはRealtime client secret implementation。`OPENAI_API_KEY`未設定時はdeterministicな`not-configured` responseを維持し、設定時だけserver-sideからOpenAIの`/v1/realtime/client_secrets`へrequestしてbrowserへephemeral client secretを返す。
+後続計画: Task 28の次PRはBrowser call controls。`Start call` / `End call` / connection status / mic permission stateを追加し、Realtime WebRTC接続の開始・終了へ進める。接続失敗時はfallback rehearsalへ戻せる表示にする。
 
 ## タスク開始時に必ず読む
 

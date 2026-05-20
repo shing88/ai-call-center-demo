@@ -14,7 +14,7 @@ test("buildRealtimeTokenEndpointContract defines a server-only client secret con
   const contract = buildRealtimeTokenEndpointContract();
 
   assert.equal(contract.version, 1);
-  assert.equal(contract.implementationState, "contract-only");
+  assert.equal(contract.implementationState, "server-adapter");
   assert.equal(contract.localEndpoint.method, "POST");
   assert.equal(contract.localEndpoint.path, REALTIME_TOKEN_ENDPOINT_PATH);
   assert.equal(contract.localEndpoint.acceptsStandardApiKeyFromBrowser, false);
@@ -41,11 +41,11 @@ test("buildRealtimeTokenEndpointContract defines a server-only client secret con
   );
 });
 
-test("buildRealtimeTokenEndpointContract keeps every Realtime enablement gate disabled", () => {
+test("buildRealtimeTokenEndpointContract keeps only the server token endpoint enabled", () => {
   const contract = buildRealtimeTokenEndpointContract();
 
   assert.deepEqual(contract.enablement, {
-    tokenEndpointImplemented: false,
+    tokenEndpointImplemented: true,
     realtimeSessionStartAllowed: false,
     microphonePermissionAllowed: false,
     externalAudioSendAllowed: false,

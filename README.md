@@ -51,14 +51,27 @@ npm run dev
 
 `npm run dev` はTypeScriptをビルドし、`dist/assets/evidence-bundles.json`を生成してから、`dist/`を `http://127.0.0.1:4173/` で配信します。
 
-配信はNode server runtimeで行います。静的なデモ画面に加えて、ヘルスチェックとRealtime client secret用の未設定fallback APIを持ちます。
+配信はNode server runtimeで行います。静的なデモ画面に加えて、ヘルスチェックとRealtime client secret APIを持ちます。
 
 ```text
 GET /api/health
 POST /api/realtime/client-secret
 ```
 
-現時点の`POST /api/realtime/client-secret`は実OpenAI接続を開始しません。`OPENAI_API_KEY`を使わず、標準API keyやbrowser-supplied credentialを転送せず、`not-configured` / `local-rehearsal` のJSON fallbackを返します。実Realtime client secret発行はTask 28の次PRで、server-side環境変数だけを使って追加します。
+`OPENAI_API_KEY`が未設定の場合、`POST /api/realtime/client-secret`はOpenAIへ接続せず、`not-configured` / `local-rehearsal`のJSON fallbackを返します。`OPENAI_API_KEY`がserver-side環境変数として設定されている場合だけ、OpenAI Realtimeの`/v1/realtime/client_secrets`へserver-side requestを行い、短命client secretを返します。標準API keyやbrowser-supplied credentialは受け付けず、ブラウザbundleや静的ファイルへAPI keyを埋め込みません。
+
+Realtime client secret発行を確認する場合は、Git管理外の`.env.local`などを使います。`.env.local`は`.gitignore`対象です。
+
+```bash
+docker compose --env-file .env.local up --build
+```
+
+```env
+OPENAI_API_KEY=...
+REALTIME_MODEL=gpt-realtime
+```
+
+現時点では、client secret発行までが実装済みです。ブラウザの`Start call`、WebRTC接続、マイク権限要求、音声送信、通話記録はまだ開始しません。
 
 テストとビルドは次で確認します。
 
@@ -98,7 +111,7 @@ build時に `dist/assets/evidence-bundles.json` を生成し、ブラウザUIは
 
 ## 現在つないでいないもの
 
-- 外部AI APIへの実送信
+- Realtime client secret発行以外の外部AI APIへの実送信
 - Realtime音声セッション
 - マイク権限要求
 - 実電話接続
