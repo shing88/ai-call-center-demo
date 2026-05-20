@@ -86,6 +86,70 @@ test("manifest helpers safely fall back when the payload is invalid or missing a
   assert.equal(selectAssistantEvidenceFromManifest(manifest, "CALL-404", fallback), fallback);
 });
 
+test("isEvidenceManifest rejects malformed bundles before they reach the UI", () => {
+  const manifest = buildEvidenceManifest({
+    generatedAt: "2026-05-19T00:00:00.000Z",
+    items: demoState.activeQueue,
+    knowledgeBase: loadKnowledgeBase(),
+    defaultCallId: "CALL-CC-03",
+    limit: 1
+  });
+  const validBundle = manifest.bundles["CALL-CC-03"];
+
+  assert.ok(validBundle);
+  assert.equal(isEvidenceManifest(manifest), true);
+  assert.equal(
+    isEvidenceManifest({
+      ...manifest,
+      bundles: {
+        "CALL-CC-03": {
+          ...validBundle,
+          results: "not-an-array"
+        }
+      }
+    }),
+    false
+  );
+  assert.equal(
+    isEvidenceManifest({
+      ...manifest,
+      bundles: {
+        "CALL-OTHER": validBundle
+      }
+    }),
+    false
+  );
+  assert.equal(
+    isEvidenceManifest({
+      ...manifest,
+      bundles: {
+        "CALL-CC-03": {
+          ...validBundle,
+          resultCount: 99
+        }
+      }
+    }),
+    false
+  );
+  assert.equal(
+    isEvidenceManifest({
+      ...manifest,
+      bundles: {
+        "CALL-CC-03": {
+          ...validBundle,
+          results: [
+            {
+              ...validBundle.results[0],
+              score: Number.NaN
+            }
+          ]
+        }
+      }
+    }),
+    false
+  );
+});
+
 test("selectAssistantEvidenceByCallId keeps the current evidence when a bundle is missing", () => {
   const manifest = buildEvidenceManifest({
     generatedAt: "2026-05-19T00:00:00.000Z",

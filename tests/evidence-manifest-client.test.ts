@@ -51,6 +51,13 @@ test("loadAssistantEvidenceFromManifest reads a valid manifest response", async 
 
 test("loadAssistantEvidenceFromManifest falls back on fetch errors and invalid payloads", async () => {
   const fallback = demoState.assistantEvidence;
+  const validManifest = buildEvidenceManifest({
+    generatedAt: "2026-05-19T00:00:00.000Z",
+    items: demoState.activeQueue,
+    knowledgeBase: loadKnowledgeBase(),
+    defaultCallId: "CALL-CC-03",
+    limit: 1
+  });
   const failed = await loadAssistantEvidenceFromManifest({
     fallback,
     preferredCallId: "CALL-CC-03",
@@ -66,6 +73,22 @@ test("loadAssistantEvidenceFromManifest falls back on fetch errors and invalid p
       json: async () => ({ bundles: [] })
     })
   });
+  const malformedBundle = await loadAssistantEvidenceFromManifest({
+    fallback,
+    preferredCallId: "CALL-CC-03",
+    fetcher: async () => ({
+      ok: true,
+      json: async () => ({
+        ...validManifest,
+        bundles: {
+          "CALL-CC-03": {
+            ...validManifest.bundles["CALL-CC-03"],
+            results: "not-an-array"
+          }
+        }
+      })
+    })
+  });
   const notFound = await loadAssistantEvidenceFromManifest({
     fallback,
     preferredCallId: "CALL-CC-03",
@@ -77,6 +100,7 @@ test("loadAssistantEvidenceFromManifest falls back on fetch errors and invalid p
 
   assert.equal(failed, fallback);
   assert.equal(invalid, fallback);
+  assert.equal(malformedBundle, fallback);
   assert.equal(notFound, fallback);
 });
 

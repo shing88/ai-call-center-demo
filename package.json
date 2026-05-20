@@ -7,6 +7,7 @@
     "dev": "npm run build && node scripts/serve-static.mjs dist",
     "build": "tsc -p tsconfig.json && node scripts/copy-static.mjs && node scripts/generate-evidence-manifest.mjs",
     "test": "tsc -p tsconfig.test.json && node --test .tmp/test/tests/*.test.js",
+    "start": "node scripts/serve-static.mjs dist",
     "preview": "node scripts/serve-static.mjs dist"
   },
   "devDependencies": {
