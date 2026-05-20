@@ -74,7 +74,7 @@ OPENAI_API_KEY=...
 REALTIME_MODEL=gpt-realtime
 ```
 
-ブラウザの`Start call`は選択中callの根拠候補、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、`POST /api/realtime/client-secret`へ送ります。server runtimeは標準API keyをserver-sideだけで使い、OpenAI Realtimeのclient secret sessionにそのinstructionsを設定します。短命client secret取得後にだけマイク権限を要求し、OpenAI Realtime WebRTC calls endpointへSDP offerを送ります。未設定時や接続失敗時はマイクやWebRTCを進めず、`local-rehearsal`のfallback表示に戻ります。
+Docker Composeは`.env.local`から`OPENAI_API_KEY`と`REALTIME_MODEL`をコンテナへ渡します。ブラウザの`Start call`は選択中callの根拠候補、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、`POST /api/realtime/client-secret`へ送ります。server runtimeは標準API keyをserver-sideだけで使い、OpenAI Realtimeのclient secret sessionにそのinstructionsを設定します。短命client secret取得後にだけマイク権限を要求し、OpenAI Realtime WebRTC calls endpointへSDP offerを送ります。未設定時や接続失敗時はマイクやWebRTCを進めず、`local-rehearsal`のfallback表示に戻ります。短時間の実機確認では、マイク許可後に接続状態だけ確認し、すぐ`End call`で切断します。
 
 `End call`後のhandoff recordは`POST /api/realtime/handoffs`でserver-side local JSONへ保存され、画面読み込み時に`GET /api/realtime/handoffs?callId=...`から最新recordを復元します。Docker Composeでは`./data:/app/data`をmountし、既定の保存先は`/app/data/realtime-handoffs.json`です。このJSONはGit管理外です。外部送信、実電話接続、本番DB保存はまだ開始しません。
 

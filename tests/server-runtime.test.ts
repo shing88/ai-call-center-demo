@@ -190,7 +190,7 @@ test("server runtime mints a Realtime client secret through a server-side reques
     assert.equal(getHeader(upstreamRequests[0]?.init.headers, "Content-Type"), "application/json");
     assert.match(
       getHeader(upstreamRequests[0]?.init.headers, "OpenAI-Safety-Identifier") ?? "",
-      /^sha256:[a-f0-9]{64}$/
+      /^[a-f0-9]{64}$/
     );
     assert.deepEqual(upstreamRequests[0]?.body, {
       expires_after: {

@@ -487,7 +487,7 @@ function buildSafetyIdentifier(requestBody: unknown): string {
     .join(":");
   const stableInput = source.length > 0 ? source : "anonymous-demo-operator";
 
-  return `sha256:${createHash("sha256").update(stableInput).digest("hex")}`;
+  return createHash("sha256").update(stableInput).digest("hex");
 }
 
 function buildRealtimeSessionGrounding(
