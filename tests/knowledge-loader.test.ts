@@ -9,7 +9,7 @@ import {
 test("loadKnowledgeBase reads the demo markdown documents into stable chunks", () => {
   const knowledgeBase = loadKnowledgeBase();
 
-  assert.equal(knowledgeBase.documents.length, 11);
+  assert.equal(knowledgeBase.documents.length, 13);
   assert.ok(knowledgeBase.chunks.length > knowledgeBase.documents.length);
 
   assert.deepEqual(
@@ -19,13 +19,15 @@ test("loadKnowledgeBase reads the demo markdown documents into stable chunks", (
       "business_rules/002_refund_policy",
       "business_rules/003_cancellation_policy",
       "business_rules/004_escalation_policy",
+      "business_rules/005_ccnet_public_service_guidance",
       "customer_contracts/customer_1001",
       "customer_contracts/customer_1002",
       "customer_contracts/customer_1003",
       "scenarios/scenario_01_refund_normal",
       "scenarios/scenario_02_refund_exception",
       "scenarios/scenario_03_identity_not_verified",
-      "scenarios/scenario_04_complaint_escalation"
+      "scenarios/scenario_04_complaint_escalation",
+      "scenarios/scenario_05_ccnet_wifi_safety_handoff"
     ]
   );
 

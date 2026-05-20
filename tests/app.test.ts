@@ -11,6 +11,7 @@ import {
   renderApp,
   type DemoState
 } from "../src/app.js";
+import { buildFallbackRehearsalPlan } from "../src/fallback-rehearsal.js";
 
 test("buildQueueSummary counts statuses and average wait time", () => {
   const summary = buildQueueSummary([
@@ -94,9 +95,9 @@ test("renderApp displays assistant evidence candidates", () => {
   const html = renderApp();
 
   assert.match(html, /Evidence candidates/);
-  assert.match(html, /CALL-1026/);
-  assert.match(html, /business_rules\/002_refund_policy\.md/);
-  assert.match(html, /返金/);
+  assert.match(html, /CALL-CC-03/);
+  assert.match(html, /business_rules\/005_ccnet_public_service_guidance\.md/);
+  assert.match(html, /CCNet光10G/);
 });
 
 test("buildAssistantConversationDraft uses the selected queue item and first evidence source", () => {
@@ -147,16 +148,16 @@ test("renderApp displays a conversation draft for the selected queue item", () =
   const html = renderApp();
 
   assert.match(html, /Response draft/);
-  assert.match(html, /山本 花さんには、返品受付について受付済みであることを伝える/);
-  assert.match(html, /根拠: business_rules\/002_refund_policy\.md/);
+  assert.match(html, /山本 花さんには、CCNet光10G Wi-Fi 相談について受付済みであることを伝える/);
+  assert.match(html, /根拠: business_rules\/005_ccnet_public_service_guidance\.md/);
 });
 
 test("renderApp switches the conversation draft with assistant evidence call id", () => {
   const html = renderApp({
     ...demoState,
     assistantEvidence: {
-      callId: "CALL-1024",
-      query: "配送予定日の確認 注文番号 A-2048 の到着予定を知りたいです。",
+      callId: "CALL-CC-01",
+      query: "安全・安心123チャンネル 大雨 道路 河川カメラ",
       resultCount: 1,
       results: [
         {
@@ -169,8 +170,8 @@ test("renderApp switches the conversation draft with assistant evidence call id"
     }
   });
 
-  assert.match(html, /田中 美咲さんには、配送予定日の確認について受付済みであることを伝える/);
-  assert.match(html, /注文番号 A-2048/);
+  assert.match(html, /田中 美咲さんには、安全・安心123チャンネル確認について受付済みであることを伝える/);
+  assert.match(html, /道路・河川カメラ/);
   assert.match(html, /business_rules\/004_escalation_policy\.md/);
 });
 
@@ -304,7 +305,8 @@ test("renderApp displays a conversation preview for the selected queue item", ()
 
   assert.match(html, /Conversation preview/);
   assert.match(html, /Customer/);
-  assert.match(html, /山本 花: サイズが合わなかった商品の返送方法を確認したいです。/);
+  assert.match(html, /山本 花: 春日井市の自宅でテレワーク中にWi-Fiが不安定です。/);
+  assert.match(html, /CCNet光10G へ変えられるか/);
   assert.match(html, /AI draft/);
   assert.match(html, /Internal note/);
 });
@@ -313,7 +315,7 @@ test("renderApp displays an unsent operator input for the selected queue item", 
   const html = renderApp();
 
   assert.match(html, /Operator note/);
-  assert.match(html, /data-input-call-id="CALL-1026"/);
+  assert.match(html, /data-input-call-id="CALL-CC-03"/);
   assert.match(html, /Unsent demo input/);
   assert.match(html, /not sent or saved/);
   assert.doesNotMatch(html, /type="submit"/);
@@ -331,6 +333,33 @@ test("renderApp displays a policy guard without implying send or save", () => {
   assert.match(html, /Persistent save/);
   assert.doesNotMatch(html, /送信済み/);
   assert.doesNotMatch(html, /保存済み/);
+});
+
+test("renderApp leads with an executive demo brief that connects evidence, policy, fallback, and no-send/no-save boundaries", () => {
+  const html = renderApp({
+    ...demoState,
+    fallbackRehearsal: buildFallbackRehearsalPlan()
+  });
+  const briefIndex = html.indexOf('id="executive-brief-title"');
+
+  assert.ok(briefIndex >= 0);
+  assert.ok(briefIndex < html.indexOf('id="fallback-title"'));
+  assert.ok(briefIndex < html.indexOf('id="policy-title"'));
+  assert.ok(briefIndex < html.indexOf('id="evidence-title"'));
+  assert.match(html, /Executive demo brief/);
+  assert.match(html, /CCNet-fit scenario/);
+  assert.match(html, /CCNet株式会社 \/ fictional/);
+  assert.match(html, /CCNet光10G/);
+  assert.match(html, /安全・安心123チャンネル/);
+  assert.match(html, /Use only fictional customer details/);
+  assert.match(html, /Evidence candidates/);
+  assert.match(html, /Policy guard/);
+  assert.match(html, /Fallback rehearsal/);
+  assert.match(html, /No-send \/ no-save boundary/);
+  assert.match(html, /External send blocked/);
+  assert.match(html, /Persistent save blocked/);
+  assert.match(html, /no production connection/);
+  assert.doesNotMatch(html, /Live API connected/);
 });
 
 test("renderApp switches the unsent operator input with assistant evidence call id", () => {
@@ -432,7 +461,7 @@ test("renderApp escapes edited operator notes before rendering", () => {
   const html = renderApp({
     ...demoState,
     operatorNotes: {
-      "CALL-1026": "Please review <script>alert(1)</script> before handoff."
+      "CALL-CC-03": "Please review <script>alert(1)</script> before handoff."
     }
   });
 
@@ -444,8 +473,8 @@ test("renderApp switches the conversation preview with assistant evidence call i
   const html = renderApp({
     ...demoState,
     assistantEvidence: {
-      callId: "CALL-1024",
-      query: "配送予定日の確認 注文番号 A-2048 の到着予定を知りたいです。",
+      callId: "CALL-CC-01",
+      query: "安全・安心123チャンネル 大雨 道路 河川カメラ",
       resultCount: 1,
       results: [
         {
@@ -459,16 +488,16 @@ test("renderApp switches the conversation preview with assistant evidence call i
   });
 
   assert.match(html, /Conversation preview/);
-  assert.match(html, /田中 美咲: 注文番号 A-2048 の到着予定を知りたいです。/);
-  assert.match(html, /配送予定日の確認について受付済み/);
+  assert.match(html, /田中 美咲: 大雨の前に、テレビで道路・河川カメラや地域情報を確認する方法を知りたいです。/);
+  assert.match(html, /安全・安心123チャンネル確認について受付済み/);
   assert.match(html, /上席確認ルール &gt; AIが行う引き継ぎ準備/);
 });
 
 test("renderApp marks the selected queue item from assistant evidence", () => {
   const html = renderApp();
 
-  assert.match(html, /data-queue-call-id="CALL-1026"/);
-  assert.match(html, /data-queue-open="CALL-1026"/);
+  assert.match(html, /data-queue-call-id="CALL-CC-03"/);
+  assert.match(html, /data-queue-open="CALL-CC-03"/);
   assert.match(html, /queue-item--selected/);
   assert.match(html, /aria-current="true"/);
   assert.match(html, /aria-pressed="true"/);

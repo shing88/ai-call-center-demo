@@ -8,8 +8,9 @@
 
 - リポジトリ運用の初期ファイルは`AGENTS.md`と`docs/ai/`配下にある。
 - 最小Webアプリの入口は`index.html`、実行時の接続点は`src/main.ts`。
-- Assistant handoffにはbuild時に生成した根拠候補manifestの内容、デモ用応答ドラフト、会話履歴風プレビュー、未送信のOperator note入力欄、送信/保存候補payload境界、policy guard判定が表示され、キュー項目の選択に応じて該当call idの根拠候補、ドラフト、プレビュー、入力欄、policyへ切り替わる。
+- Assistant handoffにはExecutive demo brief、build時に生成した根拠候補manifestの内容、デモ用応答ドラフト、会話履歴風プレビュー、未送信のOperator note入力欄、送信/保存候補payload境界、policy guard判定が表示され、キュー項目の選択に応じて該当call idの根拠候補、ドラフト、プレビュー、入力欄、policyへ切り替わる。
 - デモ用knowledge baselineは`knowledge/README.md`、`knowledge/business_rules/`、`knowledge/customer_contracts/`、`knowledge/scenarios/`にある。
+- knowledgeには架空顧客データに加えて、CCNet株式会社の公開HPに合わせた役員デモ用の一般案内文書と架空シナリオがある。実在顧客・契約・問い合わせ履歴は含めない。
 - Markdown loader / chunk modelは`src/knowledge.ts`にある。
 - keyword search / 根拠候補抽出は`src/knowledge-search.ts`にある。
 - キュー項目とknowledge検索結果をつなぐ根拠候補bridgeは`src/evidence-bridge.ts`にある。
@@ -21,6 +22,7 @@
 - 代表シナリオごとの根拠候補、Operator note、policy guard、AI response request/client結果を固定する回帰runnerは`src/demo-scenario-regression.ts`にある。
 - 外部AI API、音声、通信が使えない場合に備えたfallback / rehearsal planは`src/fallback-rehearsal.ts`にあり、`src/main.ts`から画面へ注入される。
 - fallback時のデモ進行手順は`docs/ai/demo/fallback-runbook.md`にある。
+- 役員デモの説明順と安全文言は`docs/ai/demo/executive-demo-script.md`にあり、CCNet株式会社の公開HPに合わせた架空シナリオは`docs/ai/demo/ccnet-executive-scenario.md`にある。
 - `npm run build`で`dist/index.html`、`dist/assets/*.js`、`dist/assets/evidence-bundles.json`を生成する。
 - 開発時は`npm run dev`で`dist/`をローカル配信する。
 
@@ -28,7 +30,7 @@
 
 - アプリケーションスタックはTypeScript + Node.js標準ライブラリ。
 - `src/app.ts`にデモ用のキュー状態、集計、HTML描画、escapingを置いている。
-- `src/app.ts`は`AssistantEvidence`表示用データを受け取り、出典、section、snippet、scoreをAssistant handoffに表示し、選択中キューと根拠候補からデモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、browser-onlyの送信/保存候補payload、policy guard表示を決定的に作る。
+- `src/app.ts`は`AssistantEvidence`表示用データを受け取り、出典、section、snippet、scoreをAssistant handoffに表示し、選択中キューと根拠候補からCCNet-fit scenarioを含むExecutive demo brief、デモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、browser-onlyの送信/保存候補payload、policy guard表示を決定的に作る。
 - `src/knowledge.ts`は`knowledge/`配下の架空Markdownを読み込み、`KnowledgeDocument` / `KnowledgeChunk`へ変換する。
 - chunkは文書タイトルと`##`見出し単位で作られ、カテゴリ、相対パス、見出しパス、安定ID、本文を持つ。
 - `src/knowledge-search.ts`は`KnowledgeChunk`配列からキーワード検索し、`sourcePath`、`section`、`snippet`、`score`、`matchedTerms`を持つ根拠候補を返す。ランキングはタイトル、見出し、本文、source pathの一致に加えて、クエリ内の複数語が同じchunk内で近く出る候補を加点する。
@@ -50,7 +52,7 @@
 
 - ローカルテストコマンドは`npm test`。
 - ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、call id別の未送信入力プレビュー、browser-only送信/保存候補payload、policy guard、代表デモシナリオ回帰、fallback / rehearsal plan表示、AI response request payload、AI response client adapter、AI response network adapter、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
+- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffのExecutive demo briefと根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、call id別の未送信入力プレビュー、browser-only送信/保存候補payload、policy guard、代表デモシナリオ回帰、fallback / rehearsal plan表示、AI response request payload、AI response client adapter、AI response network adapter、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -63,7 +65,7 @@
 
 ## 既知の未完了項目
 
-- 次の実装タスクはTask 22 `executive-demo-polish`。根拠候補、policy guard、fallback / rehearsal、送信/保存不可の関係を役員デモで説明しやすい状態へ整える。
+- 次の実装タスクはTask 23 `call-summary-generation`。選択中の問い合わせ、根拠候補、policy guard、Operator noteから、応対サマリー、判断結果、次アクションをローカル決定的に作る。
 - LLM応答生成、会話履歴保存、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
@@ -74,5 +76,5 @@
 
 ## 次のハンドオフ
 
-- Task 21 `fallback-rehearsal-mode`は完了。
-- 次はTask 22 `executive-demo-polish`に着手する。
+- Task 22 `executive-demo-polish`は完了。CCNet株式会社の公開HPを確認し、公開情報ベースの架空シナリオをExecutive demo briefとデモ台本へ反映した。
+- 次はTask 23 `call-summary-generation`に着手する。
