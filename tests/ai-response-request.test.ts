@@ -56,6 +56,33 @@ test("buildAiResponseRequest creates a provider-neutral draft payload", () => {
   assert.equal(request.operatorInput.unsent, true);
 });
 
+test("buildAiResponseRequest carries edited operator input into the submit/save candidate", () => {
+  const request = buildAiResponseRequest({
+    item: queueItem(),
+    evidence: assistantEvidence(),
+    operatorNoteValue: "Edited operator note before human review.",
+    createdAt: "2026-05-20T00:00:00.000Z"
+  });
+
+  assert.equal(request.operatorInput.value, "Edited operator note before human review.");
+  assert.equal(request.operatorInput.unsent, true);
+  assert.equal(request.operatorInput.unsaved, true);
+  assert.equal(request.operatorInput.browserOnly, true);
+  assert.equal(
+    request.operatorInput.submitSaveCandidate.kind,
+    "operator-input-submit-save-candidate"
+  );
+  assert.equal(
+    request.operatorInput.submitSaveCandidate.operatorInput.value,
+    "Edited operator note before human review."
+  );
+  assert.deepEqual(request.operatorInput.submitSaveCandidate.guardrails, {
+    externalSendAllowed: false,
+    persistenceAllowed: false,
+    candidateOnly: true
+  });
+});
+
 test("buildAiResponseRequest keeps send and persistence disabled by default", () => {
   const request = buildAiResponseRequest({
     item: queueItem({ priority: "high" }),

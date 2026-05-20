@@ -8,7 +8,7 @@
 
 - リポジトリ運用の初期ファイルは`AGENTS.md`と`docs/ai/`配下にある。
 - 最小Webアプリの入口は`index.html`、実行時の接続点は`src/main.ts`。
-- Assistant handoffにはbuild時に生成した根拠候補manifestの内容、デモ用応答ドラフト、会話履歴風プレビュー、未送信のOperator note入力欄が表示され、キュー項目の選択に応じて該当call idの根拠候補、ドラフト、プレビュー、入力欄へ切り替わる。
+- Assistant handoffにはbuild時に生成した根拠候補manifestの内容、デモ用応答ドラフト、会話履歴風プレビュー、未送信のOperator note入力欄、送信/保存候補payload境界が表示され、キュー項目の選択に応じて該当call idの根拠候補、ドラフト、プレビュー、入力欄へ切り替わる。
 - デモ用knowledge baselineは`knowledge/README.md`、`knowledge/business_rules/`、`knowledge/customer_contracts/`、`knowledge/scenarios/`にある。
 - Markdown loader / chunk modelは`src/knowledge.ts`にある。
 - keyword search / 根拠候補抽出は`src/knowledge-search.ts`にある。
@@ -24,14 +24,14 @@
 
 - アプリケーションスタックはTypeScript + Node.js標準ライブラリ。
 - `src/app.ts`にデモ用のキュー状態、集計、HTML描画、escapingを置いている。
-- `src/app.ts`は`AssistantEvidence`表示用データを受け取り、出典、section、snippet、scoreをAssistant handoffに表示し、選択中キューと根拠候補からデモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビューを決定的に作る。
+- `src/app.ts`は`AssistantEvidence`表示用データを受け取り、出典、section、snippet、scoreをAssistant handoffに表示し、選択中キューと根拠候補からデモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、browser-onlyの送信/保存候補payloadを決定的に作る。
 - `src/knowledge.ts`は`knowledge/`配下の架空Markdownを読み込み、`KnowledgeDocument` / `KnowledgeChunk`へ変換する。
 - chunkは文書タイトルと`##`見出し単位で作られ、カテゴリ、相対パス、見出しパス、安定ID、本文を持つ。
 - `src/knowledge-search.ts`は`KnowledgeChunk`配列からキーワード検索し、`sourcePath`、`section`、`snippet`、`score`、`matchedTerms`を持つ根拠候補を返す。ランキングはタイトル、見出し、本文、source pathの一致に加えて、クエリ内の複数語が同じchunk内で近く出る候補を加点する。
 - `src/evidence-bridge.ts`は`QueueItem`の`topic`と`excerpt`から検索クエリを作り、`EvidenceBundle`として根拠候補を返す。
 - `scripts/generate-evidence-manifest.mjs`はbuild後のcompiled modulesを使い、demo queue向けの`evidence-bundles.json`を生成する。
-- `src/main.ts`はmanifest取得に成功した場合はその根拠候補を表示し、キュー項目の「開く」操作で該当bundleをAssistant handoffへ反映する。表示再描画時に応答ドラフト、会話履歴風プレビュー、未送信入力欄も選択中call idへ追従する。manifest取得失敗時や該当bundleなしの場合は既存表示を維持する。
-- `src/ai-response-request.ts`は選択中キュー項目、根拠候補、応答ドラフト、会話プレビュー、未送信Operator noteをprovider非依存の送信用payloadへまとめる。現時点では`externalSendAllowed`と`persistenceAllowed`は常に`false`で、外部通信や保存は行わない。
+- `src/main.ts`はmanifest取得に成功した場合はその根拠候補を表示し、キュー項目の「開く」操作で該当bundleをAssistant handoffへ反映する。Operator noteの編集値はブラウザ内メモリでcall id別に保持し、表示再描画時に応答ドラフト、会話履歴風プレビュー、未送信入力欄も選択中call idへ追従する。manifest取得失敗時や該当bundleなしの場合は既存表示を維持する。
+- `src/ai-response-request.ts`は選択中キュー項目、根拠候補、応答ドラフト、会話プレビュー、未送信Operator note、送信/保存候補payloadをprovider非依存の送信用payloadへまとめる。現時点では`externalSendAllowed`と`persistenceAllowed`は常に`false`で、外部通信や保存は行わない。
 - `src/ai-response-client.ts`は`AiResponseRequest`を消費するclient adapter境界を定義し、決定的stubでprovider/model識別子、応答ドラフト、根拠参照、human review要否、送信/保存不可guardrailを返す。
 - `src/ai-response-network-client.ts`は`AiResponseRequest`をJSON POSTし、`AiResponseClientResult`を受け取るHTTP adapterを定義する。response payload、HTTPエラー、call id不一致を検証するが、本番provider SDK、API key、環境変数は扱わない。
 - 顧客契約検索は`customerId`で対象顧客を絞れる。
@@ -43,7 +43,7 @@
 
 - ローカルテストコマンドは`npm test`。
 - ローカルビルドコマンドは`npm run build`。
-- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、未送信入力プレビュー、AI response request payload、AI response client adapter、AI response network adapter、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
+- `npm test`はアプリ描画ロジック、キュー選択状態、Assistant handoffの根拠候補表示、デモ用応答ドラフト、会話履歴風プレビュー、call id別の未送信入力プレビュー、browser-only送信/保存候補payload、AI response request payload、AI response client adapter、AI response network adapter、evidence manifest/fallback、knowledge Markdown baselineの構造、Markdown loader / chunk model、keyword search / 複数語ランキング / 根拠候補抽出、evidence bridgeを検査する。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -51,10 +51,11 @@
 - エージェントは`AGENTS.md`、このコンテキストパック、アクティブなタスク指示から開始する。
 - GPT Proや外部ツールの計画ドラフトは`docs/ai/inbox/pro-instructions/`に置き、実行前に変換する。
 - GPT Proドラフトと実行済みTaskの対応、未実装項目、次の大きめPR候補は`docs/ai/specs/draft-task-reconciliation.md`にある。
+- Operator note送信/保存境界の安全監査メモは`docs/ai/security/operator-input-submit-save-design-safety-audit.md`にある。
 
 ## 既知の未完了項目
 
-- 次の実装タスクはTask 18 `operator-input-submit-save-design`。未送信Operator noteを、キュー選択ごとの編集状態、送信候補payload、保存不可/未永続の明示へ進める。
+- 次の実装タスクはTask 19 `response-policy-guard`。本人確認前に回答できる範囲、上席確認が必要な条件、回答不可条件を決定的に判定するpolicy guardへ進める。
 - LLM応答生成、会話履歴保存、本格的な通話連携、外部AI API連携、認証、DB設計は未実装。
 
 ## 参照元リンク
@@ -65,5 +66,5 @@
 
 ## 次のハンドオフ
 
-- Task 17 `roadmap-reconciliation`は完了。
-- 次はTask 18 `operator-input-submit-save-design`に着手する。
+- Task 18 `operator-input-submit-save-design`は完了。
+- 次はTask 19 `response-policy-guard`に着手する。

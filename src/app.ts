@@ -26,11 +26,34 @@ export interface QueueItem {
   excerpt: string;
 }
 
+export type OperatorNotesByCallId = Record<string, string>;
+
+export interface OperatorInputSubmitSaveCandidate {
+  version: 1;
+  kind: "operator-input-submit-save-candidate";
+  callId: string;
+  operatorInput: {
+    label: string;
+    value: string;
+  };
+  status: {
+    unsent: true;
+    unsaved: true;
+    browserOnly: true;
+  };
+  guardrails: {
+    externalSendAllowed: false;
+    persistenceAllowed: false;
+    candidateOnly: true;
+  };
+}
+
 export interface DemoState {
   agentName: string;
   activeQueue: QueueItem[];
   assistantSuggestion: string;
   assistantEvidence: AssistantEvidence;
+  operatorNotes?: OperatorNotesByCallId;
 }
 
 export interface AssistantConversationDraft {
@@ -57,7 +80,15 @@ export interface AssistantInputPreview {
   callId: AssistantEvidence["callId"];
   label: string;
   value: string;
+  unsent: true;
+  unsaved: true;
+  browserOnly: true;
   statusText: string;
+  candidate: OperatorInputSubmitSaveCandidate;
+}
+
+export interface BuildAssistantInputPreviewOptions {
+  value?: string;
 }
 
 export interface QueueSummary {
@@ -208,22 +239,66 @@ export function buildConversationThreadPreview(
 
 export function buildAssistantInputPreview(
   item: QueueItem | undefined,
-  draft: AssistantConversationDraft
+  draft: AssistantConversationDraft,
+  options: BuildAssistantInputPreviewOptions = {}
 ): AssistantInputPreview {
+  const label = "Draft input";
+
   if (!item) {
+    const value =
+      options.value ?? "No queue item selected. Review the queue before sending any reply.";
+
     return {
       callId: draft.callId,
-      label: "Draft input",
-      value: "No queue item selected. Review the queue before sending any reply.",
-      statusText: "Unsent demo input. This note is not sent or saved."
+      label,
+      value,
+      unsent: true,
+      unsaved: true,
+      browserOnly: true,
+      statusText:
+        "Unsent demo input. Browser-only submit/save candidate; not sent or saved.",
+      candidate: buildOperatorInputSubmitSaveCandidate(draft.callId, label, value)
     };
   }
 
+  const value = options.value ?? `Review ${item.topic}: ${item.excerpt}`;
+
   return {
     callId: item.id,
-    label: "Draft input",
-    value: `Review ${item.topic}: ${item.excerpt}`,
-    statusText: "Unsent demo input. This note is not sent or saved."
+    label,
+    value,
+    unsent: true,
+    unsaved: true,
+    browserOnly: true,
+    statusText:
+      "Unsent demo input. Browser-only submit/save candidate; not sent or saved.",
+    candidate: buildOperatorInputSubmitSaveCandidate(item.id, label, value)
+  };
+}
+
+export function buildOperatorInputSubmitSaveCandidate(
+  callId: string,
+  label: string,
+  value: string
+): OperatorInputSubmitSaveCandidate {
+  return {
+    version: 1,
+    kind: "operator-input-submit-save-candidate",
+    callId,
+    operatorInput: {
+      label,
+      value
+    },
+    status: {
+      unsent: true,
+      unsaved: true,
+      browserOnly: true
+    },
+    guardrails: {
+      externalSendAllowed: false,
+      persistenceAllowed: false,
+      candidateOnly: true
+    }
   };
 }
 
@@ -239,9 +314,16 @@ export function renderApp(state: DemoState = demoState): string {
     selectedQueueItem,
     conversationDraft
   );
+  const operatorNoteValue = selectOperatorNoteValue(
+    state.operatorNotes,
+    conversationDraft.callId
+  );
   const inputPreview = buildAssistantInputPreview(
     selectedQueueItem,
-    conversationDraft
+    conversationDraft,
+    {
+      value: operatorNoteValue
+    }
   );
   const queueItems = state.activeQueue
     .map((item) => renderQueueItem(item, selectedCallId))
@@ -351,8 +433,45 @@ function renderAssistantInputPreview(preview: AssistantInputPreview): string {
         aria-describedby="operator-note-status"
       >${escapeHtml(preview.value)}</textarea>
       <p id="operator-note-status">${escapeHtml(preview.statusText)}</p>
+      <div
+        class="input-boundary"
+        data-submit-save-candidate-call-id="${escapedCallId}"
+        data-external-send-allowed="false"
+        data-persistence-allowed="false"
+      >
+        <span>Submit/save candidate</span>
+        <dl>
+          <div>
+            <dt>Call</dt>
+            <dd>${escapedCallId}</dd>
+          </div>
+          <div>
+            <dt>External send</dt>
+            <dd>blocked</dd>
+          </div>
+          <div>
+            <dt>Persistent save</dt>
+            <dd>blocked</dd>
+          </div>
+          <div>
+            <dt>Storage</dt>
+            <dd>browser state only</dd>
+          </div>
+        </dl>
+      </div>
     </section>
   `;
+}
+
+function selectOperatorNoteValue(
+  operatorNotes: OperatorNotesByCallId | undefined,
+  callId: string
+): string | undefined {
+  if (!operatorNotes || !Object.hasOwn(operatorNotes, callId)) {
+    return undefined;
+  }
+
+  return operatorNotes[callId];
 }
 
 function renderConversationDraft(draft: AssistantConversationDraft): string {
