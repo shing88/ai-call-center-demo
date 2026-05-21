@@ -97,7 +97,16 @@ test("startRealtimeCallSession reports Realtime calls HTTP failures after microp
         });
       }
 
-      return textResponse("bad request", 400);
+      return jsonResponse(
+        {
+          status: "upstream-error",
+          error: {
+            code: "realtime_calls_upstream_error",
+            message: "OpenAI Realtime calls request failed with status 400."
+          }
+        },
+        502
+      );
     },
     getUserMedia: async () => stream as unknown as MediaStream,
     createPeerConnection: () => peer
@@ -106,9 +115,44 @@ test("startRealtimeCallSession reports Realtime calls HTTP failures after microp
   assert.equal(result.controls.status, "fallback");
   assert.equal(result.controls.microphonePermissionState, "granted");
   assert.equal(result.controls.lastFailure?.stage, "realtime-calls");
-  assert.equal(result.controls.lastFailure?.httpStatus, 400);
+  assert.equal(result.controls.lastFailure?.httpStatus, 502);
+  assert.equal(result.controls.lastFailure?.errorCode, "realtime_calls_upstream_error");
   assert.equal(result.controls.lastFailure?.endpoint, REALTIME_WEBRTC_CALLS_ENDPOINT_PATH);
-  assert.match(result.controls.lastFailure?.message ?? "", /Realtime WebRTC calls request failed/);
+  assert.match(
+    result.controls.lastFailure?.message ?? "",
+    /OpenAI Realtime calls request failed with status 400/
+  );
+  assert.equal(audioTrack.stopped, true);
+  assert.equal(peer.closed, true);
+});
+
+test("startRealtimeCallSession includes fetch TypeError details for Realtime calls failures", async () => {
+  const peer = new FakeRealtimePeerConnection();
+  const audioTrack = new FakeMediaTrack();
+  const stream = new FakeMediaStream([audioTrack]);
+
+  const result = await startRealtimeCallSession({
+    fetch: async (url) => {
+      if (String(url) === REALTIME_TOKEN_ENDPOINT_PATH) {
+        return jsonResponse({
+          value: "ek_test_ephemeral_client_secret",
+          expires_at: 1_800_000_000,
+          session: { type: "realtime", model: "gpt-realtime" }
+        });
+      }
+
+      throw new TypeError("Failed to fetch");
+    },
+    getUserMedia: async () => stream as unknown as MediaStream,
+    createPeerConnection: () => peer
+  });
+
+  assert.equal(result.controls.status, "fallback");
+  assert.equal(result.controls.microphonePermissionState, "granted");
+  assert.equal(result.controls.lastFailure?.stage, "realtime-calls");
+  assert.equal(result.controls.lastFailure?.endpoint, REALTIME_WEBRTC_CALLS_ENDPOINT_PATH);
+  assert.match(result.controls.lastFailure?.message ?? "", /TypeError/);
+  assert.match(result.controls.lastFailure?.message ?? "", /Failed to fetch/);
   assert.equal(audioTrack.stopped, true);
   assert.equal(peer.closed, true);
 });

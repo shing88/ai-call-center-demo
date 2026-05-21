@@ -76,6 +76,8 @@ let realtimeRuntimeOptions: BuildRealtimeConnectionBoundaryOptions =
 let realtimeCallRequestId = 0;
 let realtimeHandoffLoadRequestId = 0;
 
+const browserFetch: typeof fetch = (input, init) => window.fetch(input, init);
+
 function renderCurrentState(): void {
   appRoot.innerHTML = renderApp({
     ...demoState,
@@ -187,7 +189,7 @@ async function handleStartRealtimeCall(): Promise<void> {
     tokenRequestBody: buildRealtimeTokenRequestBody(
       buildCurrentCallReviewContext().realtimeContext
     ),
-    fetch,
+    fetch: browserFetch,
     getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
     createPeerConnection: () => new RTCPeerConnection(),
     onServerEvent: (event) => realtimeTranscriptCollector?.recordServerEvent(event)
@@ -333,7 +335,7 @@ function toRealtimeBoundaryMicrophoneState(
 async function loadCurrentRealtimeRuntimeHealth(): Promise<void> {
   try {
     realtimeRuntimeOptions = buildRealtimeConnectionBoundaryOptionsFromRuntimeHealth(
-      await loadRealtimeRuntimeHealth(fetch)
+      await loadRealtimeRuntimeHealth(browserFetch)
     );
     renderCurrentState();
   } catch (_error) {
@@ -347,7 +349,7 @@ async function persistCurrentRealtimeCallHandoff(): Promise<void> {
   }
 
   try {
-    await saveRealtimeCallHandoffRecord(fetch, realtimeCallHandoff);
+    await saveRealtimeCallHandoffRecord(browserFetch, realtimeCallHandoff);
   } catch (_error) {
     return;
   }
@@ -359,7 +361,7 @@ async function loadCurrentPersistedRealtimeCallHandoff(): Promise<void> {
   const callId = currentEvidence.callId;
 
   try {
-    const records = await loadRealtimeCallHandoffRecords(fetch, callId);
+    const records = await loadRealtimeCallHandoffRecords(browserFetch, callId);
 
     if (
       requestId !== realtimeHandoffLoadRequestId ||

@@ -660,20 +660,25 @@ test("renderApp displays Realtime failure diagnostics without exposing secrets",
       microphonePermissionState: "granted",
       lastFailure: {
         stage: "realtime-calls",
-        message: "Realtime WebRTC calls request failed with HTTP 400.",
-        httpStatus: 400,
-        endpoint: "/api/realtime/calls"
+        message: "OpenAI Realtime calls request failed with status 400.",
+        httpStatus: 502,
+        endpoint: "/api/realtime/calls",
+        errorCode: "realtime_calls_upstream_error"
       }
     })
   });
 
   assert.match(html, /Realtime failure diagnostics/);
   assert.match(html, /realtime-calls/);
-  assert.match(html, /HTTP 400/);
+  assert.match(html, /HTTP status/);
+  assert.match(html, /502/);
+  assert.match(html, /Error code/);
+  assert.match(html, /realtime_calls_upstream_error/);
   assert.match(html, /Microphone/);
   assert.match(html, /granted/);
   assert.match(html, /data-realtime-failure-stage="realtime-calls"/);
-  assert.match(html, /data-realtime-failure-http-status="400"/);
+  assert.match(html, /data-realtime-failure-http-status="502"/);
+  assert.match(html, /data-realtime-failure-error-code="realtime_calls_upstream_error"/);
   assert.doesNotMatch(html, /ek_test_ephemeral_client_secret/);
   assert.doesNotMatch(html, /server-standard-key/);
 });

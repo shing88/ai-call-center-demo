@@ -4,7 +4,7 @@
 
 次のタスク: Task 28 `browser-realtime-voice-demo`
 
-現在のPR段階: Server-side Realtime WebRTC calls adapter
+現在のPR段階: Realtime calls failure diagnostics
 
 Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controlsは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否を固定している。
 
@@ -14,7 +14,7 @@ Task 28のCall recording and handoffも実装済み。`End call`後にtranscript
 
 Task 28のLocal JSON handoff persistenceも実装済み。`/api/realtime/handoffs`でhandoff recordをserver-side local JSONへ保存・取得し、Docker Composeでは`./data:/app/data`に保存する。
 
-後続計画: `OPENAI_API_KEY`をGit管理外の`.env.local`で用意したDocker環境では、`GET /api/health`が`configured` / `ready`を返し、`POST /api/realtime/client-secret`が`HTTP 200` / `status=ready` / `valueあり`を返すところまで確認済み。ユーザー実機ブラウザではマイク許可後に`Stage: realtime-calls` / `TypeError`でfallbackへ戻ったため、実Realtime音声接続完了はまだ主張しない。現在はOpenAI Realtime WebRTC Docsのunified interfaceに合わせ、ブラウザがOpenAIへ直接SDPを送る代わりに、同一originの`POST /api/realtime/calls`へSDPと選択中call文脈を渡し、server runtimeが標準API keyでOpenAI `/v1/realtime/calls`へmultipart requestする小PRを進める。次は実マイクを許可できる通常ブラウザで、接続状態または失敗ステージを見たらすぐ`End call`または停止する短時間確認を行う。keyがない環境では`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存テストだけを確認する。
+後続計画: `OPENAI_API_KEY`をGit管理外の`.env.local`で用意したDocker環境では、`GET /api/health`が`configured` / `ready`を返し、`POST /api/realtime/client-secret`が`HTTP 200` / `status=ready` / `valueあり`を返すところまで確認済み。ユーザー実機ブラウザではマイク許可後に`Stage: realtime-calls`でfallbackへ戻り、その後unbound browser `fetch`が`Illegal invocation`になることも確認したため、`window.fetch(...)` wrapperに寄せた。修正後の実機ブラウザでは`Realtime call connected`まで到達し、その後ユーザーが`End call`した。現在は同一originの`POST /api/realtime/calls`へ到達した後の失敗を切り分けるため、fallback diagnosticsにserver error code/messageとfetch TypeError detailを追加する小PRを進める。次は`End call`後のhandoff record表示・local JSON復元・transcript有無を短時間で確認する。keyがない環境では`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存テストだけを確認する。
 
 この段階では`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信はまだ入れない。
 

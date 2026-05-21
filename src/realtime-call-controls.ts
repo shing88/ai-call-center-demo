@@ -30,6 +30,7 @@ export interface RealtimeCallFailureDiagnostics {
   message: string;
   httpStatus?: number;
   endpoint?: string;
+  errorCode?: string;
 }
 
 export interface RealtimeCallControls {
@@ -92,6 +93,11 @@ export interface StartRealtimeCallSessionDependencies {
 
 interface RealtimeClientSecretResponse {
   value: string;
+}
+
+interface RealtimeCallsErrorBody {
+  code?: string;
+  message?: string;
 }
 
 interface RealtimeClientSecretRequestResult {
@@ -183,12 +189,7 @@ export async function startRealtimeCallSession(
         controls: buildRealtimeCallControls({
           status: "fallback",
           microphonePermissionState: "granted",
-          lastFailure: {
-            stage: "realtime-calls",
-            message: `Realtime WebRTC calls request failed with HTTP ${sdpResponse.status}.`,
-            httpStatus: sdpResponse.status,
-            endpoint: REALTIME_WEBRTC_CALLS_ENDPOINT_PATH
-          }
+          lastFailure: await buildRealtimeCallsHttpFailure(sdpResponse)
         })
       };
     }
@@ -296,14 +297,80 @@ function buildSafeExceptionMessage(
   const stageLabel = selectFailureStageLabel(stage);
 
   if (error instanceof DOMException) {
-    return `${stageLabel} failed: ${error.name}.`;
+    return buildNamedExceptionMessage(stageLabel, error.name, error.message);
   }
 
   if (error instanceof Error && error.name.length > 0) {
-    return `${stageLabel} failed: ${error.name}.`;
+    return buildNamedExceptionMessage(stageLabel, error.name, error.message);
   }
 
   return `${stageLabel} failed.`;
+}
+
+async function buildRealtimeCallsHttpFailure(
+  response: Response
+): Promise<RealtimeCallFailureDiagnostics> {
+  const serverError = await readRealtimeCallsErrorBody(response);
+  const message = serverError?.message?.trim();
+  const code = serverError?.code?.trim();
+
+  return {
+    stage: "realtime-calls",
+    message:
+      message && message.length > 0
+        ? message
+        : `Realtime WebRTC calls request failed with HTTP ${response.status}.`,
+    httpStatus: response.status,
+    endpoint: REALTIME_WEBRTC_CALLS_ENDPOINT_PATH,
+    errorCode: code && code.length > 0 ? code : undefined
+  };
+}
+
+async function readRealtimeCallsErrorBody(
+  response: Response
+): Promise<RealtimeCallsErrorBody | undefined> {
+  const contentType = response.headers.get("Content-Type") ?? "";
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return undefined;
+  }
+
+  try {
+    const body: unknown = await response.json();
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return undefined;
+    }
+
+    const error = (body as Record<string, unknown>).error;
+
+    if (!error || typeof error !== "object" || Array.isArray(error)) {
+      return undefined;
+    }
+
+    const code = (error as Record<string, unknown>).code;
+    const message = (error as Record<string, unknown>).message;
+
+    return {
+      code: typeof code === "string" ? code : undefined,
+      message: typeof message === "string" ? message : undefined
+    };
+  } catch (_error) {
+    return undefined;
+  }
+}
+
+function buildNamedExceptionMessage(
+  stageLabel: string,
+  name: string,
+  message: string
+): string {
+  const safeName = name.trim().length > 0 ? name.trim() : "Error";
+  const safeMessage = message.trim();
+
+  return safeMessage.length > 0
+    ? `${stageLabel} failed: ${safeName}: ${safeMessage}.`
+    : `${stageLabel} failed: ${safeName}.`;
 }
 
 function selectFailureStageLabel(stage: RealtimeCallFailureStage): string {
