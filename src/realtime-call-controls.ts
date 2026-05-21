@@ -73,13 +73,18 @@ export interface RealtimePeerConnectionLike {
   setLocalDescription(description: RTCSessionDescriptionInit): Promise<void>;
   setRemoteDescription(description: RTCSessionDescriptionInit): Promise<void>;
   close(): void;
+  addEventListener?(
+    type: "track",
+    listener: (event: { streams?: MediaStream[] }) => void
+  ): void;
 }
 
 export interface RealtimeDataChannelLike {
+  send?(data: string): void;
   close(): void;
   addEventListener?(
-    type: "message",
-    listener: (event: { data: unknown }) => void
+    type: "message" | "open",
+    listener: (event: { data?: unknown }) => void
   ): void;
 }
 
@@ -89,6 +94,7 @@ export interface StartRealtimeCallSessionDependencies {
   createPeerConnection: () => RealtimePeerConnectionLike;
   tokenRequestBody?: unknown;
   onServerEvent?: (event: unknown) => void;
+  onRemoteAudioStream?: (stream: MediaStream) => void;
 }
 
 interface RealtimeClientSecretResponse {
@@ -160,6 +166,10 @@ export async function startRealtimeCallSession(
     localStream = await dependencies.getUserMedia({ audio: true });
     currentStage = "peer-connection";
     peerConnection = dependencies.createPeerConnection();
+    attachRemoteAudioStreamListener(
+      peerConnection,
+      dependencies.onRemoteAudioStream
+    );
 
     for (const track of localStream.getTracks()) {
       peerConnection.addTrack(track, localStream);
@@ -167,6 +177,7 @@ export async function startRealtimeCallSession(
 
     dataChannel = peerConnection.createDataChannel("oai-events");
     attachRealtimeServerEventListener(dataChannel, dependencies.onServerEvent);
+    attachRealtimeResponseKickoff(dataChannel);
     currentStage = "sdp-offer";
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
@@ -418,6 +429,40 @@ function closeSessionResources(input: {
   }
 
   input.peerConnection?.close();
+}
+
+function attachRemoteAudioStreamListener(
+  peerConnection: RealtimePeerConnectionLike,
+  onRemoteAudioStream: ((stream: MediaStream) => void) | undefined
+): void {
+  if (!onRemoteAudioStream || !peerConnection.addEventListener) {
+    return;
+  }
+
+  peerConnection.addEventListener("track", (event) => {
+    const stream = event.streams?.[0];
+
+    if (stream) {
+      onRemoteAudioStream(stream);
+    }
+  });
+}
+
+function attachRealtimeResponseKickoff(dataChannel: RealtimeDataChannelLike): void {
+  if (!dataChannel.addEventListener || !dataChannel.send) {
+    return;
+  }
+
+  dataChannel.addEventListener("open", () => {
+    dataChannel.send?.(
+      JSON.stringify({
+        type: "response.create",
+        response: {
+          output_modalities: ["audio"]
+        }
+      })
+    );
+  });
 }
 
 function attachRealtimeServerEventListener(

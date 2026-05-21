@@ -162,6 +162,7 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
   const audioTrack = new FakeMediaTrack();
   const stream = new FakeMediaStream([audioTrack]);
   const serverEvents: unknown[] = [];
+  const remoteStreams: MediaStream[] = [];
   const requests: Array<{
     url: string;
     method?: string;
@@ -237,6 +238,9 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
     createPeerConnection: () => peer,
     onServerEvent: (event) => {
       serverEvents.push(event);
+    },
+    onRemoteAudioStream: (stream) => {
+      remoteStreams.push(stream);
     }
   });
 
@@ -248,10 +252,22 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
   assert.equal(result.session?.peerConnection, peer);
   assert.equal(peer.addedTracks[0]?.track, audioTrack);
   assert.equal(peer.createdDataChannelLabel, "oai-events");
+  const remoteStream = new FakeMediaStream([]) as unknown as MediaStream;
+  peer.dispatchTrack(remoteStream);
+  assert.deepEqual(remoteStreams, [remoteStream]);
   assert.deepEqual(peer.remoteDescription, {
     type: "answer",
     sdp: "remote-answer-sdp"
   });
+  peer.dataChannel.dispatchOpen();
+  assert.deepEqual(peer.dataChannel.sentMessages.map((message) => JSON.parse(message)), [
+    {
+      type: "response.create",
+      response: {
+        output_modalities: ["audio"]
+      }
+    }
+  ]);
   assert.equal(requests.length, 2);
   assert.equal(requests[0]?.url, REALTIME_TOKEN_ENDPOINT_PATH);
   assert.equal(requests[0]?.method, "POST");
@@ -346,6 +362,7 @@ class FakeRealtimePeerConnection implements RealtimePeerConnectionLike {
   public dataChannel = new FakeDataChannel("oai-events");
   public remoteDescription: RTCSessionDescriptionInit | undefined;
   public closed = false;
+  private readonly trackListeners: Array<(event: { streams: MediaStream[] }) => void> = [];
 
   public addTrack(track: MediaStreamTrack, stream: MediaStream): void {
     this.addedTracks.push({ track, stream });
@@ -372,11 +389,28 @@ class FakeRealtimePeerConnection implements RealtimePeerConnectionLike {
   public close(): void {
     this.closed = true;
   }
+
+  public addEventListener(
+    type: "track",
+    listener: (event: { streams: MediaStream[] }) => void
+  ): void {
+    if (type === "track") {
+      this.trackListeners.push(listener);
+    }
+  }
+
+  public dispatchTrack(stream: MediaStream): void {
+    for (const listener of this.trackListeners) {
+      listener({ streams: [stream] });
+    }
+  }
 }
 
 class FakeDataChannel {
   public closed = false;
+  public sentMessages: string[] = [];
   private readonly messageListeners: Array<(event: { data: string }) => void> = [];
+  private readonly openListeners: Array<(event: {}) => void> = [];
 
   public constructor(public readonly label: string) {}
 
@@ -385,11 +419,25 @@ class FakeDataChannel {
   }
 
   public addEventListener(
-    type: "message",
-    listener: (event: { data: string }) => void
+    type: "message" | "open",
+    listener: (event: { data?: string }) => void
   ): void {
     if (type === "message") {
-      this.messageListeners.push(listener);
+      this.messageListeners.push(listener as (event: { data: string }) => void);
+    }
+
+    if (type === "open") {
+      this.openListeners.push(listener);
+    }
+  }
+
+  public send(data: string): void {
+    this.sentMessages.push(data);
+  }
+
+  public dispatchOpen(): void {
+    for (const listener of this.openListeners) {
+      listener({});
     }
   }
 

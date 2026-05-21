@@ -691,14 +691,40 @@ function buildSafetyIdentifier(requestBody: unknown): string {
 
 function buildRealtimeSessionGrounding(
   requestBody: unknown
-): { instructions?: string } {
+): {
+  instructions?: string;
+  output_modalities: ["audio"];
+  audio: {
+    input: {
+      transcription: {
+        model: "gpt-4o-transcribe";
+      };
+      turn_detection: {
+        type: "server_vad";
+      };
+    };
+  };
+} {
   const instructions = readNestedStringField(
     requestBody,
     "realtimeGrounding",
     "instructions"
   );
 
-  return instructions ? { instructions } : {};
+  return {
+    ...(instructions ? { instructions } : {}),
+    output_modalities: ["audio"],
+    audio: {
+      input: {
+        transcription: {
+          model: "gpt-4o-transcribe"
+        },
+        turn_detection: {
+          type: "server_vad"
+        }
+      }
+    }
+  };
 }
 
 function readNestedStringField(

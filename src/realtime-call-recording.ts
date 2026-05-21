@@ -119,11 +119,7 @@ export function createRealtimeTranscriptCollector(): RealtimeTranscriptCollector
   function appendIfNew(entry: RealtimeTranscriptEntry): void {
     const last = finalEntries.at(-1);
 
-    if (
-      last?.role === entry.role &&
-      last.text === entry.text &&
-      last.sourceEventType === entry.sourceEventType
-    ) {
+    if (last?.role === entry.role && last.text === entry.text) {
       return;
     }
 
@@ -192,7 +188,7 @@ export function buildRealtimeCallHandoffRecord(
     version: 1,
     callId: input.callSummary.callId,
     status: input.status,
-    transcript: input.transcript.map((entry) => ({ ...entry })),
+    transcript: dedupeTranscriptEntries(input.transcript),
     summary: input.callSummary.inquirySummary,
     evidenceReferences: [...input.callSummary.evidenceReferences],
     policyDecision: {
@@ -216,13 +212,14 @@ export async function saveRealtimeCallHandoffRecord(
   fetchFn: typeof fetch,
   record: RealtimeCallHandoffRecord
 ): Promise<RealtimeHandoffPersistenceResult | undefined> {
+  const normalizedRecord = normalizeRealtimeCallHandoffRecord(record);
   const response = await fetchFn(REALTIME_HANDOFFS_ENDPOINT_PATH, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json"
     },
-    body: JSON.stringify(record)
+    body: JSON.stringify(normalizedRecord)
   });
 
   if (!response.ok) {
@@ -230,7 +227,12 @@ export async function saveRealtimeCallHandoffRecord(
   }
 
   const body: unknown = await response.json();
-  return isRealtimeHandoffPersistenceResult(body) ? body : undefined;
+  return isRealtimeHandoffPersistenceResult(body)
+    ? {
+        ...body,
+        record: normalizeRealtimeCallHandoffRecord(body.record)
+      }
+    : undefined;
 }
 
 export async function loadRealtimeCallHandoffRecords(
@@ -247,7 +249,9 @@ export async function loadRealtimeCallHandoffRecords(
   }
 
   const body: unknown = await response.json();
-  return isRealtimeHandoffListResult(body) ? body.records : [];
+  return isRealtimeHandoffListResult(body)
+    ? body.records.map(normalizeRealtimeCallHandoffRecord)
+    : [];
 }
 
 export function isRealtimeCallHandoffRecord(
@@ -276,6 +280,33 @@ export function isRealtimeCallHandoffRecord(
 
 function getEventType(event: unknown): string | undefined {
   return getStringProperty(event, "type");
+}
+
+function normalizeRealtimeCallHandoffRecord(
+  record: RealtimeCallHandoffRecord
+): RealtimeCallHandoffRecord {
+  return {
+    ...record,
+    transcript: dedupeTranscriptEntries(record.transcript)
+  };
+}
+
+function dedupeTranscriptEntries(
+  entries: RealtimeTranscriptEntry[]
+): RealtimeTranscriptEntry[] {
+  const deduped: RealtimeTranscriptEntry[] = [];
+
+  for (const entry of entries) {
+    const last = deduped.at(-1);
+
+    if (last?.role === entry.role && last.text === entry.text) {
+      continue;
+    }
+
+    deduped.push({ ...entry });
+  }
+
+  return deduped;
 }
 
 function isRealtimeHandoffPersistenceResult(
