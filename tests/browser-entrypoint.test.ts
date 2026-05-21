@@ -18,6 +18,16 @@ test("browser entrypoint dependency graph does not import Node-only modules", ()
   assert.deepEqual(nodeImports, []);
 });
 
+test("browser entrypoint keeps fetch bound to window", () => {
+  const source = readFileSync(resolve(compiledRoot, "main.js"), "utf8");
+
+  assert.match(source, /window\.fetch\(input, init\)/);
+  assert.doesNotMatch(source, /startRealtimeCallSession\(\{\s*[\s\S]*?\n\s*fetch,/);
+  assert.doesNotMatch(source, /loadRealtimeRuntimeHealth\(fetch\)/);
+  assert.doesNotMatch(source, /saveRealtimeCallHandoffRecord\(fetch,/);
+  assert.doesNotMatch(source, /loadRealtimeCallHandoffRecords\(fetch,/);
+});
+
 function visitModule(
   modulePath: string,
   visited: Set<string>,

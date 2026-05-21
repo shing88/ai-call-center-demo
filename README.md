@@ -37,7 +37,7 @@ docker run --rm -p 4173:4173 ai-call-center-demo
 2. `開く`ボタンで問い合わせを切り替え、選択したcall idに合わせて根拠候補、応答ドラフト、会話プレビュー、Operator noteが変わることを確認します。
 3. `Evidence candidates`で、回答がMarkdown knowledge base由来の候補に基づくことを説明します。
 4. `Policy guard`で、本人確認前や上席確認が必要なケースでは確定回答を避けるデモ境界を説明します。
-5. `Realtime boundary`で、標準API keyはブラウザに出さず、server-side endpointだけでOpenAIへ接続することを説明します。`Start call`はserver token endpointが設定済みのときだけWebRTC接続へ進み、ブラウザはSDP offerをローカルの`/api/realtime/calls`へ渡します。未設定や失敗時はfallback rehearsalに戻り、client secret、microphone、WebRTC callsなどの失敗ステージとHTTP statusを画面で確認します。
+5. `Realtime boundary`で、標準API keyはブラウザに出さず、server-side endpointだけでOpenAIへ接続することを説明します。`Start call`はserver token endpointが設定済みのときだけWebRTC接続へ進み、ブラウザはSDP offerをローカルの`/api/realtime/calls`へ渡します。未設定や失敗時はfallback rehearsalに戻り、client secret、microphone、WebRTC callsなどの失敗ステージ、HTTP status、server error code/messageを画面で確認します。
 6. `End call`後の`Realtime handoff record`で、transcript、summary、evidence references、policy decision、next actionが画面に残り、server-side local JSONにも保存されることを見せます。外部送信・実電話接続・本番DB保存はblockedのままです。
 7. `Fallback rehearsal`で、外部AIや通話連携がなくてもデモ進行できることを見せます。
 
@@ -75,7 +75,7 @@ OPENAI_API_KEY=...
 REALTIME_MODEL=gpt-realtime
 ```
 
-Docker Composeは`.env.local`から`OPENAI_API_KEY`と`REALTIME_MODEL`をコンテナへ渡します。ブラウザは`GET /api/health`を読み、server token endpointが`configured` / `ready`かどうかを`Realtime boundary`へ反映します。ブラウザの`Start call`は選択中callの根拠候補、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、server runtimeへ渡します。短命client secret取得後にだけマイク権限を要求し、ブラウザはSDP offerを同一originの`POST /api/realtime/calls`へ送ります。server runtimeは標準API keyをserver-sideだけで使い、OpenAI Realtimeの`/v1/realtime/calls`へmultipart requestを行い、SDP answerだけをブラウザへ返します。未設定時や接続失敗時は`local-rehearsal`のfallback表示に戻り、client secret、microphone、WebRTC callsなどの失敗ステージとHTTP statusを表示します。短時間の実機確認では、マイク許可後に接続状態だけ確認し、すぐ`End call`で切断します。
+Docker Composeは`.env.local`から`OPENAI_API_KEY`と`REALTIME_MODEL`をコンテナへ渡します。ブラウザは`GET /api/health`を読み、server token endpointが`configured` / `ready`かどうかを`Realtime boundary`へ反映します。ブラウザの`Start call`は選択中callの根拠候補、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、server runtimeへ渡します。短命client secret取得後にだけマイク権限を要求し、ブラウザはSDP offerを同一originの`POST /api/realtime/calls`へ送ります。server runtimeは標準API keyをserver-sideだけで使い、OpenAI Realtimeの`/v1/realtime/calls`へmultipart requestを行い、SDP answerだけをブラウザへ返します。未設定時や接続失敗時は`local-rehearsal`のfallback表示に戻り、client secret、microphone、WebRTC callsなどの失敗ステージ、HTTP status、server error code/message、fetch TypeError detailを表示します。短時間の実機確認では、マイク許可後に接続状態または失敗診断だけ確認し、すぐ`End call`で切断します。
 
 `End call`後のhandoff recordは`POST /api/realtime/handoffs`でserver-side local JSONへ保存され、画面読み込み時に`GET /api/realtime/handoffs?callId=...`から最新recordを復元します。Docker Composeでは`./data:/app/data`をmountし、既定の保存先は`/app/data/realtime-handoffs.json`です。このJSONはGit管理外です。外部送信、実電話接続、本番DB保存はまだ開始しません。
 

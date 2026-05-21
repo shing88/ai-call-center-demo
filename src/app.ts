@@ -695,7 +695,7 @@ function renderRealtimeCallControls(controls: RealtimeCallControls): string {
         failure
           ? `data-realtime-failure-stage="${escapeHtml(failure.stage)}" data-realtime-failure-http-status="${escapeHtml(
               failure.httpStatus?.toString() ?? ""
-            )}"`
+            )}" data-realtime-failure-error-code="${escapeHtml(failure.errorCode ?? "")}"`
           : ""
       }
     >
@@ -745,6 +745,11 @@ function renderRealtimeFailureDiagnostics(
         ${
           failure.httpStatus
             ? `<div><dt>HTTP status</dt><dd>${escapeHtml(failure.httpStatus.toString())}</dd></div>`
+            : ""
+        }
+        ${
+          failure.errorCode
+            ? `<div><dt>Error code</dt><dd>${escapeHtml(failure.errorCode)}</dd></div>`
             : ""
         }
         <div>
