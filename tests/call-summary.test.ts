@@ -175,7 +175,7 @@ test("buildCallSummary stays stable when no queue item is selected", () => {
   });
 
   assert.equal(summary.callId, "CALL-0");
-  assert.match(summary.inquirySummary, /キュー項目を選択中/);
+  assert.match(summary.inquirySummary, /デモシナリオを選択中/);
   assert.match(summary.nextAction, /キュー項目を選択/);
 });
 

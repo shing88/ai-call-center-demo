@@ -163,20 +163,20 @@ export interface QueueSummary {
 }
 
 export const demoState: DemoState = {
-  agentName: "Support Ops",
+  agentName: "サポートOps",
   executiveScenario: {
     companyName: "CCNet株式会社",
-    researchBasis: "Public CCNet website review on 2026-05-20",
-    scenarioTitle: "10G/Wi-Fi support and local safety information handoff",
+    researchBasis: "2026-05-20 時点の公開CCNetサイト確認",
+    scenarioTitle: "10G/Wi-Fiサポートと地域安全情報の引き継ぎ",
     fictionalCustomerSituation:
-      "Fictional Kasugai-area subscriber has CCNet光1G おとく割 with mesh Wi-Fi and asks whether CCNet光10G, support service, and 安全・安心123チャンネル can help before heavy rain.",
+      "春日井エリアの架空加入者がCCNet光1G おとく割とメッシュWi-Fiを利用中。大雨前にCCNet光10G、サポートサービス、安全・安心123チャンネルが役立つか相談している。",
     fitPoints: [
-      "Regional cable, internet, and phone provider across Aichi, Gifu, and Mie.",
-      "Cross-service support can reference internet, TV/community channel, fixed phone, My Page, contract terms, important explanations, and support windows.",
-      "Demo should show public-service guidance first, then block customer-specific course changes, fees, cancellation penalties, or promises until identity and service eligibility are confirmed."
+      "愛知・岐阜・三重でケーブル、インターネット、電話を提供する地域事業者。",
+      "インターネット、テレビ/コミュニティチャンネル、固定電話、マイページ、約款、重要事項説明、サポート窓口を横断して案内できる。",
+      "公開情報の一般案内を先に提示し、本人確認と提供可否確認前のコース変更、料金、解約金、確約はブロックする。"
     ],
     guardrail:
-      "Use only fictional customer details; do not imply real CCNet customer data, external AI send, persistent save, production connection, guaranteed 10G availability, confirmed fees, or completed contract changes."
+      "架空顧客情報のみを使用し、実顧客データ、外部AI送信、永続保存、本番接続、10G提供可否の確約、確定料金、契約変更済みを示唆しない。"
   },
   assistantSuggestion:
     "公開情報で案内できる範囲を先に整理し、契約状態や提供可否は本人確認後に担当者へ引き継ぎます。",
@@ -285,6 +285,252 @@ export function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function statusTone(status: CallStatus): "info" | "ok" | "warn" {
+  const tones: Record<CallStatus, "info" | "ok" | "warn"> = {
+    waiting: "info",
+    "ai-handling": "ok",
+    "human-review": "warn"
+  };
+
+  return tones[status];
+}
+
+function verificationLabel(status: QueueItem["verificationStatus"]): string {
+  return status === "verified" ? "本人確認: 完了" : "本人確認: 未完了";
+}
+
+function conversationRoleLabel(label: string): string {
+  const labels: Record<string, string> = {
+    Customer: "お客様",
+    "AI draft": "AIドラフト案",
+    "Internal note": "内部メモ"
+  };
+
+  return labels[label] ?? label;
+}
+
+function inputLabel(label: string): string {
+  return label === "Draft input" ? "下書き入力" : label;
+}
+
+function inputStatusText(statusText: string): string {
+  return statusText ===
+    "Unsent demo input. Browser-only submit/save candidate; not sent or saved."
+    ? "未送信のデモ入力。ブラウザ内のみの送信・保存候補で、外部送信・永続保存は行いません。"
+    : statusText;
+}
+
+function operatorInputValue(value: string): string {
+  const match = /^Review (.*?): (.*)$/.exec(value);
+
+  if (match) {
+    return `${match[1]}を確認: ${match[2]}`;
+  }
+
+  if (value === "No queue item selected. Review the queue before sending any reply.") {
+    return "デモシナリオが未選択です。返信前にデモシナリオを確認してください。";
+  }
+
+  return value;
+}
+
+function realtimeCallStatusLabel(status: RealtimeCallControls["status"]): string {
+  const labels: Record<RealtimeCallControls["status"], string> = {
+    idle: "通話: 停止中",
+    "requesting-client-secret": "通話: 接続準備中",
+    "requesting-microphone": "通話: マイク確認中",
+    connecting: "通話: 接続中",
+    connected: "通話: 接続中",
+    ended: "通話: 終了済み",
+    fallback: "通話: 代替モード"
+  };
+
+  return labels[status];
+}
+
+function realtimeCallHeadline(status: RealtimeCallControls["status"]): string {
+  const labels: Record<RealtimeCallControls["status"], string> = {
+    idle: "リアルタイム通話の準備ができています",
+    "requesting-client-secret": "クライアントシークレットを取得中",
+    "requesting-microphone": "マイク権限を確認中",
+    connecting: "リアルタイム通話へ接続中",
+    connected: "リアルタイム通話に接続済み",
+    ended: "リアルタイム通話は終了しました",
+    fallback: "代替リハーサルで進行中"
+  };
+
+  return labels[status];
+}
+
+function realtimeCallDetail(status: RealtimeCallControls["status"]): string {
+  const labels: Record<RealtimeCallControls["status"], string> = {
+    idle: "開始時にサーバー発行の短命シークレットを確認してから、マイクとWebRTC接続へ進みます。",
+    "requesting-client-secret": "標準APIキーはサーバー側だけで扱い、ブラウザには渡しません。",
+    "requesting-microphone": "短命シークレット取得後に、ブラウザのマイク権限を確認しています。",
+    connecting: "同一originのサーバーアダプターへSDP offerを送信しています。",
+    connected: "WebRTC音声はローカルサーバー経由のRealtime calls adapterで接続されています。",
+    ended: "ローカルトラックとpeer connectionは閉じられています。",
+    fallback: "Realtime接続が完了しなかったため、ローカルの代替リハーサルで続行できます。"
+  };
+
+  return labels[status];
+}
+
+function microphoneLabel(
+  state: RealtimeCallControls["microphonePermissionState"] | RealtimeConnectionBoundary["microphonePermissionState"]
+): string {
+  const labels: Record<string, string> = {
+    "not-requested": "未要求",
+    prompting: "確認中",
+    granted: "許可済み",
+    denied: "拒否"
+  };
+
+  return labels[state] ?? state;
+}
+
+function technicalStatusLabel(value: string): string {
+  const labels: Record<string, string> = {
+    "not-configured": "未設定",
+    configured: "設定済",
+    ready: "準備完了",
+    pending: "準備中",
+    disabled: "無効",
+    blocked: "ブロック",
+    available: "利用可能",
+    unavailable: "利用不可",
+    "local-rehearsal": "ローカル代替",
+    "setup-incomplete": "設定確認中"
+  };
+
+  return labels[value] ?? value;
+}
+
+function boundaryStatusLabel(boundary: RealtimeConnectionBoundary): string {
+  if (boundary.tokenEndpointConfigured) {
+    return "リアルタイム設定取得済み / セッション開始は保留";
+  }
+
+  return "リアルタイム未設定 / 代替リハーサル";
+}
+
+function boundaryMessage(boundary: RealtimeConnectionBoundary): string {
+  if (boundary.tokenEndpointConfigured) {
+    return "サーバー側のトークン取得先は設定済みです。標準APIキーはブラウザへ出さず、短命クライアントシークレットで接続します。";
+  }
+
+  return "ブラウザの標準APIキー利用は禁止です。サーバー側設定が揃うまで、マイク権限や外部音声送信は開始しません。";
+}
+
+function requirementLabel(label: string): string {
+  const labels: Record<string, string> = {
+    "Token endpoint contract": "トークン取得契約",
+    "Server token endpoint implementation": "サーバートークン取得実装",
+    "Server token endpoint configuration": "サーバートークン取得設定",
+    "Ephemeral client secret": "短命クライアントシークレット",
+    "Browser API key policy": "ブラウザAPIキー禁止",
+    "Microphone permission": "マイク権限",
+    "Local fallback": "ローカル代替"
+  };
+
+  return labels[label] ?? label;
+}
+
+function safeJapaneseDetail(detail: string): string {
+  return detail
+    .replace(
+      "POST /api/realtime/client-secret is implemented as a server-side client secret adapter.",
+      "POST /api/realtime/client-secret はサーバー側のクライアントシークレット取得口として実装済みです。"
+    )
+    .replace(
+      "Mint an ephemeral client secret server-side before browser setup without accepting a browser API key.",
+      "ブラウザAPIキーを受け付けず、ブラウザ接続前にサーバー側で短命シークレットを発行します。"
+    )
+    .replace(
+      "Set a server-side OpenAI API key only in the runtime environment before requesting a client secret.",
+      "クライアントシークレット取得前に、サーバー実行環境だけへOpenAI APIキーを設定します。"
+    )
+    .replace(
+      "Use a short-lived client secret for browser Realtime sessions.",
+      "ブラウザのRealtimeセッションには短命クライアントシークレットだけを使います。"
+    )
+    .replace(
+      "Never embed standard API keys in the browser bundle.",
+      "標準APIキーはブラウザbundleへ埋め込みません。"
+    )
+    .replace(
+      "Request microphone permission only after the review gate is opened.",
+      "レビューゲートが開いた後にだけマイク権限を要求します。"
+    )
+    .replace(
+      "Keep deterministic fallback rehearsal available when Realtime is unavailable.",
+      "Realtimeが使えない場合も、決定的な代替リハーサルを利用できます。"
+    )
+    .replace(
+      "Server token endpoint is not configured.",
+      "サーバートークン取得先が未設定です。"
+    )
+    .replace(
+      "Ephemeral client secret is not available.",
+      "短命クライアントシークレットが未取得です。"
+    )
+    .replace(
+      "Microphone permission has not been requested.",
+      "マイク権限はまだ要求していません。"
+    )
+    .replace(
+      "Current demo mode keeps Realtime session start disabled.",
+      "現在のデモモードではRealtimeセッション開始を保留しています。"
+    )
+    .replace(
+      "Operator note candidate present; browser-only; not sent or saved.",
+      "オペレーターメモ候補あり。ブラウザ内のみで、外部送信・永続保存は行いません。"
+    )
+    .replace(
+      "Operator note candidate present; browser-only; not sent or saved; call",
+      "オペレーターメモ候補あり。ブラウザ内のみで、外部送信・永続保存は行いません。対象"
+    )
+    .replace(
+      "No operator note candidate; browser-only; not sent or saved.",
+      "オペレーターメモ候補なし。ブラウザ内のみで、外部送信・永続保存は行いません。"
+    )
+    .replace(
+      "Customer-specific answer blocked. Scope: general-information-only; human review not required.",
+      "顧客個別回答は不可。範囲: 一般情報のみ。人の確認は不要。"
+    )
+    .replace(
+      "Scope: general-information-only; human review not required; customer-specific answer blocked.",
+      "範囲: 一般情報のみ。人の確認は不要。顧客個別回答は不可。"
+    )
+    .replace(
+      "Human review required. Scope: handoff-only; human review required.",
+      "人の確認が必要。範囲: 引き継ぎのみ。"
+    )
+    .replace(
+      "Scoped draft allowed. Scope: verified-customer-context; human review not required.",
+      "範囲を絞った下書き可。範囲: 本人確認済みコンテキスト。人の確認は不要。"
+    )
+    .replace("Use only fictional customer details", "架空顧客情報のみを使用")
+    .replace("External AI unavailable", "外部AI利用不可")
+    .replace("Voice unavailable", "音声利用不可")
+    .replace("Network unavailable", "ネットワーク利用不可")
+    .replace("Manual rehearsal", "手動リハーサル")
+    .replace("account-specific contract change", "契約内容の個別変更")
+    .replace(
+      "Customer asks about an account-specific contract change.",
+      "お客様は契約内容の個別変更について確認しています。"
+    )
+    .replace(
+      "Complete identity verification before account-specific guidance.",
+      "契約に踏み込む案内の前に本人確認を完了します。"
+    )
+    .replace(
+      "キュー項目を選択してから、問い合わせ要約と次アクションを確認する。",
+      "デモシナリオを選択してから、問い合わせ要約と次アクションを確認する。"
+    )
+    .replace("verification unverified", "本人確認未完了");
+}
+
 export function buildAssistantConversationDraft(
   item: QueueItem | undefined,
   evidence: AssistantEvidence
@@ -297,9 +543,9 @@ export function buildAssistantConversationDraft(
   if (!item) {
     return {
       callId: evidence.callId,
-      response: "対象のキュー項目を確認中です。キューを開くと応答ドラフトを準備します。",
+      response: "対象のデモシナリオを確認中です。シナリオを開くと応答ドラフトを準備します。",
       evidenceLine,
-      handoffNote: evidence.query.length > 0 ? `確認メモ: ${evidence.query}` : "確認メモ: キュー未選択"
+      handoffNote: evidence.query.length > 0 ? `確認メモ: ${evidence.query}` : "確認メモ: デモシナリオ未選択"
     };
   }
 
@@ -321,7 +567,7 @@ export function buildConversationThreadPreview(
       {
         role: "customer",
         label: "Customer",
-        body: item ? `${item.callerName}: ${item.excerpt}` : "キュー項目を選択中です。"
+        body: item ? `${item.callerName}: ${item.excerpt}` : "デモシナリオを選択中です。"
       },
       {
         role: "assistant",
@@ -406,16 +652,16 @@ export function buildExecutiveDemoBrief(
   input: BuildExecutiveDemoBriefInput
 ): ExecutiveDemoBrief {
   const fallbackStatus = input.fallbackRehearsal
-    ? `${input.fallbackRehearsal.scenarioCount} local scenarios`
-    : "local plan not loaded";
+    ? `${input.fallbackRehearsal.scenarioCount}件のローカルシナリオ`
+    : "ローカル計画は未読み込み";
   const fallbackDetail = input.fallbackRehearsal
-    ? "Manual rehearsal can proceed without external AI API, Realtime audio, provider SDK, send, or save."
-    : "The app can inject the local fallback plan when the demo runs.";
+    ? "外部AI API、Realtime音声、provider SDK、送信、保存を使わずに手動リハーサルを進行できます。"
+    : "デモ実行時にローカルの代替進行計画を注入できます。";
   const scenarioItems = input.scenario
     ? [
         {
-          label: "CCNet-fit scenario",
-          status: `${input.scenario.companyName} / fictional`,
+          label: "CCNet適合シナリオ",
+          status: `${input.scenario.companyName} / 架空`,
           detail: `${input.scenario.scenarioTitle}. ${input.scenario.fictionalCustomerSituation} ${input.scenario.guardrail}`
         }
       ]
@@ -423,11 +669,11 @@ export function buildExecutiveDemoBrief(
   const customerItems = input.item
     ? [
         {
-          label: "Fictional customer mockup",
+          label: "架空お客様情報",
           status: input.item.customerId ?? input.item.id,
-          detail: `${input.item.callerName} / ${input.item.serviceArea ?? "area unlisted"} / ${
-            input.item.servicePlan ?? "service plan unlisted"
-          } / verification ${input.item.verificationStatus ?? "unverified"}. 本人確認前は契約状態を断定しない。`
+          detail: `${input.item.callerName} / ${input.item.serviceArea ?? "エリア未設定"} / ${
+            input.item.servicePlan ?? "サービス未設定"
+          } / ${verificationLabel(input.item.verificationStatus)}。本人確認前は契約状態を断定しない。`
         }
       ]
     : [];
@@ -435,31 +681,33 @@ export function buildExecutiveDemoBrief(
   return {
     callId: input.evidence.callId,
     safetySummary:
-      "Local deterministic demo only; External send blocked; Persistent save blocked; no production connection.",
+      "ローカル決定的デモのみ。顧客情報・音声の外部送信ブロック、本番DB保存ブロック、本番接続なし。",
     items: [
       ...scenarioItems,
       ...customerItems,
       {
-        label: "Evidence candidates",
-        status: `${input.evidence.resultCount} sources`,
-        detail: "Review source candidates before reading the response draft."
+        label: "根拠候補",
+        status: `${input.evidence.resultCount}件のソース`,
+        detail: "応答ドラフトを読む前に、候補ソースを確認します。"
       },
       {
-        label: "Policy guard",
+        label: "ポリシー判定",
         status: policyOutcomeLabel(input.policy.outcome),
-        detail: `Scope: ${policyScopeLabel(input.policy.allowedResponseScope)}; customer-specific answer ${
-          input.policy.customerSpecificAnswerAllowed ? "allowed" : "blocked"
-        }; human review ${input.policy.humanReviewRequired ? "required" : "not required"}.`
+        detail: `範囲: ${policyScopeLabel(input.policy.allowedResponseScope)}。顧客個別回答は${
+          input.policy.customerSpecificAnswerAllowed ? "可" : "不可"
+        }。人の確認は${input.policy.humanReviewRequired ? "必要" : "不要"}。`
       },
       {
-        label: "Fallback rehearsal",
+        label: "フォールバック演習",
         status: fallbackStatus,
         detail: fallbackDetail
       },
       {
-        label: "No-send / no-save boundary",
-        status: "External send blocked; Persistent save blocked",
-        detail: `${input.inputPreview.label} for ${input.inputPreview.callId} is browser-only and is not sent or saved.`
+        label: "送信・保存ブロック境界",
+        status: "顧客情報・音声の外部送信ブロック / 本番DB保存ブロック",
+        detail: `${input.inputPreview.callId} の${inputLabel(
+          input.inputPreview.label
+        )}はブラウザ内のみで、顧客情報・音声の外部送信と本番DB保存は行いません。`
       }
     ]
   };
@@ -516,81 +764,173 @@ export function renderApp(state: DemoState = demoState): string {
   const queueItems = state.activeQueue
     .map((item) => renderQueueItem(item, selectedCallId))
     .join("");
+  const fallbackPanel = state.fallbackRehearsal
+    ? renderFallbackRehearsalPlan(state.fallbackRehearsal)
+    : `<p class="summary-empty">フォールバック演習はまだ読み込まれていません。</p>`;
+  const handoffPanel = state.realtimeCallHandoff
+    ? renderRealtimeCallHandoffRecord(state.realtimeCallHandoff)
+    : `<p class="summary-empty">通話終了後の引き継ぎ記録はまだありません。</p>`;
 
   return `
     <main class="app-shell">
-      <section class="workspace" aria-labelledby="app-title">
-        <header class="topbar">
+      <header class="topbar" aria-labelledby="app-title">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">AI</div>
           <div>
-            <p class="eyebrow">Live operations</p>
-            <h1 id="app-title">AI Call Center Demo</h1>
+            <h1 id="app-title">AIコールセンター デモ</h1>
+            <p>応対支援 / 根拠提示 / ポリシーガード</p>
           </div>
-          <div class="agent-pill" aria-label="現在の担当チーム">
-            <span class="status-dot"></span>
-            ${escapeHtml(state.agentName)}
-          </div>
-        </header>
+        </div>
+        <div class="agent-pill" aria-label="現在の担当チーム">
+          <span class="status-dot"></span>
+          担当: ${escapeHtml(state.agentName)}
+        </div>
+        ${renderHeaderRealtimeCallControls(realtimeCallControls)}
+      </header>
 
-        <section class="metric-grid" aria-label="現在の受付状況">
-          <article class="metric">
-            <span>待機中</span>
-            <strong>${summary.waiting}</strong>
-          </article>
-          <article class="metric">
-            <span>AI対応中</span>
-            <strong>${summary.aiHandling}</strong>
-          </article>
-          <article class="metric">
-            <span>人の確認</span>
-            <strong>${summary.humanReview}</strong>
-          </article>
-          <article class="metric">
-            <span>平均待ち時間</span>
-            <strong>${formatWaitTime(summary.averageWaitSeconds)}</strong>
-          </article>
-        </section>
+      <section class="metric-grid" aria-label="現在の受付状況">
+        <article class="metric metric--waiting">
+          <span>待機中</span>
+          <strong>${summary.waiting}</strong>
+          <small>対応待ちの案件</small>
+        </article>
+        <article class="metric metric--ai">
+          <span>AI対応中</span>
+          <strong>${summary.aiHandling}</strong>
+          <small>下書き・根拠提示中</small>
+        </article>
+        <article class="metric metric--review">
+          <span>人の確認</span>
+          <strong>${summary.humanReview}</strong>
+          <small>上席判断を含む案件</small>
+        </article>
+        <article class="metric metric--high">
+          <span>高優先</span>
+          <strong>${summary.highPriority}</strong>
+          <small>障害・補償など</small>
+        </article>
+        <article class="metric metric--time">
+          <span>平均待ち時間</span>
+          <strong>${formatWaitTime(summary.averageWaitSeconds)}</strong>
+          <small>現在のデモシナリオ平均</small>
+        </article>
+      </section>
 
-        <section class="operations-layout">
-          <div class="queue-panel" aria-labelledby="queue-title">
+      <section class="operations-layout" aria-label="AIコールセンター デモ ワークスペース">
+        <aside class="column column--left">
+          <section class="queue-panel panel" aria-labelledby="queue-title">
             <div class="panel-heading">
-              <h2 id="queue-title">Live queue</h2>
-              <span>${summary.highPriority} high priority</span>
+              <h2 id="queue-title">デモシナリオ</h2>
+              <span>${state.activeQueue.length}件 / 高優先 ${summary.highPriority}</span>
             </div>
             <div class="queue-list">
               ${queueItems}
             </div>
-          </div>
+          </section>
 
-          <aside class="assistant-panel" aria-labelledby="assistant-title">
-            <h2 id="assistant-title">Assistant handoff</h2>
-            <p>${escapeHtml(state.assistantSuggestion)}</p>
+          <details class="accordion">
+            <summary>経営向け要約</summary>
+            <div class="accordion-body">
+              ${renderExecutiveDemoBrief(executiveDemoBrief)}
+            </div>
+          </details>
+        </aside>
+
+        <section class="column column--center" aria-labelledby="assistant-title">
+          ${renderRealtimeStatusBar(realtimeConnection, realtimeCallControls)}
+          ${renderCallWorkspace(selectedQueueItem, callSummary, policyGuard)}
+          ${renderConversationThreadPreview(threadPreview)}
+          <section class="composer-panel panel" aria-labelledby="assistant-title">
+            <div class="panel-heading">
+              <h2 id="assistant-title">AIサポート / 引き継ぎ</h2>
+              <span>${escapeHtml(conversationDraft.callId)}</span>
+            </div>
+            <p class="assistant-suggestion">${escapeHtml(state.assistantSuggestion)}</p>
             <div class="handoff-card">
-              <span>Next best action</span>
+              <span>次に取るべきアクション</span>
               <strong>状況確認を完了してから担当者へ要点を渡す</strong>
             </div>
-            ${renderCallWorkspace(selectedQueueItem, callSummary, policyGuard)}
-            ${renderRealtimeConnectionBoundary(realtimeConnection, realtimeCallControls)}
-            ${
-              state.realtimeCallHandoff
-                ? renderRealtimeCallHandoffRecord(state.realtimeCallHandoff)
-                : ""
-            }
-            ${renderExecutiveDemoBrief(executiveDemoBrief)}
-            ${renderCallSummary(callSummary)}
-            ${
-              state.fallbackRehearsal
-                ? renderFallbackRehearsalPlan(state.fallbackRehearsal)
-                : ""
-            }
             ${renderConversationDraft(conversationDraft)}
-            ${renderConversationThreadPreview(threadPreview)}
             ${renderAssistantInputPreview(inputPreview)}
-            ${renderResponsePolicyGuard(policyGuard)}
-            ${renderAssistantEvidence(state.assistantEvidence)}
-          </aside>
+            ${renderCallSummary(callSummary)}
+          </section>
+
+          <details class="accordion">
+            <summary>通話終了後の引き継ぎ記録</summary>
+            <div class="accordion-body">
+              ${handoffPanel}
+            </div>
+          </details>
         </section>
+
+        <aside class="column column--right">
+          ${renderAssistantEvidence(state.assistantEvidence)}
+          ${renderResponsePolicyGuard(policyGuard)}
+          <details class="accordion">
+            <summary>リアルタイム接続の詳細</summary>
+            <div class="accordion-body">
+              ${renderRealtimeConnectionBoundary(realtimeConnection, realtimeCallControls)}
+            </div>
+          </details>
+          <details class="accordion">
+            <summary>フォールバック演習</summary>
+            <div class="accordion-body">
+              ${fallbackPanel}
+            </div>
+          </details>
+        </aside>
       </section>
     </main>
+  `;
+}
+
+function renderHeaderRealtimeCallControls(controls: RealtimeCallControls): string {
+  return `
+    <div class="call-ctl" data-status="${escapeHtml(controls.status)}">
+      <span class="state">${escapeHtml(realtimeCallStatusLabel(controls.status))}</span>
+      <button
+        class="btn btn-primary"
+        type="button"
+        data-realtime-start-call
+        aria-label="通話を開始"
+        ${controls.startCallAvailable ? "" : "disabled"}
+      >通話を開始</button>
+      <button
+        class="btn btn-ghost"
+        type="button"
+        data-realtime-end-call
+        aria-label="通話を終了"
+        ${controls.endCallAvailable ? "" : "disabled"}
+      >終了</button>
+    </div>
+  `;
+}
+
+function renderRealtimeStatusBar(
+  boundary: RealtimeConnectionBoundary,
+  controls: RealtimeCallControls
+): string {
+  const tone =
+    controls.status === "connected"
+      ? "ok"
+      : boundary.tokenEndpointConfigured
+        ? "warn"
+        : "danger";
+
+  return `
+    <section
+      class="rt-bar"
+      role="status"
+      aria-live="polite"
+      aria-labelledby="realtime-boundary-bar-title"
+    >
+      <h2 id="realtime-boundary-bar-title" class="sr-only">リアルタイム接続境界</h2>
+      <span class="lamp ${tone}"><span class="dot"></span>${escapeHtml(boundaryStatusLabel(boundary))}</span>
+      <p>${escapeHtml(boundaryMessage(boundary))}</p>
+      <span class="badge ${controls.status === "connected" ? "ok" : "warn"}">${escapeHtml(
+        realtimeCallStatusLabel(controls.status)
+      )}</span>
+    </section>
   `;
 }
 
@@ -603,7 +943,7 @@ function renderRealtimeConnectionBoundary(
     .map(renderRealtimeConnectionRequirement)
     .join("");
   const blockedReasons = boundary.blockedReasons
-    .map((reason) => `<li>${escapeHtml(reason)}</li>`)
+    .map((reason) => `<li>${escapeHtml(safeJapaneseDetail(reason))}</li>`)
     .join("");
 
   return `
@@ -623,56 +963,56 @@ function renderRealtimeConnectionBoundary(
     >
       <div class="realtime-heading">
         <div>
-          <p class="eyebrow">Realtime boundary</p>
-          <h3 id="realtime-boundary-title">${escapeHtml(boundary.statusText)}</h3>
+          <p class="eyebrow">リアルタイム接続境界</p>
+          <h3 id="realtime-boundary-title">${escapeHtml(boundaryStatusLabel(boundary))}</h3>
         </div>
         <span>${escapeHtml(boundary.officialDocs.verifiedOn)}</span>
       </div>
-      <p>${escapeHtml(boundary.operatorMessage)}</p>
+      <p>${escapeHtml(boundaryMessage(boundary))}</p>
       ${renderRealtimeCallControls(callControls)}
       <dl>
         <div>
-          <dt>Browser API key</dt>
-          <dd>blocked</dd>
+          <dt>ブラウザAPIキー</dt>
+          <dd>ブロック</dd>
         </div>
         <div>
-          <dt>Client secret</dt>
-          <dd>${boundary.ephemeralClientSecretAvailable ? "available" : "server required"}</dd>
+          <dt>クライアントシークレット</dt>
+          <dd>${boundary.ephemeralClientSecretAvailable ? "利用可能" : "サーバー要"}</dd>
         </div>
         <div>
-          <dt>Token endpoint</dt>
-          <dd>${boundary.tokenEndpointConfigured ? "configured" : "not configured"}</dd>
+          <dt>トークン取得先</dt>
+          <dd>${boundary.tokenEndpointConfigured ? "設定済" : "未設定"}</dd>
         </div>
         <div>
-          <dt>Token contract</dt>
-          <dd>${escapeHtml(tokenEndpointContractLabel)} / server adapter</dd>
+          <dt>トークン契約</dt>
+          <dd>${escapeHtml(tokenEndpointContractLabel)} / サーバーアダプター</dd>
         </div>
         <div>
-          <dt>Disabled adapter</dt>
-          <dd>${escapeHtml(boundary.tokenEndpointAdapter.status)} / ${
-            boundary.localFallbackAvailable ? "local fallback" : "fallback unavailable"
+          <dt>無効化アダプター</dt>
+          <dd>${escapeHtml(technicalStatusLabel(boundary.tokenEndpointAdapter.status))} / ${
+            boundary.localFallbackAvailable ? "ローカル代替あり" : "代替なし"
           }</dd>
         </div>
         <div>
-          <dt>Microphone</dt>
-          <dd>${escapeHtml(boundary.microphonePermissionState)}</dd>
+          <dt>マイク</dt>
+          <dd>${escapeHtml(microphoneLabel(boundary.microphonePermissionState))}</dd>
         </div>
         <div>
-          <dt>External audio send</dt>
-          <dd>blocked</dd>
+          <dt>外部音声送信</dt>
+          <dd>ブロック</dd>
         </div>
         <div>
-          <dt>Session start</dt>
-          <dd>disabled</dd>
+          <dt>セッション開始</dt>
+          <dd>無効</dd>
         </div>
       </dl>
       <div class="realtime-lists">
         <div>
-          <span>Required before enablement</span>
+          <span>有効化に必要な条件</span>
           <ul>${requirements}</ul>
         </div>
         <div>
-          <span>Blocked now</span>
+          <span>現在ブロック中</span>
           <ul>${blockedReasons}</ul>
         </div>
       </div>
@@ -700,9 +1040,9 @@ function renderRealtimeCallControls(controls: RealtimeCallControls): string {
       }
     >
       <div>
-        <span>Realtime call controls</span>
-        <strong>${escapeHtml(controls.statusText)}</strong>
-        <p>${escapeHtml(controls.detail)}</p>
+        <span>リアルタイム通話操作</span>
+        <strong>${escapeHtml(realtimeCallHeadline(controls.status))}</strong>
+        <p>${escapeHtml(realtimeCallDetail(controls.status))}</p>
         ${failure ? renderRealtimeFailureDiagnostics(controls) : ""}
       </div>
       <div class="realtime-control-actions">
@@ -710,12 +1050,12 @@ function renderRealtimeCallControls(controls: RealtimeCallControls): string {
           type="button"
           data-realtime-start-call
           ${controls.startCallAvailable ? "" : "disabled"}
-        >Start call</button>
+        >通話を開始</button>
         <button
           type="button"
           data-realtime-end-call
           ${controls.endCallAvailable ? "" : "disabled"}
-        >End call</button>
+        >終了</button>
       </div>
     </div>
   `;
@@ -731,34 +1071,34 @@ function renderRealtimeFailureDiagnostics(
   }
 
   return `
-    <div class="realtime-failure-diagnostics" aria-label="Realtime failure diagnostics">
-      <span>Realtime failure diagnostics</span>
+    <div class="realtime-failure-diagnostics" aria-label="リアルタイム接続 診断">
+      <span>リアルタイム接続 診断</span>
       <dl>
         <div>
-          <dt>Stage</dt>
+          <dt>段階</dt>
           <dd>${escapeHtml(failure.stage)}</dd>
         </div>
         <div>
-          <dt>Message</dt>
-          <dd>${escapeHtml(failure.message)}</dd>
+          <dt>メッセージ</dt>
+          <dd>${escapeHtml(safeJapaneseDetail(failure.message))}</dd>
         </div>
         ${
           failure.httpStatus
-            ? `<div><dt>HTTP status</dt><dd>${escapeHtml(failure.httpStatus.toString())}</dd></div>`
+            ? `<div><dt>HTTPステータス</dt><dd>${escapeHtml(failure.httpStatus.toString())}</dd></div>`
             : ""
         }
         ${
           failure.errorCode
-            ? `<div><dt>Error code</dt><dd>${escapeHtml(failure.errorCode)}</dd></div>`
+            ? `<div><dt>エラーコード</dt><dd>${escapeHtml(failure.errorCode)}</dd></div>`
             : ""
         }
         <div>
-          <dt>Microphone</dt>
-          <dd>${escapeHtml(controls.microphonePermissionState)}</dd>
+          <dt>マイク</dt>
+          <dd>${escapeHtml(microphoneLabel(controls.microphonePermissionState))}</dd>
         </div>
         ${
           failure.endpoint
-            ? `<div><dt>Endpoint</dt><dd>${escapeHtml(failure.endpoint)}</dd></div>`
+            ? `<div><dt>エンドポイント</dt><dd>${escapeHtml(failure.endpoint)}</dd></div>`
             : ""
         }
       </dl>
@@ -776,7 +1116,7 @@ function renderRealtimeCallHandoffRecord(
     .map(renderRealtimeTranscriptEntry)
     .join("");
   const blockedItems = record.policyDecision.blockedResponseTypes
-    .map((blockedType) => `<li>${escapeHtml(blockedType)}</li>`)
+    .map((blockedType) => `<li>${escapeHtml(safeJapaneseDetail(blockedType))}</li>`)
     .join("");
 
   return `
@@ -791,56 +1131,56 @@ function renderRealtimeCallHandoffRecord(
       data-production-phone-connection-allowed="false"
     >
       <div class="summary-heading">
-        <h3 id="realtime-handoff-title">Realtime handoff record</h3>
+        <h3 id="realtime-handoff-title">リアルタイム通話 引き継ぎ記録</h3>
         <span>${escapeHtml(record.callId)}</span>
       </div>
-      <p class="summary-main">${escapeHtml(record.summary)}</p>
+      <p class="summary-main">${escapeHtml(safeJapaneseDetail(record.summary))}</p>
       <dl>
         <div>
-          <dt>Status</dt>
-          <dd>${record.status === "recorded" ? "Recorded in browser state" : "Fallback record in browser state"}</dd>
+          <dt>ステータス</dt>
+          <dd>${record.status === "recorded" ? "ブラウザ状態に記録済み" : "フォールバック記録（ブラウザ）"}</dd>
         </div>
         <div>
-          <dt>Policy decision</dt>
+          <dt>ポリシー判定</dt>
           <dd>${escapeHtml(policyOutcomeLabel(record.policyDecision.outcome))}</dd>
         </div>
         <div>
-          <dt>Policy lane</dt>
+          <dt>ポリシー判定レーン</dt>
           <dd>${escapeHtml(policyScopeLabel(record.policyDecision.allowedResponseScope))}</dd>
         </div>
         <div>
-          <dt>Customer-specific answer</dt>
-          <dd>${record.policyDecision.customerSpecificAnswerAllowed ? "allowed" : "blocked"}</dd>
+          <dt>顧客個別回答</dt>
+          <dd>${record.policyDecision.customerSpecificAnswerAllowed ? "可" : "不可"}</dd>
         </div>
         <div>
-          <dt>Human review</dt>
-          <dd>${record.policyDecision.humanReviewRequired ? "required" : "not required"}</dd>
+          <dt>人の確認</dt>
+          <dd>${record.policyDecision.humanReviewRequired ? "必要" : "不要"}</dd>
         </div>
         <div>
-          <dt>Next action</dt>
-          <dd>${escapeHtml(record.nextAction)}</dd>
+          <dt>次のアクション</dt>
+          <dd>${escapeHtml(safeJapaneseDetail(record.nextAction))}</dd>
         </div>
         <div>
-          <dt>Storage</dt>
-          <dd>browser state plus server local JSON</dd>
+          <dt>保存先</dt>
+          <dd>ブラウザ状態 + デモ用サーバーローカルJSON（本番DB/外部永続保存なし）</dd>
         </div>
       </dl>
       <div class="summary-evidence">
-        <span>Transcript</span>
+        <span>通話文字起こし</span>
         ${
           record.transcript.length > 0
             ? `<ul>${transcriptItems}</ul>`
-            : `<p class="summary-empty">No transcript events captured before handoff.</p>`
+            : `<p class="summary-empty">引き継ぎ前に通話文字起こしイベントは取得されませんでした。</p>`
         }
       </div>
       ${
         record.evidenceReferences.length > 0
-          ? `<div class="summary-evidence"><span>Evidence references</span><ul>${evidenceItems}</ul></div>`
+          ? `<div class="summary-evidence"><span>根拠参照</span><ul>${evidenceItems}</ul></div>`
           : ""
       }
       ${
         record.policyDecision.blockedResponseTypes.length > 0
-          ? `<div class="summary-evidence"><span>Blocked response types</span><ul>${blockedItems}</ul></div>`
+          ? `<div class="summary-evidence"><span>ブロックされた回答種別</span><ul>${blockedItems}</ul></div>`
           : ""
       }
     </section>
@@ -850,9 +1190,9 @@ function renderRealtimeCallHandoffRecord(
 function renderRealtimeTranscriptEntry(entry: RealtimeTranscriptEntry): string {
   return `
     <li>
-      <strong>${entry.role === "customer" ? "Customer" : "Assistant"}</strong>
+      <strong>${entry.role === "customer" ? "お客様" : "AI"}</strong>
       ${escapeHtml(entry.text)}
-      <span>${entry.final ? "final" : "partial"} / ${escapeHtml(entry.sourceEventType)}</span>
+      <span>${entry.final ? "確定" : "途中"} / ${escapeHtml(entry.sourceEventType)}</span>
     </li>
   `;
 }
@@ -864,8 +1204,10 @@ function renderRealtimeConnectionRequirement(
 
   return `
     <li>
-      <strong>${escapeHtml(requirement.label)} (${status})</strong>
-      ${escapeHtml(requirement.detail)}
+      <strong>${escapeHtml(requirementLabel(requirement.label))} (${escapeHtml(
+        technicalStatusLabel(status)
+      )})</strong>
+      ${escapeHtml(safeJapaneseDetail(requirement.detail))}
     </li>
   `;
 }
@@ -878,12 +1220,12 @@ function renderCallWorkspace(
   const escapedCallId = escapeHtml(summary.callId);
   const customerLine = item
     ? `${item.callerName} / ${item.customerId ?? item.id}`
-    : "Queue item not selected";
+    : "デモシナリオ未選択";
   const serviceLine = item
-    ? `${item.serviceArea ?? "Area pending"} / ${item.servicePlan ?? "Service plan pending"}`
-    : "Service context pending";
-  const statusText = item ? statusLabel(item.status) : "Queue item not matched";
-  const topicText = item?.topic ?? "No queue topic selected";
+    ? `${item.serviceArea ?? "エリア確認中"} / ${item.servicePlan ?? "サービス確認中"}`
+    : "ご契約状況を確認中";
+  const statusText = item ? statusLabel(item.status) : "デモシナリオ未一致";
+  const topicText = item?.topic ?? "デモシナリオ未選択";
 
   return `
     <section
@@ -896,37 +1238,37 @@ function renderCallWorkspace(
     >
       <div class="call-workspace__header">
         <div>
-          <p class="eyebrow">Call workspace</p>
-          <h3 id="call-workspace-title">Review mode</h3>
+          <p class="eyebrow">通話ワークスペース</p>
+          <h3 id="call-workspace-title">確認モード</h3>
         </div>
         <span>${escapedCallId}</span>
       </div>
       <p class="call-workspace__boundary">
-        Phone connection is not connected. Browser-only review; external send and persistent save stay blocked.
+        本番電話接続なし。ブラウザ内レビューのみで、顧客情報・音声の外部送信と本番DB保存はブロックしたままです。
       </p>
       <dl class="call-workspace__details">
         <div>
-          <dt>Selected call</dt>
+          <dt>選択中の案件</dt>
           <dd>${escapeHtml(topicText)}</dd>
         </div>
         <div>
-          <dt>Status</dt>
+          <dt>ステータス</dt>
           <dd>${escapeHtml(statusText)}</dd>
         </div>
         <div>
-          <dt>Customer mockup</dt>
+          <dt>お客様情報（架空）</dt>
           <dd>${escapeHtml(customerLine)}</dd>
         </div>
         <div>
-          <dt>Service context</dt>
+          <dt>ご契約状況</dt>
           <dd>${escapeHtml(serviceLine)}</dd>
         </div>
         <div>
-          <dt>Policy lane</dt>
+          <dt>ポリシー判定レーン</dt>
           <dd>${escapeHtml(policyScopeLabel(policy.allowedResponseScope))}</dd>
         </div>
         <div>
-          <dt>Next action</dt>
+          <dt>次のアクション</dt>
           <dd>${escapeHtml(summary.nextAction)}</dd>
         </div>
       </dl>
@@ -946,33 +1288,33 @@ function renderCallSummary(summary: CallSummary): string {
       data-call-summary-call-id="${escapeHtml(summary.callId)}"
       data-external-send-allowed="false"
       data-persistence-allowed="false"
-    >
+      >
       <div class="summary-heading">
-        <h3 id="call-summary-title">Call summary</h3>
+        <h3 id="call-summary-title">通話サマリ</h3>
         <span>${escapeHtml(summary.callId)}</span>
       </div>
-      <p class="summary-main">${escapeHtml(summary.inquirySummary)}</p>
+      <p class="summary-main">${escapeHtml(safeJapaneseDetail(summary.inquirySummary))}</p>
       <dl>
         <div>
-          <dt>Policy decision</dt>
-          <dd>${escapeHtml(summary.policyDecision.summary)}</dd>
+          <dt>ポリシー判定</dt>
+          <dd>${escapeHtml(safeJapaneseDetail(summary.policyDecision.summary))}</dd>
         </div>
         <div>
-          <dt>Operator note</dt>
-          <dd>${escapeHtml(summary.operatorNoteStatus.summary)}</dd>
+          <dt>オペレーターメモ</dt>
+          <dd>${escapeHtml(safeJapaneseDetail(summary.operatorNoteStatus.summary))}</dd>
         </div>
         <div>
-          <dt>Next action</dt>
-          <dd>${escapeHtml(summary.nextAction)}</dd>
+          <dt>次のアクション</dt>
+          <dd>${escapeHtml(safeJapaneseDetail(summary.nextAction))}</dd>
         </div>
         <div>
-          <dt>Summary only</dt>
-          <dd>External send blocked; Persistent save blocked</dd>
+          <dt>要約のみ</dt>
+          <dd>顧客情報・音声の外部送信ブロック / 本番DB保存ブロック</dd>
         </div>
       </dl>
       ${
         summary.evidenceReferences.length > 0
-          ? `<div class="summary-evidence"><span>Evidence references</span><ul>${evidenceItems}</ul></div>`
+          ? `<div class="summary-evidence"><span>根拠参照</span><ul>${evidenceItems}</ul></div>`
           : `<p class="summary-empty">根拠参照はまだありません。</p>`
       }
     </section>
@@ -991,7 +1333,7 @@ function renderExecutiveDemoBrief(brief: ExecutiveDemoBrief): string {
       data-persistence-allowed="false"
     >
       <div class="executive-brief__heading">
-        <h3 id="executive-brief-title">Executive demo brief</h3>
+        <h3 id="executive-brief-title">経営向け要約</h3>
         <span>${escapeHtml(brief.callId)}</span>
       </div>
       <p>${escapeHtml(brief.safetySummary)}</p>
@@ -1007,7 +1349,7 @@ function renderExecutiveDemoBriefItem(item: ExecutiveDemoBriefItem): string {
     <article class="executive-brief__item">
       <span>${escapeHtml(item.label)}</span>
       <strong>${escapeHtml(item.status)}</strong>
-      <p>${escapeHtml(item.detail)}</p>
+      <p>${escapeHtml(safeJapaneseDetail(item.detail))}</p>
     </article>
   `;
 }
@@ -1024,31 +1366,31 @@ function renderFallbackRehearsalPlan(plan: FallbackRehearsalPlan): string {
       data-persistence-allowed="false"
     >
       <div class="policy-heading">
-        <h3 id="fallback-title">Fallback rehearsal</h3>
-        <span>${escapeHtml(plan.statusText)}</span>
+        <h3 id="fallback-title">フォールバック演習</h3>
+        <span>${escapeHtml(safeJapaneseDetail(plan.statusText))}</span>
       </div>
-      <p>${escapeHtml(plan.operatorMessage)}</p>
+      <p>${escapeHtml(safeJapaneseDetail(plan.operatorMessage))}</p>
       <dl>
         <div>
-          <dt>Scenario count</dt>
+          <dt>シナリオ数</dt>
           <dd>${plan.scenarioCount}</dd>
         </div>
         <div>
-          <dt>Manual progression</dt>
-          <dd>${plan.guardrails.manualProgressionAllowed ? "ready" : "blocked"}</dd>
+          <dt>手動進行</dt>
+          <dd>${plan.guardrails.manualProgressionAllowed ? "準備完了" : "ブロック"}</dd>
         </div>
         <div>
-          <dt>External send</dt>
-          <dd>blocked</dd>
+          <dt>外部送信</dt>
+          <dd>ブロック</dd>
         </div>
         <div>
-          <dt>Persistent save</dt>
-          <dd>blocked</dd>
+          <dt>永続保存</dt>
+          <dd>ブロック</dd>
         </div>
       </dl>
       <div class="policy-lists">
         <div>
-          <span>Run order</span>
+          <span>進行順</span>
           <ul>${steps}</ul>
         </div>
       </div>
@@ -1057,12 +1399,12 @@ function renderFallbackRehearsalPlan(plan: FallbackRehearsalPlan): string {
 }
 
 function renderFallbackRehearsalStep(step: FallbackRehearsalStep): string {
-  const reviewLabel = step.humanReviewRequired ? "human review" : "local draft";
+  const reviewLabel = step.humanReviewRequired ? "人の確認" : "ローカル下書き";
 
   return `
     <li>
       ${escapeHtml(step.callId)}: ${escapeHtml(step.label)}
-      (${escapeHtml(step.expectedPolicyOutcome)}, ${reviewLabel})
+      (${escapeHtml(policyOutcomeLabel(step.expectedPolicyOutcome))}, ${reviewLabel})
     </li>
   `;
 }
@@ -1073,7 +1415,7 @@ function renderConversationThreadPreview(preview: ConversationThreadPreview): st
   return `
     <section class="thread-panel" aria-labelledby="thread-title">
       <div class="thread-heading">
-        <h3 id="thread-title">Conversation preview</h3>
+        <h3 id="thread-title">会話プレビュー</h3>
         <span>${escapeHtml(preview.callId)}</span>
       </div>
       <div class="thread-list">
@@ -1086,7 +1428,7 @@ function renderConversationThreadPreview(preview: ConversationThreadPreview): st
 function renderConversationThreadMessage(message: ConversationThreadMessage): string {
   return `
     <article class="thread-message thread-message--${message.role}">
-      <span>${escapeHtml(message.label)}</span>
+      <span>${escapeHtml(conversationRoleLabel(message.label))}</span>
       <p>${escapeHtml(message.body)}</p>
     </article>
   `;
@@ -1098,40 +1440,40 @@ function renderAssistantInputPreview(preview: AssistantInputPreview): string {
   return `
     <section class="input-panel" aria-labelledby="input-title" data-input-preview-call-id="${escapedCallId}">
       <div class="input-heading">
-        <h3 id="input-title">Operator note</h3>
+        <h3 id="input-title">オペレーターメモ</h3>
         <span>${escapedCallId}</span>
       </div>
-      <label for="operator-note">${escapeHtml(preview.label)}</label>
+      <label for="operator-note">${escapeHtml(inputLabel(preview.label))}</label>
       <textarea
         id="operator-note"
         data-input-call-id="${escapedCallId}"
         rows="4"
         aria-describedby="operator-note-status"
-      >${escapeHtml(preview.value)}</textarea>
-      <p id="operator-note-status">${escapeHtml(preview.statusText)}</p>
+      >${escapeHtml(operatorInputValue(preview.value))}</textarea>
+      <p id="operator-note-status">${escapeHtml(inputStatusText(preview.statusText))}</p>
       <div
         class="input-boundary"
         data-submit-save-candidate-call-id="${escapedCallId}"
         data-external-send-allowed="false"
         data-persistence-allowed="false"
       >
-        <span>Submit/save candidate</span>
+        <span>送信・保存の候補（未確定）</span>
         <dl>
           <div>
-            <dt>Call</dt>
+            <dt>案件</dt>
             <dd>${escapedCallId}</dd>
           </div>
           <div>
-            <dt>External send</dt>
-            <dd>blocked</dd>
+            <dt>外部送信</dt>
+            <dd>ブロック</dd>
           </div>
           <div>
-            <dt>Persistent save</dt>
-            <dd>blocked</dd>
+            <dt>永続保存</dt>
+            <dd>ブロック</dd>
           </div>
           <div>
-            <dt>Storage</dt>
-            <dd>browser state only</dd>
+            <dt>保存先</dt>
+            <dd>ブラウザ状態のみ</dd>
           </div>
         </dl>
       </div>
@@ -1159,42 +1501,42 @@ function renderResponsePolicyGuard(policy: ResponsePolicyGuard): string {
     .join("");
 
   return `
-    <section class="policy-panel" aria-labelledby="policy-title">
+    <section class="policy-panel policy-card" aria-labelledby="policy-title">
       <div class="policy-heading">
-        <h3 id="policy-title">Policy guard</h3>
+        <h3 id="policy-title">ポリシー判定</h3>
         <span>${escapeHtml(policyOutcomeLabel(policy.outcome))}</span>
       </div>
-      <p>${escapeHtml(policy.reasons[0] ?? "Policy decision is ready for review.")}</p>
+      <p>${escapeHtml(policy.reasons[0] ?? "ポリシー判定は確認可能です。")}</p>
       <dl>
         <div>
-          <dt>Scope</dt>
+          <dt>判定レーン</dt>
           <dd>${escapeHtml(policyScopeLabel(policy.allowedResponseScope))}</dd>
         </div>
         <div>
-          <dt>Human review</dt>
-          <dd>${policy.humanReviewRequired ? "required" : "not required"}</dd>
+          <dt>人の確認</dt>
+          <dd>${policy.humanReviewRequired ? "必要" : "不要"}</dd>
         </div>
         <div>
-          <dt>Customer-specific answer</dt>
-          <dd>${policy.customerSpecificAnswerAllowed ? "allowed" : "blocked"}</dd>
+          <dt>顧客個別回答</dt>
+          <dd>${policy.customerSpecificAnswerAllowed ? "可" : "不可"}</dd>
         </div>
         <div>
-          <dt>External send</dt>
-          <dd>blocked</dd>
+          <dt>外部送信</dt>
+          <dd>ブロック</dd>
         </div>
         <div>
-          <dt>Persistent save</dt>
-          <dd>blocked</dd>
+          <dt>永続保存</dt>
+          <dd>ブロック</dd>
         </div>
       </dl>
       <div class="policy-lists">
         <div>
-          <span>Allowed</span>
-          <ul>${allowedTopics}</ul>
+          <span>許可されている回答</span>
+          <ul class="allow-list">${allowedTopics}</ul>
         </div>
         ${
           policy.blockedResponseTypes.length > 0
-            ? `<div><span>Blocked</span><ul>${blockedResponseTypes}</ul></div>`
+            ? `<div><span>ブロックされた回答種別</span><ul class="block-list">${blockedResponseTypes}</ul></div>`
             : ""
         }
       </div>
@@ -1204,10 +1546,10 @@ function renderResponsePolicyGuard(policy: ResponsePolicyGuard): string {
 
 function policyOutcomeLabel(outcome: ResponsePolicyOutcome): string {
   const labels: Record<ResponsePolicyOutcome, string> = {
-    "general-guidance-only": "General guidance only",
-    "customer-specific-answer-blocked": "Customer-specific answer blocked",
-    "human-review-required": "Human review required",
-    "scoped-draft-allowed": "Scoped draft allowed"
+    "general-guidance-only": "一般案内のみ可",
+    "customer-specific-answer-blocked": "顧客個別回答は不可",
+    "human-review-required": "人の確認が必要",
+    "scoped-draft-allowed": "範囲を絞った下書き可"
   };
 
   return labels[outcome];
@@ -1215,9 +1557,9 @@ function policyOutcomeLabel(outcome: ResponsePolicyOutcome): string {
 
 function policyScopeLabel(scope: ResponsePolicyAllowedScope): string {
   const labels: Record<ResponsePolicyAllowedScope, string> = {
-    "general-information-only": "General information only",
-    "handoff-only": "Handoff only",
-    "verified-customer-context": "Verified customer context"
+    "general-information-only": "一般情報のみ",
+    "handoff-only": "引き継ぎのみ",
+    "verified-customer-context": "本人確認済みコンテキスト"
   };
 
   return labels[scope];
@@ -1227,7 +1569,7 @@ function renderConversationDraft(draft: AssistantConversationDraft): string {
   return `
     <section class="draft-panel" aria-labelledby="draft-title">
       <div class="draft-heading">
-        <h3 id="draft-title">Response draft</h3>
+        <h3 id="draft-title">応答ドラフト</h3>
         <span>${escapeHtml(draft.callId)}</span>
       </div>
       <p class="draft-response">${escapeHtml(draft.response)}</p>
@@ -1243,8 +1585,8 @@ function renderAssistantEvidence(evidence: AssistantEvidence): string {
   return `
     <section class="evidence-panel" aria-labelledby="evidence-title">
       <div class="evidence-heading">
-        <h3 id="evidence-title">Evidence candidates</h3>
-        <span>${evidence.resultCount} sources</span>
+        <h3 id="evidence-title">根拠候補</h3>
+        <span>${evidence.resultCount}件のソース</span>
       </div>
       ${renderEvidenceQuery(evidence)}
       ${
@@ -1277,7 +1619,7 @@ function renderAssistantEvidenceItem(item: AssistantEvidenceItem): string {
         <strong>${escapeHtml(item.section)}</strong>
       </div>
       <p>${escapeHtml(item.snippet)}</p>
-      <span class="evidence-score">score ${item.score}</span>
+      <span class="evidence-score">スコア ${item.score}</span>
     </article>
   `;
 }
@@ -1291,19 +1633,23 @@ function renderQueueItem(item: QueueItem, selectedCallId: string): string {
     item.customerId,
     item.serviceArea,
     item.servicePlan,
-    item.verificationStatus,
+    verificationLabel(item.verificationStatus),
     item.callerName,
     formatWaitTime(item.waitSeconds)
   ].filter((value): value is string => typeof value === "string" && value.length > 0);
 
   return `
     <article class="queue-item queue-item--${item.priority}${
-      isSelected ? " queue-item--selected" : ""
-    }" data-queue-call-id="${escapedId}"${isSelected ? ' aria-current="true"' : ""}>
+      isSelected ? " queue-item--selected is-selected" : ""
+    }" data-status="${escapeHtml(item.status)}" data-priority="${escapeHtml(
+      item.priority
+    )}" data-queue-call-id="${escapedId}"${isSelected ? ' aria-current="true"' : ""}>
       <div class="queue-main">
         <div class="queue-title-row">
           <h3>${escapedTopic}</h3>
-          <span class="status-badge">${statusLabel(item.status)}</span>
+          <span class="status-badge badge ${statusTone(item.status)}"><span class="dot"></span>${statusLabel(
+            item.status
+          )}</span>
         </div>
         <p>${escapeHtml(item.excerpt)}</p>
         <div class="queue-meta">

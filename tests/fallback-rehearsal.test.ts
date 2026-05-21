@@ -45,11 +45,11 @@ test("renderApp displays fallback rehearsal status without implying send, save, 
     })
   });
 
-  assert.match(html, /Fallback rehearsal/);
-  assert.match(html, /Manual progression/);
-  assert.match(html, /External send/);
-  assert.match(html, /blocked/);
-  assert.match(html, /Persistent save/);
+  assert.match(html, /フォールバック演習/);
+  assert.match(html, /手動進行/);
+  assert.match(html, /外部送信/);
+  assert.match(html, /ブロック/);
+  assert.match(html, /永続保存/);
   assert.match(html, /CALL-SC-03/);
   assert.doesNotMatch(html, /送信済み/);
   assert.doesNotMatch(html, /保存済み/);
