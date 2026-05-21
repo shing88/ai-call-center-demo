@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT,
   buildRealtimeCallControls,
   endRealtimeCallSession,
   startRealtimeCallSession,
   type RealtimePeerConnectionLike
 } from "../src/realtime-call-controls.js";
+import { REALTIME_WEBRTC_CALLS_ENDPOINT_PATH } from "../src/realtime-calls-endpoint.js";
 import { REALTIME_TOKEN_ENDPOINT_PATH } from "../src/realtime-token-endpoint.js";
 
 test("buildRealtimeCallControls defaults to an idle browser control surface", () => {
@@ -18,7 +18,7 @@ test("buildRealtimeCallControls defaults to an idle browser control surface", ()
   assert.equal(controls.startCallAvailable, true);
   assert.equal(controls.endCallAvailable, false);
   assert.equal(controls.tokenEndpointPath, REALTIME_TOKEN_ENDPOINT_PATH);
-  assert.equal(controls.webRtcCallsEndpoint, OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT);
+  assert.equal(controls.webRtcCallsEndpoint, REALTIME_WEBRTC_CALLS_ENDPOINT_PATH);
   assert.equal(controls.standardApiKeyAllowedInBrowser, false);
   assert.equal(controls.ephemeralClientSecretRequired, true);
   assert.equal(controls.fallbackRehearsalAvailable, true);
@@ -107,7 +107,7 @@ test("startRealtimeCallSession reports Realtime calls HTTP failures after microp
   assert.equal(result.controls.microphonePermissionState, "granted");
   assert.equal(result.controls.lastFailure?.stage, "realtime-calls");
   assert.equal(result.controls.lastFailure?.httpStatus, 400);
-  assert.equal(result.controls.lastFailure?.endpoint, OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT);
+  assert.equal(result.controls.lastFailure?.endpoint, REALTIME_WEBRTC_CALLS_ENDPOINT_PATH);
   assert.match(result.controls.lastFailure?.message ?? "", /Realtime WebRTC calls request failed/);
   assert.equal(audioTrack.stopped, true);
   assert.equal(peer.closed, true);
@@ -160,10 +160,29 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
         });
       }
 
-      assert.equal(String(url), OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT);
-      assert.equal(headers.Authorization, "Bearer ek_test_ephemeral_client_secret");
-      assert.equal(headers["Content-Type"], "application/sdp");
-      assert.equal(init?.body, "local-offer-sdp");
+      assert.equal(String(url), REALTIME_WEBRTC_CALLS_ENDPOINT_PATH);
+      assert.equal(headers.Authorization, undefined);
+      assert.equal(headers["Content-Type"], "application/json");
+      assert.deepEqual(JSON.parse(String(init?.body)), {
+        sdp: "local-offer-sdp",
+        sessionContext: {
+          callId: "CALL-1",
+          operatorSessionId: "operator-demo-CALL-1",
+          reviewGateId: "policy-general-guidance-only",
+          realtimeGrounding: {
+            version: 1,
+            instructions: "# Role and Objective\nUse the selected call evidence.",
+            evidenceReferences: ["knowledge/business_rules/demo.md / Demo"],
+            policy: {
+              outcome: "general-guidance-only",
+              allowedResponseScope: "general-information-only",
+              customerSpecificAnswerAllowed: false,
+              humanReviewRequired: false,
+              blockedResponseTypes: ["顧客別の契約状態・請求状態の断定"]
+            }
+          }
+        }
+      });
 
       return textResponse("remote-answer-sdp");
     },
@@ -213,7 +232,7 @@ test("startRealtimeCallSession connects with an ephemeral client secret and SDP 
       }
     }
   });
-  assert.equal(requests[1]?.url, OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT);
+  assert.equal(requests[1]?.url, REALTIME_WEBRTC_CALLS_ENDPOINT_PATH);
   peer.dataChannel.dispatchMessage(
     JSON.stringify({
       type: "response.output_audio_transcript.done",

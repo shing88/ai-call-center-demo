@@ -13,6 +13,10 @@ import {
   REALTIME_HANDOFFS_ENDPOINT_PATH,
   type RealtimeCallHandoffRecord
 } from "./realtime-call-recording.js";
+import {
+  OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT,
+  REALTIME_WEBRTC_CALLS_ENDPOINT_PATH
+} from "./realtime-calls-endpoint.js";
 
 export { REALTIME_TOKEN_ENDPOINT_PATH } from "./realtime-token-endpoint.js";
 
@@ -106,12 +110,106 @@ async function handleApiRequest(
     return;
   }
 
+  if (url.pathname === REALTIME_WEBRTC_CALLS_ENDPOINT_PATH) {
+    await handleRealtimeCallsRequest(request, response, runtime);
+    return;
+  }
+
   if (url.pathname === REALTIME_HANDOFFS_ENDPOINT_PATH) {
     await handleRealtimeHandoffsRequest(request, response, url, runtime);
     return;
   }
 
   writeJson(response, 404, { error: { code: "api_route_not_found" } });
+}
+
+async function handleRealtimeCallsRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  runtime: RuntimeConfig
+): Promise<void> {
+  if (request.method !== "POST") {
+    writeJson(response, 405, {
+      error: { code: "method_not_allowed" },
+      fallback: { mode: "local-rehearsal", available: true }
+    });
+    return;
+  }
+
+  const parsedBody = await readJsonRequestBody(request);
+
+  if (!parsedBody.ok) {
+    writeJson(response, parsedBody.statusCode, parsedBody.body);
+    return;
+  }
+
+  const callsRequest = parseRealtimeCallsRequest(parsedBody.body);
+
+  if (!callsRequest) {
+    writeJson(response, 400, {
+      status: "rejected",
+      requestAccepted: false,
+      upstreamRequestAttempted: false,
+      networkRequestAllowed: false,
+      error: {
+        code: "invalid_realtime_calls_request",
+        message: "Realtime calls requests must include a non-empty SDP offer."
+      },
+      fallback: { mode: "local-rehearsal", available: true }
+    });
+    return;
+  }
+
+  if (!runtime.openAiApiKey) {
+    writeJson(response, 503, {
+      status: "not-configured",
+      requestAccepted: false,
+      upstreamRequestAttempted: false,
+      networkRequestAllowed: false,
+      error: {
+        code: "realtime_calls_endpoint_not_configured",
+        message:
+          "Realtime calls endpoint adapter is disabled until server-side configuration is explicitly enabled."
+      },
+      fallback: { mode: "local-rehearsal", available: true }
+    });
+    return;
+  }
+
+  if (
+    containsBrowserCredentialHeaders(request.headers) ||
+    containsCredentialLikeValue(callsRequest.sessionContext)
+  ) {
+    writeJson(response, 400, {
+      status: "rejected",
+      requestAccepted: false,
+      upstreamRequestAttempted: false,
+      networkRequestAllowed: false,
+      error: {
+        code: "browser_credentials_rejected",
+        message:
+          "Browser-supplied OpenAI credentials are not accepted by the Realtime calls endpoint."
+      },
+      fallback: { mode: "local-rehearsal", available: true }
+    });
+    return;
+  }
+
+  const upstream = await createRealtimeCall(
+    { ...runtime, openAiApiKey: runtime.openAiApiKey },
+    callsRequest
+  );
+
+  if (!upstream.ok) {
+    writeJson(response, upstream.statusCode, upstream.body);
+    return;
+  }
+
+  response.writeHead(200, {
+    "Content-Type": "application/sdp",
+    "Cache-Control": "no-store"
+  });
+  response.end(upstream.sdp);
 }
 
 async function handleRealtimeHandoffsRequest(
@@ -387,6 +485,67 @@ async function createRealtimeClientSecret(
   }
 }
 
+async function createRealtimeCall(
+  runtime: RuntimeConfig & { openAiApiKey: string },
+  requestBody: RealtimeCallsRequest
+): Promise<
+  | { ok: true; sdp: string }
+  | { ok: false; statusCode: number; body: Record<string, unknown> }
+> {
+  const formData = new FormData();
+  formData.set("sdp", requestBody.sdp);
+  formData.set(
+    "session",
+    JSON.stringify({
+      type: "realtime",
+      model: runtime.realtimeModel,
+      ...buildRealtimeSessionGrounding(requestBody.sessionContext)
+    })
+  );
+
+  try {
+    const upstreamResponse = await runtime.fetch(
+      OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${runtime.openAiApiKey}`,
+          "OpenAI-Safety-Identifier": buildSafetyIdentifier(
+            requestBody.sessionContext
+          )
+        },
+        body: formData
+      }
+    );
+
+    if (!upstreamResponse.ok) {
+      return buildUpstreamError(
+        "upstream-error",
+        "realtime_calls_upstream_error",
+        `OpenAI Realtime calls request failed with status ${upstreamResponse.status}.`
+      );
+    }
+
+    const sdp = await upstreamResponse.text();
+
+    if (sdp.trim().length === 0) {
+      return buildUpstreamError(
+        "upstream-error",
+        "invalid_upstream_realtime_calls_sdp",
+        "OpenAI Realtime calls response did not include an SDP answer."
+      );
+    }
+
+    return { ok: true, sdp };
+  } catch {
+    return buildUpstreamError(
+      "network-error",
+      "realtime_calls_network_error",
+      "OpenAI Realtime calls request could not be completed."
+    );
+  }
+}
+
 async function readJsonRequestBody(
   request: IncomingMessage
 ): Promise<
@@ -414,6 +573,28 @@ async function readJsonRequestBody(
       body: { error: { code: "invalid_json" } }
     };
   }
+}
+
+interface RealtimeCallsRequest {
+  sdp: string;
+  sessionContext?: unknown;
+}
+
+function parseRealtimeCallsRequest(value: unknown): RealtimeCallsRequest | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  if (typeof candidate.sdp !== "string" || candidate.sdp.trim().length === 0) {
+    return undefined;
+  }
+
+  return {
+    sdp: candidate.sdp,
+    sessionContext: candidate.sessionContext
+  };
 }
 
 function buildRuntimeConfig(options: DemoServerOptions): RuntimeConfig {
@@ -463,7 +644,25 @@ function filterHandoffsByCallId(
   return filtered.slice(-20).reverse();
 }
 
+function containsBrowserCredentialHeaders(
+  headers: IncomingMessage["headers"]
+): boolean {
+  return Object.keys(headers).some((name) => {
+    const normalized = name.toLowerCase();
+
+    return (
+      normalized === "authorization" ||
+      normalized === "x-openai-api-key" ||
+      normalized === "openai-api-key"
+    );
+  });
+}
+
 function containsCredentialLikeValue(value: unknown): boolean {
+  if (value === undefined) {
+    return false;
+  }
+
   const serialized = JSON.stringify(value);
 
   return /(?:\bsk-[A-Za-z0-9_-]+|Bearer\s+\S+|OPENAI_API_KEY|ek_[A-Za-z0-9_-]+)/i.test(
