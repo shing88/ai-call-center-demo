@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildRealtimeCallHandoffRecord,
   createRealtimeTranscriptCollector,
+  loadRealtimeCallHandoffRecords,
   type RealtimeTranscriptEntry
 } from "../src/realtime-call-recording.js";
 import type { CallSummary } from "../src/call-summary.js";
@@ -62,6 +63,38 @@ test("Realtime transcript collector extracts transcript text from response.done 
   ]);
 });
 
+test("Realtime transcript collector deduplicates response.done fallback text", () => {
+  const collector = createRealtimeTranscriptCollector();
+
+  collector.recordServerEvent({
+    type: "response.output_audio_transcript.done",
+    transcript: "Please confirm your service area."
+  });
+  collector.recordServerEvent({
+    type: "response.done",
+    response: {
+      output: [
+        {
+          content: [
+            {
+              transcript: "Please confirm your service area."
+            }
+          ]
+        }
+      ]
+    }
+  });
+
+  assert.deepEqual(collector.getTranscript(), [
+    {
+      role: "assistant",
+      text: "Please confirm your service area.",
+      sourceEventType: "response.output_audio_transcript.done",
+      final: true
+    }
+  ]);
+});
+
 test("buildRealtimeCallHandoffRecord keeps transcript, policy, evidence, and next action browser-only", () => {
   const transcript: RealtimeTranscriptEntry[] = [
     {
@@ -105,6 +138,58 @@ test("buildRealtimeCallHandoffRecord keeps transcript, policy, evidence, and nex
     externalSendAllowed: false,
     productionPhoneConnectionAllowed: false
   });
+});
+
+test("loadRealtimeCallHandoffRecords normalizes duplicate persisted transcript entries", async () => {
+  const duplicateRecord = {
+    ...buildRealtimeCallHandoffRecord({
+      status: "recorded",
+      callSummary: sampleCallSummary,
+      policy: samplePolicy,
+      transcript: [
+        {
+          role: "assistant",
+          text: "Please confirm your service area.",
+          sourceEventType: "response.output_audio_transcript.done",
+          final: true
+        }
+      ]
+    }),
+    transcript: [
+      {
+        role: "assistant",
+        text: "Please confirm your service area.",
+        sourceEventType: "response.output_audio_transcript.done",
+        final: true
+      },
+      {
+        role: "assistant",
+        text: "Please confirm your service area.",
+        sourceEventType: "response.done",
+        final: true
+      }
+    ]
+  };
+  const fetchFn: typeof fetch = async () =>
+    new Response(
+      JSON.stringify({
+        status: "ready",
+        storage: { mode: "local-json" },
+        records: [duplicateRecord]
+      })
+    );
+
+  const records = await loadRealtimeCallHandoffRecords(fetchFn, "CALL-1");
+
+  assert.equal(records.length, 1);
+  assert.deepEqual(records[0]?.transcript, [
+    {
+      role: "assistant",
+      text: "Please confirm your service area.",
+      sourceEventType: "response.output_audio_transcript.done",
+      final: true
+    }
+  ]);
 });
 
 const sampleCallSummary: CallSummary = {
