@@ -662,7 +662,7 @@ test("renderApp displays Realtime failure diagnostics without exposing secrets",
         stage: "realtime-calls",
         message: "Realtime WebRTC calls request failed with HTTP 400.",
         httpStatus: 400,
-        endpoint: "https://api.openai.com/v1/realtime/calls"
+        endpoint: "/api/realtime/calls"
       }
     })
   });

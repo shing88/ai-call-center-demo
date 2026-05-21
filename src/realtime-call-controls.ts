@@ -1,7 +1,5 @@
 import { REALTIME_TOKEN_ENDPOINT_PATH } from "./realtime-token-endpoint.js";
-
-export const OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT =
-  "https://api.openai.com/v1/realtime/calls";
+import { REALTIME_WEBRTC_CALLS_ENDPOINT_PATH } from "./realtime-calls-endpoint.js";
 
 export type RealtimeCallStatus =
   | "idle"
@@ -42,7 +40,7 @@ export interface RealtimeCallControls {
   startCallAvailable: boolean;
   endCallAvailable: boolean;
   tokenEndpointPath: typeof REALTIME_TOKEN_ENDPOINT_PATH;
-  webRtcCallsEndpoint: typeof OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT;
+  webRtcCallsEndpoint: typeof REALTIME_WEBRTC_CALLS_ENDPOINT_PATH;
   standardApiKeyAllowedInBrowser: false;
   ephemeralClientSecretRequired: true;
   fallbackRehearsalAvailable: boolean;
@@ -120,7 +118,7 @@ export function buildRealtimeCallControls(
       status === "connecting" ||
       status === "connected",
     tokenEndpointPath: REALTIME_TOKEN_ENDPOINT_PATH,
-    webRtcCallsEndpoint: OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT,
+    webRtcCallsEndpoint: REALTIME_WEBRTC_CALLS_ENDPOINT_PATH,
     standardApiKeyAllowedInBrowser: false,
     ephemeralClientSecretRequired: true,
     fallbackRehearsalAvailable: options.fallbackRehearsalAvailable ?? true,
@@ -168,13 +166,15 @@ export async function startRealtimeCallSession(
     await peerConnection.setLocalDescription(offer);
 
     currentStage = "realtime-calls";
-    const sdpResponse = await dependencies.fetch(OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT, {
+    const sdpResponse = await dependencies.fetch(REALTIME_WEBRTC_CALLS_ENDPOINT_PATH, {
       method: "POST",
-      body: offer.sdp ?? "",
       headers: {
-        Authorization: `Bearer ${clientSecretResult.value}`,
-        "Content-Type": "application/sdp"
-      }
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        sdp: offer.sdp ?? "",
+        sessionContext: dependencies.tokenRequestBody
+      })
     });
 
     if (!sdpResponse.ok) {
@@ -187,7 +187,7 @@ export async function startRealtimeCallSession(
             stage: "realtime-calls",
             message: `Realtime WebRTC calls request failed with HTTP ${sdpResponse.status}.`,
             httpStatus: sdpResponse.status,
-            endpoint: OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT
+            endpoint: REALTIME_WEBRTC_CALLS_ENDPOINT_PATH
           }
         })
       };
@@ -284,7 +284,7 @@ function buildExceptionFailureDiagnostics(
       stage === "client-secret"
         ? REALTIME_TOKEN_ENDPOINT_PATH
         : stage === "realtime-calls"
-          ? OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT
+          ? REALTIME_WEBRTC_CALLS_ENDPOINT_PATH
           : undefined
   };
 }
@@ -416,9 +416,9 @@ function selectStatusDetail(status: RealtimeCallStatus): string {
     case "requesting-microphone":
       return "The browser is asking for microphone access after receiving a client secret.";
     case "connecting":
-      return "Posting the SDP offer to the OpenAI Realtime WebRTC calls endpoint.";
+      return "Posting the SDP offer to the local server Realtime WebRTC calls adapter.";
     case "connected":
-      return "WebRTC audio is connected through the short-lived client secret.";
+      return "WebRTC audio is connected through the local server Realtime calls adapter.";
     case "ended":
       return "Local tracks and peer connection have been closed.";
     case "fallback":

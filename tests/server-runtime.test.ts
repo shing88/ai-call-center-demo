@@ -8,6 +8,10 @@ import {
   createDemoServer,
   REALTIME_TOKEN_ENDPOINT_PATH
 } from "../src/server-runtime.js";
+import {
+  OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT,
+  REALTIME_WEBRTC_CALLS_ENDPOINT_PATH
+} from "../src/realtime-calls-endpoint.js";
 
 test("server runtime exposes a deterministic health endpoint", async () => {
   const fixture = await createServerFixture();
@@ -249,6 +253,153 @@ test("configured Realtime client-secret endpoint rejects browser credentials bef
         fetch: async () => {
           fetchCalled = true;
           return new Response("{}", { status: 200 });
+        }
+      }
+    );
+
+    assert.equal(fetchCalled, false);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test("server runtime creates a Realtime WebRTC call through the unified server adapter", async () => {
+  const fixture = await createServerFixture();
+  const upstreamRequests: Array<{
+    url: string;
+    init: RequestInit;
+    formData: FormData;
+  }> = [];
+
+  try {
+    await withRunningServer(
+      fixture.rootDir,
+      async (baseUrl) => {
+        const response = await fetch(
+          `${baseUrl}${REALTIME_WEBRTC_CALLS_ENDPOINT_PATH}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sdp: "local-offer-sdp",
+              sessionContext: {
+                callId: "CALL-1",
+                operatorSessionId: "operator-session-1",
+                reviewGateId: "review-gate-1",
+                realtimeGrounding: {
+                  version: 1,
+                  instructions:
+                    "# Role and Objective\nUse the selected call evidence and policy guard."
+                }
+              }
+            })
+          }
+        );
+
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get("content-type"), "application/sdp");
+        assert.equal(await response.text(), "remote-answer-sdp");
+      },
+      {
+        openAiApiKey: "server-standard-key",
+        realtimeModel: "gpt-realtime-2",
+        fetch: async (url, init = {}) => {
+          assert.ok(init.body instanceof FormData);
+          upstreamRequests.push({
+            url: String(url),
+            init,
+            formData: init.body
+          });
+
+          return new Response("remote-answer-sdp", {
+            status: 200,
+            headers: { "Content-Type": "application/sdp" }
+          });
+        }
+      }
+    );
+
+    assert.equal(upstreamRequests.length, 1);
+    assert.equal(upstreamRequests[0]?.url, OPENAI_REALTIME_WEBRTC_CALLS_ENDPOINT);
+    assert.equal(upstreamRequests[0]?.init.method, "POST");
+    assert.equal(
+      getHeader(upstreamRequests[0]?.init.headers, "Authorization"),
+      "Bearer server-standard-key"
+    );
+    assert.equal(getHeader(upstreamRequests[0]?.init.headers, "Content-Type"), null);
+    assert.match(
+      getHeader(upstreamRequests[0]?.init.headers, "OpenAI-Safety-Identifier") ?? "",
+      /^[a-f0-9]{64}$/
+    );
+    assert.equal(upstreamRequests[0]?.formData.get("sdp"), "local-offer-sdp");
+    assert.deepEqual(JSON.parse(String(upstreamRequests[0]?.formData.get("session"))), {
+      type: "realtime",
+      model: "gpt-realtime-2",
+      instructions:
+        "# Role and Objective\nUse the selected call evidence and policy guard."
+    });
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test("server runtime returns fallback for Realtime calls when the API key is not configured", async () => {
+  const fixture = await createServerFixture();
+
+  try {
+    await withRunningServer(fixture.rootDir, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}${REALTIME_WEBRTC_CALLS_ENDPOINT_PATH}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sdp: "local-offer-sdp" })
+      });
+      const body = await response.json();
+
+      assert.equal(response.status, 503);
+      assert.equal(body.status, "not-configured");
+      assert.equal(body.upstreamRequestAttempted, false);
+      assert.equal(body.networkRequestAllowed, false);
+      assert.equal(body.fallback.mode, "local-rehearsal");
+    });
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test("configured Realtime calls endpoint rejects browser credentials before upstream fetch", async () => {
+  const fixture = await createServerFixture();
+  let fetchCalled = false;
+
+  try {
+    await withRunningServer(
+      fixture.rootDir,
+      async (baseUrl) => {
+        const response = await fetch(
+          `${baseUrl}${REALTIME_WEBRTC_CALLS_ENDPOINT_PATH}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer browser-credential"
+            },
+            body: JSON.stringify({ sdp: "local-offer-sdp" })
+          }
+        );
+        const body = await response.json();
+        const serialized = JSON.stringify(body);
+
+        assert.equal(response.status, 400);
+        assert.equal(body.status, "rejected");
+        assert.equal(body.upstreamRequestAttempted, false);
+        assert.equal(body.networkRequestAllowed, false);
+        assert.equal(body.error.code, "browser_credentials_rejected");
+        assert.doesNotMatch(serialized, /browser-credential/);
+      },
+      {
+        openAiApiKey: "server-standard-key",
+        fetch: async () => {
+          fetchCalled = true;
+          return new Response("remote-answer-sdp");
         }
       }
     );
