@@ -205,7 +205,18 @@ test("server runtime mints a Realtime client secret through a server-side reques
         type: "realtime",
         model: "gpt-realtime-2",
         instructions:
-          "# Role and Objective\nUse the selected call evidence and policy guard."
+          "# Role and Objective\nUse the selected call evidence and policy guard.",
+        output_modalities: ["audio"],
+        audio: {
+          input: {
+            transcription: {
+              model: "gpt-4o-transcribe"
+            },
+            turn_detection: {
+              type: "server_vad"
+            }
+          }
+        }
       }
     });
   } finally {
@@ -336,7 +347,18 @@ test("server runtime creates a Realtime WebRTC call through the unified server a
       type: "realtime",
       model: "gpt-realtime-2",
       instructions:
-        "# Role and Objective\nUse the selected call evidence and policy guard."
+        "# Role and Objective\nUse the selected call evidence and policy guard.",
+      output_modalities: ["audio"],
+      audio: {
+        input: {
+          transcription: {
+            model: "gpt-4o-transcribe"
+          },
+          turn_detection: {
+            type: "server_vad"
+          }
+        }
+      }
     });
   } finally {
     await fixture.cleanup();

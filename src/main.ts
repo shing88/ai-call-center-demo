@@ -69,6 +69,7 @@ const fallbackRehearsal = buildFallbackRehearsalPlan({
 });
 let realtimeCallControls: RealtimeCallControls = buildRealtimeCallControls();
 let realtimeCallSession: RealtimeCallSession | undefined;
+let realtimeRemoteAudioElement: HTMLAudioElement | undefined;
 let realtimeTranscriptCollector: RealtimeTranscriptCollector | undefined;
 let realtimeCallHandoff: RealtimeCallHandoffRecord | undefined;
 let realtimeRuntimeOptions: BuildRealtimeConnectionBoundaryOptions =
@@ -192,13 +193,15 @@ async function handleStartRealtimeCall(): Promise<void> {
     fetch: browserFetch,
     getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
     createPeerConnection: () => new RTCPeerConnection(),
-    onServerEvent: (event) => realtimeTranscriptCollector?.recordServerEvent(event)
+    onServerEvent: (event) => realtimeTranscriptCollector?.recordServerEvent(event),
+    onRemoteAudioStream: attachRealtimeRemoteAudioStream
   });
 
   if (requestId !== realtimeCallRequestId) {
     if (result.session) {
       endRealtimeCallSession(result.session);
     }
+    clearRealtimeRemoteAudioStream();
     realtimeTranscriptCollector = undefined;
     return;
   }
@@ -212,6 +215,7 @@ function handleEndRealtimeCall(): void {
   realtimeCallRequestId += 1;
 
   if (!realtimeCallSession) {
+    clearRealtimeRemoteAudioStream();
     realtimeCallHandoff = buildCurrentRealtimeCallHandoff("fallback-recorded");
     realtimeCallControls = buildRealtimeCallControls({ status: "ended" });
     renderCurrentState();
@@ -224,8 +228,35 @@ function handleEndRealtimeCall(): void {
   realtimeCallControls = endRealtimeCallSession(realtimeCallSession);
   realtimeCallSession = undefined;
   realtimeTranscriptCollector = undefined;
+  clearRealtimeRemoteAudioStream();
   renderCurrentState();
   void persistCurrentRealtimeCallHandoff();
+}
+
+function attachRealtimeRemoteAudioStream(stream: MediaStream): void {
+  const audioElement = realtimeRemoteAudioElement ?? document.createElement("audio");
+  audioElement.autoplay = true;
+  audioElement.dataset.realtimeRemoteAudio = "true";
+  audioElement.style.display = "none";
+  audioElement.srcObject = stream;
+
+  if (!realtimeRemoteAudioElement) {
+    document.body.append(audioElement);
+    realtimeRemoteAudioElement = audioElement;
+  }
+
+  void audioElement.play().catch(() => {
+    return;
+  });
+}
+
+function clearRealtimeRemoteAudioStream(): void {
+  if (!realtimeRemoteAudioElement) {
+    return;
+  }
+
+  realtimeRemoteAudioElement.pause();
+  realtimeRemoteAudioElement.srcObject = null;
 }
 
 interface CurrentCallReviewContext {

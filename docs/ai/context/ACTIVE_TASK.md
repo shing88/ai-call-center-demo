@@ -4,7 +4,7 @@
 
 次のタスク: Task 28 `browser-realtime-voice-demo`
 
-現在のPR段階: Realtime calls failure diagnostics
+現在のPR段階: Realtime response and transcript kickoff
 
 Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controlsは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否を固定している。
 
@@ -14,7 +14,7 @@ Task 28のCall recording and handoffも実装済み。`End call`後にtranscript
 
 Task 28のLocal JSON handoff persistenceも実装済み。`/api/realtime/handoffs`でhandoff recordをserver-side local JSONへ保存・取得し、Docker Composeでは`./data:/app/data`に保存する。
 
-後続計画: `OPENAI_API_KEY`をGit管理外の`.env.local`で用意したDocker環境では、`GET /api/health`が`configured` / `ready`を返し、`POST /api/realtime/client-secret`が`HTTP 200` / `status=ready` / `valueあり`を返すところまで確認済み。ユーザー実機ブラウザではマイク許可後に`Stage: realtime-calls`でfallbackへ戻り、その後unbound browser `fetch`が`Illegal invocation`になることも確認したため、`window.fetch(...)` wrapperに寄せた。修正後の実機ブラウザでは`Realtime call connected`まで到達し、その後ユーザーが`End call`した。現在は同一originの`POST /api/realtime/calls`へ到達した後の失敗を切り分けるため、fallback diagnosticsにserver error code/messageとfetch TypeError detailを追加する小PRを進める。次は`End call`後のhandoff record表示・local JSON復元・transcript有無を短時間で確認する。keyがない環境では`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存テストだけを確認する。
+後続計画: `OPENAI_API_KEY`をGit管理外の`.env.local`で用意したDocker環境では、`GET /api/health`が`configured` / `ready`を返し、`POST /api/realtime/client-secret`が`HTTP 200` / `status=ready` / `valueあり`を返すところまで確認済み。ユーザー実機ブラウザではマイク許可後に`Stage: realtime-calls`でfallbackへ戻り、その後unbound browser `fetch`が`Illegal invocation`になることも確認したため、`window.fetch(...)` wrapperに寄せた。修正後の実機ブラウザでは`Realtime call connected`まで到達し、その後ユーザーが`End call`したが、AI音声応答が聞こえず、transcriptも空になるケースがあった。現在はremote WebRTC audio trackをhidden audio要素へ接続し、data channel open時に`response.create`を送り、session configへ`output_modalities: ["audio"]`、`audio.input.transcription.model: "gpt-4o-transcribe"`、`audio.input.turn_detection.type: "server_vad"`を明示する小PRを進める。次の実機確認では、AIが最初に返答するか、ユーザー発話後にtranscriptがhandoffへ残るかを確認する。keyがない環境では`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存テストだけを確認する。
 
 この段階では`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信はまだ入れない。
 
