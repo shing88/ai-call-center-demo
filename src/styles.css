@@ -415,6 +415,47 @@ button:disabled {
   line-height: 1.55;
 }
 
+.scenario-actor-context {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(18, 138, 82, 0.22);
+  border-radius: var(--radius-sm);
+  background: var(--ok-soft);
+}
+
+.scenario-actor-context > span {
+  display: block;
+  color: var(--ok);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.scenario-actor-context ul {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.scenario-actor-context li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.scenario-actor-context li::before {
+  position: absolute;
+  top: 0.7em;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ok);
+  content: "";
+}
+
 .scenario-spotlight__flow ol {
   display: grid;
   gap: 8px;

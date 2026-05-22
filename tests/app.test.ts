@@ -411,11 +411,17 @@ test("renderApp shows selected scenario details and expected demo flow before th
   assert.ok(workspaceIndex > scenarioIndex);
   assert.match(html, /data-scenario-spotlight-call-id="CALL-CC-04"/);
   assert.match(html, /シナリオ詳細/);
+  assert.match(html, /お客役が知っておく前提情報/);
   assert.match(html, /デモ開始後に期待される話の流れ/);
   assert.match(html, /既存ネット加入者のケーブルプラス電話追加デモ/);
+  assert.match(html, /森 彩乃役/);
+  assert.match(html, /CCNet光1GとメッシュWi-Fi 2台を利用中/);
+  assert.match(html, /サービス開始月は2025年4月/);
+  assert.match(html, /デモ用合言葉カテゴリは町内会/);
   assert.match(html, /契約者の氏名・登録住所・登録電話番号/);
   assert.match(html, /本人以外からの電話申し込みは受け付けない/);
   assert.match(html, /6ステップ/);
+  assert.doesNotMatch(html, /\d{2,4}-\d{2,4}-\d{4}/);
 });
 
 test("renderApp switches the scenario detail when another demo scenario is selected", () => {
@@ -439,6 +445,9 @@ test("renderApp switches the scenario detail when another demo scenario is selec
 
   assert.match(html, /data-scenario-spotlight-call-id="CALL-CC-05"/);
   assert.match(html, /ネット新規加入時のケーブルプラス電話提案デモ/);
+  assert.match(html, /西村 陽太役/);
+  assert.match(html, /小牧市で新築戸建てに引っ越し予定/);
+  assert.match(html, /家族にUQ mobile利用者/);
   assert.match(html, /住居種別、提供エリア、利用目的、Wi-Fi台数/);
   assert.match(html, /料金シミュレーション、提供エリア確認/);
   assert.doesNotMatch(html, /本人以外からの電話申し込みは受け付けない/);

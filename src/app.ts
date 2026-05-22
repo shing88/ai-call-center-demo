@@ -167,6 +167,7 @@ interface DemoScenarioSpotlight {
   title: string;
   scenarioDetail: string;
   demoGoal: string;
+  actorContext: string[];
   expectedFlow: string[];
   presenterCue: string;
 }
@@ -311,6 +312,11 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "左のデモシナリオから案件を選ぶと、お客様設定、AIが最初に確認すべきこと、期待される会話の流れをここに表示します。",
       demoGoal:
         "デモ開始前に、視聴者へ「何を見せるのか」と「どこまで断定しないのか」を共有します。",
+      actorContext: [
+        "お客役は、左のデモシナリオに表示される顧客名、相談内容、契約状態を確認してから開始します。",
+        "契約状態や本人確認の回答は、選択したシナリオの表示内容だけを使います。",
+        "実在の住所、電話番号、契約番号、請求情報は使いません。"
+      ],
       expectedFlow: [
         "シナリオを選択する。",
         "本人確認や提供エリア確認など、最初の確認ポイントを整理する。",
@@ -332,6 +338,11 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
       "公開情報で案内できる内容と、担当者確認へ回す内容を分けて提示する。",
       "応答ドラフト、根拠候補、ポリシー判定、次アクションを確認する。"
     ],
+    actorContext: [
+      `${item.callerName}役として、相談内容は「${item.excerpt}」から始める。`,
+      `契約・利用状況は「${item.servicePlan ?? "未設定"}」、エリアは「${item.serviceArea ?? "未設定"}」。`,
+      `${verificationLabel(item.verificationStatus)}として振る舞い、本人確認前に契約確定情報を要求しすぎない。`
+    ],
     presenterCue: "AIがいきなり確定回答せず、根拠とガードレールを示す点を確認してください。"
   };
 
@@ -348,6 +359,11 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "個別の安全判断は自治体・防災機関・公式警報を確認するよう案内する。",
         "必要なら担当者確認や追加の視聴方法案内へ引き継ぐ。"
       ],
+      actorContext: [
+        "田中 美咲役。小牧市の戸建てでテレビ ファミリーAと安全・安心123チャンネルを利用中という設定。",
+        "本人確認は未完了。地域情報の見方を知りたいが、避難判断や個別地点の安全判断までは求めない。",
+        "大雨前で道路・河川カメラ、防災、防犯情報をテレビで確認したい。"
+      ],
       presenterCue: "災害・安全判断をAIが断定しない点を見せます。"
     },
     "CALL-CC-02": {
@@ -362,6 +378,11 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "影響範囲、発生日時、利用環境など確認すべき項目を整理する。",
         "人の確認が必要な案件として引き継ぎメモを作る。"
       ],
+      actorContext: [
+        "佐藤 亮役。各務原市の集合住宅でCCNet Air LTEと無線機器を利用中という設定。",
+        "本人確認は未完了。仕事に影響したため、障害状況と補償可否を強めに確認したい。",
+        "補償額、障害認定、契約状態の確定情報はお客役からも断定しない。"
+      ],
       presenterCue: "高リスクな補償判断を自動回答しない点を見せます。"
     },
     "CALL-CC-03": {
@@ -375,6 +396,11 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "本人確認前は契約状態や変更可否を断定しないと説明する。",
         "利用端末数、設置場所、メッシュWi-Fi、10G提供可否など確認観点を整理する。",
         "公開情報の一般案内を示し、担当者確認へつなぐ。"
+      ],
+      actorContext: [
+        "山本 花役。春日井市の戸建てでCCNet光1G おとく割、テレビ、ケーブルライン、メッシュWi-Fiを利用中という設定。",
+        "本人確認は未完了。テレワーク中にWi-Fiが不安定で、CCNet光10Gに変えられるか知りたい。",
+        "10G提供可否、工事日、料金、速度改善の保証はまだ知らない前提で話す。"
       ],
       presenterCue: "速度改善や10G提供可否を約束しない点を見せます。"
     },
@@ -392,6 +418,13 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "ケーブルプラス電話とケーブルラインの選択肢、料金目安、確認が必要な項目を提示する。",
         "追加受付完了、番号継続可否、割引適用、工事日、最終料金は断定せず担当者確認へ引き継ぐ。"
       ],
+      actorContext: [
+        "森 彩乃役。豊川市の戸建てでCCNet光1GとメッシュWi-Fi 2台を利用中、固定電話は未加入という設定。",
+        "契約者本人として電話している。本人確認では、契約者の氏名、登録住所、登録電話番号に答えられる前提。",
+        "サービス開始月は2025年4月、デモ用合言葉カテゴリは町内会。実在の電話番号や番地は言わない。",
+        "自宅の電話番号と電話機をできれば継続したい。auスマホとのセットメリット、通話量が多い場合の選択肢も聞く。",
+        "追加可否、番号継続、割引適用、工事日、最終料金はまだ知らない前提で話す。"
+      ],
       presenterCue: "本人確認と、本人以外の電話申込不可を最初に見せるシナリオです。"
     },
     "CALL-CC-05": {
@@ -407,6 +440,12 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "ネットコースの考え方と、ケーブルプラス電話/ケーブルラインの比較観点を提示する。",
         "料金シミュレーション、提供エリア確認、電話説明または訪問説明へ案内する。",
         "申込可否、工事費、番号継続、キャンペーン適用、最終月額は正式確認後と明示する。"
+      ],
+      actorContext: [
+        "西村 陽太役。小牧市で新築戸建てに引っ越し予定、CCNet未加入の見込み顧客という設定。",
+        "テレワークと動画視聴が多く、家族にUQ mobile利用者がいる。",
+        "固定電話を付けるべきか迷っている。現在の電話番号を引き継ぐかは相談しながら決めたい。",
+        "申込可否、キャンペーン適用、工事費、番号継続、最終月額はまだ知らない前提で話す。"
       ],
       presenterCue: "商品を押し付けず、条件確認後に選択肢として提案する点を見せます。"
     }
@@ -1799,6 +1838,14 @@ function renderDemoScenarioSpotlight(scenario: DemoScenarioSpotlight): string {
         <div class="scenario-goal">
           <span>デモの見せどころ</span>
           <strong>${escapeHtml(scenario.demoGoal)}</strong>
+        </div>
+        <div class="scenario-actor-context">
+          <span>お客役が知っておく前提情報</span>
+          <ul>
+            ${scenario.actorContext
+              .map((context) => `<li>${escapeHtml(context)}</li>`)
+              .join("")}
+          </ul>
         </div>
       </div>
       <div class="scenario-spotlight__flow">
