@@ -2,20 +2,21 @@
 
 ## タスク
 
-次のタスク: CCNetケーブルプラス電話シナリオ追加
+次のタスク: CCNetシナリオ公開仕様整合修正
 
-現在のPR段階: Scenario spotlight and caller verification follow-up
+現在のPR段階: Scenario consistency follow-up
 
 Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controls、Business-rule grounded operator behavior、Call recording and handoff、Local JSON handoff persistenceは実装・merge済み。
 
-この小PRでは、CCNet公開情報に合わせて次の2つの架空デモシナリオを追加する。
+この小PRでは、マージ済みCCNetデモシナリオを公開仕様に再照合し、次の不整合だけを修正する。
 
-- 既存ネット加入者がケーブルプラス電話を追加するケース。
-- 新規ネット加入希望者へ、ネット利用目的と携帯キャリアを確認したうえでケーブルプラス電話を提案するケース。
+- `CALL-CC-02`のCCNet Air利用エリアを、公開ページで対応エリアとして確認できる小牧市へ寄せる。
+- `customer_ccnet_2001`のメッシュWi-Fi 3台目以降料金を550円へ修正する。
+- 戸建て向け現行料金ページで前面に出ていない300M/30Mを主選択肢から外し、担当者確認が必要な旧/一部条件コースとして扱う。
 
-各シナリオでは、挨拶、本人確認または提供エリア確認、電話番号・電話機継続希望、携帯キャリア、通話量、商品選択肢、公開料金目安、断定禁止、担当者確認または料金シミュレーションへの次アクションを固定する。
+既存のセキュリティ境界、Realtime接続、サーバー実装、外部送信ブロック、本番DBブロックには手を入れない。
 
-後続計画: 実装後は`npm.cmd test`、`npm.cmd run build`、`git diff --check`を確認する。余力があればDockerで再ビルドして、`http://localhost:4173/`に`CALL-CC-04` / `CALL-CC-05`が表示されること、選択中シナリオの詳細、お客役が知っておく前提情報、本人確認シミュレーション用の架空照合値、期待される話の流れがKPI帯の直下で切り替わることを確認する。
+後続計画: 実装後は`npm.cmd test`、`npm.cmd run build`、`git diff --check`を確認する。
 
 この段階では`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信はまだ入れない。
 
@@ -79,3 +80,4 @@ docs/ai/inbox/pro-instructions/**
 - 契約者氏名と登録住所はふりがな付きで表示する。
 - 全デモシナリオは、本人確認を先に行い、本人確認後に用件を聞く流れへ統一する。
 - 次に確認する場合: `npm.cmd test`、`npm.cmd run build`、`git diff --check`、`docker compose --env-file .env.local up --build -d`、ブラウザで`CALL-CC-04`カード選択。
+- 仕様整合修正PR: `CALL-CC-02`を小牧市のCCNet Air設定へ変更し、メッシュWi-Fi 3台目以降550円、300M/30Mを主案内から外すテストを追加する。検証対象は`npm.cmd test`、`npm.cmd run build`、`git diff --check`。
