@@ -72,7 +72,7 @@
 ## 次のハンドオフ
 
 - Task 28 `browser-realtime-voice-demo`はlocal JSON handoff persistenceまでPR化・merge済み。
-- 現在の小PRは、CCNetコールセンター応対ロールの追加。AIは「CCNetコールセンターのAIオペレーター」として名乗り、まず用件を聞き、聞いた内容だけを復唱し、本人確認後に詳細確認へ進む。シナリオや架空顧客情報に書かれているだけの情報を、AIが事前に知っているかのように話すことは禁止する。対象は`knowledge/business_rules/006_ccnet_call_center_operator_role.md`、`knowledge/business_rules/005_ccnet_public_service_guidance.md`、`knowledge/scenarios/*.md`のCCNetシナリオ、`src/app.ts`、`src/realtime-session-context.ts`、`tests/*.test.ts`。
+- 現在の小PRは、これまでのUI/Realtime/CCNet応対ロール修正を`README.md`へ反映するドキュメント更新。AIロール定義の場所として、`knowledge/business_rules/006_ccnet_call_center_operator_role.md`、`src/realtime-session-context.ts`、`knowledge/business_rules/005_ccnet_public_service_guidance.md`、CCNetシナリオMarkdown、`src/app.ts`、`src/response-policy.ts`の役割をREADMEに明記する。
 - `OPENAI_API_KEY`をGit管理外の`.env.local`で用意したDocker環境では、`GET /api/health`が`configured` / `ready`を返し、`POST /api/realtime/client-secret`が`HTTP 200` / `status=ready` / `valueあり`を返すところまで確認済み。secret値は表示・保存しない。
 - ユーザー実機ブラウザでは、マイク許可後に`Stage: realtime-calls`でfallbackへ戻り、同一originの`/api/realtime/calls`到達までは確認できた。その後、browser entrypointでunbound `fetch`が`TypeError: Failed to execute 'fetch' on 'Window': Illegal invocation.`になることも確認したため、`window.fetch(...)` wrapper経由に修正済み。
 - 修正後のユーザー実機ブラウザでは、`Realtime call connected`まで到達し、ユーザーが`End call`した。Docker local JSONには`CALL-CC-03`の`status=recorded` handoff recordが保存され、assistant transcript delta、summary、evidence references、policy decision、next action、guardrailsが残った。`GET /api/realtime/handoffs?callId=CALL-CC-03`は最新recordを返し、ブラウザreload後も`Realtime handoff record`が復元表示された。
@@ -89,3 +89,4 @@
 - 検証済み: `npm.cmd test` 131件成功、`npm.cmd run build`成功、`git diff --check`成功、`docker compose --env-file .env.local up --build -d`成功、`http://localhost:4173/`で`CALL-CC-01`から`CALL-CC-05`まで本人確認後に用件を聞く流れと本人確認ブロック表示を確認。
 - 仕様整合修正の検証済み: `npm.cmd test` 132件成功、`npm.cmd run build`成功、`git diff --check`成功。
 - 応対ロール追加PRの検証済み: `npm.cmd test` 133件成功、`npm.cmd run build`成功、`git diff --check`成功。新しい`006_ccnet_call_center_operator_role.md`で、挨拶、用件聞き取り、用件復唱、本人確認、詳細確認の順序と、内部シナリオ情報を事前開示しない境界を固定した。
+- README更新PR: 日本語UI、デモシナリオ選択、中央ペインのシナリオ詳細、Realtime接続境界、local JSON handoff保存、CCNet応対ロール定義ファイルをREADMEに反映する。検証対象は`git diff --check`。
