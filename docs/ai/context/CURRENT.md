@@ -85,4 +85,5 @@
 - 左のデモシナリオ一覧は「開く」ボタンを廃止し、カード全体をクリックまたはEnter/Spaceで選択する。`data-queue-open` / `aria-pressed` / `aria-current`は維持する。
 - `CALL-CC-04`のお客役前提情報には、本人確認で答える情報として契約者氏名、登録住所、登録電話番号、契約者本人からの架電、照合補助を独立ブロックで表示する。
 - 契約者氏名と登録住所には、お客役が読み上げやすいようにふりがなを併記する。
-- 検証済み: `npm.cmd test` 129件成功、`npm.cmd run build`成功、`git diff --check`成功、`docker compose --env-file .env.local up --build -d`成功、`http://localhost:4173/`で`CALL-CC-04`カード選択と中央ペインの本人確認ブロック表示を確認。
+- 全デモシナリオは、挨拶後に本人確認を完了してから用件を聞く流れに統一する。`CALL-CC-01`から`CALL-CC-05`まで、本人確認で答える架空照合値を画面とknowledge customer profileに持つ。
+- 検証済み: `npm.cmd test` 131件成功、`npm.cmd run build`成功、`git diff --check`成功、`docker compose --env-file .env.local up --build -d`成功、`http://localhost:4173/`で`CALL-CC-01`から`CALL-CC-05`まで本人確認後に用件を聞く流れと本人確認ブロック表示を確認。

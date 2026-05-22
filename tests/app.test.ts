@@ -432,6 +432,32 @@ test("renderApp shows selected scenario details in the center workspace", () => 
   assert.match(html, /6ステップ/);
 });
 
+test("renderApp starts every demo scenario with identity verification before the customer issue", () => {
+  for (const item of demoState.activeQueue) {
+    const html = renderApp({
+      ...demoState,
+      assistantEvidence: {
+        ...demoState.assistantEvidence,
+        callId: item.id,
+        query: `${item.topic} ${item.customerId}`,
+        resultCount: 0,
+        results: []
+      }
+    });
+
+    const flowStartIndex = html.indexOf(
+      "<span>1</span>挨拶し、本人確認"
+    );
+    const issueIndex = html.indexOf("本人確認後に用件");
+
+    assert.match(html, new RegExp(`data-scenario-spotlight-call-id="${item.id}"`));
+    assert.match(html, /本人確認で答える情報/);
+    assert.match(html, /0000-00-0000/);
+    assert.ok(flowStartIndex >= 0, `${item.id} should start flow with identity verification`);
+    assert.ok(issueIndex > flowStartIndex, `${item.id} should ask the issue after verification`);
+  }
+});
+
 test("renderApp switches the scenario detail when another demo scenario is selected", () => {
   const html = renderApp({
     ...demoState,
