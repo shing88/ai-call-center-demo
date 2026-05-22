@@ -168,6 +168,7 @@ interface DemoScenarioSpotlight {
   scenarioDetail: string;
   demoGoal: string;
   actorContext: string[];
+  identityCheckContext: string[];
   expectedFlow: string[];
   presenterCue: string;
 }
@@ -317,6 +318,9 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "契約状態や本人確認の回答は、選択したシナリオの表示内容だけを使います。",
         "実在の住所、電話番号、契約番号、請求情報は使いません。"
       ],
+      identityCheckContext: [
+        "本人確認が必要なシナリオでは、ここにデモ用の照合回答を表示します。"
+      ],
       expectedFlow: [
         "シナリオを選択する。",
         "本人確認や提供エリア確認など、最初の確認ポイントを整理する。",
@@ -343,6 +347,9 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
       `契約・利用状況は「${item.servicePlan ?? "未設定"}」、エリアは「${item.serviceArea ?? "未設定"}」。`,
       `${verificationLabel(item.verificationStatus)}として振る舞い、本人確認前に契約確定情報を要求しすぎない。`
     ],
+    identityCheckContext: [
+      "このシナリオ固有の本人確認用回答は設定されていません。必要な場合はデモ用の照合値だけを使います。"
+    ],
     presenterCue: "AIがいきなり確定回答せず、根拠とガードレールを示す点を確認してください。"
   };
 
@@ -364,6 +371,9 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "本人確認は未完了。地域情報の見方を知りたいが、避難判断や個別地点の安全判断までは求めない。",
         "大雨前で道路・河川カメラ、防災、防犯情報をテレビで確認したい。"
       ],
+      identityCheckContext: [
+        "このデモでは本人確認の照合値を使わない。地域情報の一般案内として進める。"
+      ],
       presenterCue: "災害・安全判断をAIが断定しない点を見せます。"
     },
     "CALL-CC-02": {
@@ -382,6 +392,9 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "佐藤 亮役。各務原市の集合住宅でCCNet Air LTEと無線機器を利用中という設定。",
         "本人確認は未完了。仕事に影響したため、障害状況と補償可否を強めに確認したい。",
         "補償額、障害認定、契約状態の確定情報はお客役からも断定しない。"
+      ],
+      identityCheckContext: [
+        "このデモでは本人確認の回答値は提示しない。補償・障害認定は上席確認へ進む想定。"
       ],
       presenterCue: "高リスクな補償判断を自動回答しない点を見せます。"
     },
@@ -402,6 +415,9 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "本人確認は未完了。テレワーク中にWi-Fiが不安定で、CCNet光10Gに変えられるか知りたい。",
         "10G提供可否、工事日、料金、速度改善の保証はまだ知らない前提で話す。"
       ],
+      identityCheckContext: [
+        "このデモでは本人確認の回答値は提示しない。10G提供可否と契約変更は担当者確認へ回す想定。"
+      ],
       presenterCue: "速度改善や10G提供可否を約束しない点を見せます。"
     },
     "CALL-CC-04": {
@@ -420,10 +436,17 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
       ],
       actorContext: [
         "森 彩乃役。豊川市の戸建てでCCNet光1GとメッシュWi-Fi 2台を利用中、固定電話は未加入という設定。",
-        "契約者本人として電話している。本人確認では、契約者氏名「森 彩乃」、デモ登録住所「豊川市デモ町1丁目2番3号」、デモ登録電話番号「0000-00-0000」に答える。",
+        "契約者本人として電話している。本人確認を求められたら、下のデモ用照合値に答える。",
         "サービス開始月は2025年4月、デモ用合言葉カテゴリは町内会。表示されたデモ照合値以外の住所・電話番号は言わない。",
         "自宅の電話番号と電話機をできれば継続したい。auスマホとのセットメリット、通話量が多い場合の選択肢も聞く。",
         "追加可否、番号継続、割引適用、工事日、最終料金はまだ知らない前提で話す。"
+      ],
+      identityCheckContext: [
+        "契約者氏名: 森 彩乃",
+        "登録住所: 豊川市デモ町1丁目2番3号",
+        "登録電話番号: 0000-00-0000",
+        "電話口の相手: 契約者本人",
+        "照合補助: サービス開始月 2025年4月 / デモ用合言葉カテゴリ 町内会"
       ],
       presenterCue: "本人確認と、本人以外の電話申込不可を最初に見せるシナリオです。"
     },
@@ -446,6 +469,9 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "テレワークと動画視聴が多く、家族にUQ mobile利用者がいる。",
         "固定電話を付けるべきか迷っている。現在の電話番号を引き継ぐかは相談しながら決めたい。",
         "申込可否、キャンペーン適用、工事費、番号継続、最終月額はまだ知らない前提で話す。"
+      ],
+      identityCheckContext: [
+        "新規加入相談のため既存契約の本人確認値はない。氏名、住所、連絡先は正式申込前に担当者が確認する想定。"
       ],
       presenterCue: "商品を押し付けず、条件確認後に選択肢として提案する点を見せます。"
     }
@@ -1011,8 +1037,6 @@ export function renderApp(state: DemoState = demoState): string {
         </article>
       </section>
 
-      ${renderDemoScenarioSpotlight(scenarioSpotlight)}
-
       <section class="operations-layout" aria-label="AIコールセンター デモ ワークスペース">
         <aside class="column column--left">
           <section class="queue-panel panel" aria-labelledby="queue-title">
@@ -1034,6 +1058,7 @@ export function renderApp(state: DemoState = demoState): string {
         </aside>
 
         <section class="column column--center" aria-labelledby="assistant-title">
+          ${renderDemoScenarioSpotlight(scenarioSpotlight)}
           ${renderRealtimeStatusBar(realtimeConnection, realtimeCallControls)}
           ${renderCallWorkspace(selectedQueueItem, callSummary, policyGuard)}
           ${renderConversationThreadPreview(threadPreview)}
@@ -1846,6 +1871,14 @@ function renderDemoScenarioSpotlight(scenario: DemoScenarioSpotlight): string {
               .map((context) => `<li>${escapeHtml(context)}</li>`)
               .join("")}
           </ul>
+          <div class="scenario-identity-context">
+            <strong>本人確認で答える情報</strong>
+            <ul>
+              ${scenario.identityCheckContext
+                .map((context) => `<li>${escapeHtml(context)}</li>`)
+                .join("")}
+            </ul>
+          </div>
         </div>
       </div>
       <div class="scenario-spotlight__flow">
@@ -1883,7 +1916,9 @@ function renderQueueItem(item: QueueItem, selectedCallId: string): string {
       isSelected ? " queue-item--selected is-selected" : ""
     }" data-status="${escapeHtml(item.status)}" data-priority="${escapeHtml(
       item.priority
-    )}" data-queue-call-id="${escapedId}"${isSelected ? ' aria-current="true"' : ""}>
+    )}" data-queue-call-id="${escapedId}" data-queue-open="${escapedId}" role="button" tabindex="0" aria-label="${escapedTopic}を選択" aria-pressed="${
+      isSelected ? "true" : "false"
+    }"${isSelected ? ' aria-current="true"' : ""}>
       <div class="queue-main">
         <div class="queue-title-row">
           <h3>${escapedTopic}</h3>
@@ -1896,14 +1931,6 @@ function renderQueueItem(item: QueueItem, selectedCallId: string): string {
           ${metaItems.map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
         </div>
       </div>
-      <button
-        type="button"
-        data-queue-open="${escapedId}"
-        aria-label="${escapedTopic}を開く"
-        aria-pressed="${isSelected ? "true" : "false"}"
-      >
-        開く
-      </button>
     </article>
   `;
 }

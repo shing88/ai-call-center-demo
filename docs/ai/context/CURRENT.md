@@ -79,3 +79,9 @@
 - Realtime接続失敗時は、fallback時の失敗ステージ、HTTP status、server error code/message、fetch TypeError detail、microphone stateを画面で読める。画面の`HTTP status`、`Error code`、`Message`を見れば、local adapterの502なのか、上流OpenAIの400なのか、fetch/network failureなのかを切り分けられる。
 - keyがない環境では実Realtime接続成功を主張しない。`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存126件のテストだけを確認する。keyあり環境では短時間の実機ブラウザ確認で`Realtime call connected`、AI音声応答、`End call`、handoff復元まで確認済み。`response.output_audio_transcript.done`と`response.done`が同一発話を送る場合は、handoff transcriptへ二重表示しないようcollectorと読み込み時正規化で隣接重複を排除する。
 - 実電話接続、認証、本番DB、外部送信は引き続き対象外。
+# 更新メモ (2026-05-22)
+
+- PR #47 follow-up: デモシナリオ詳細は左のシナリオ一覧の上ではなく、選択後に中央ペイン先頭へ表示する。
+- 左のデモシナリオ一覧は「開く」ボタンを廃止し、カード全体をクリックまたはEnter/Spaceで選択する。`data-queue-open` / `aria-pressed` / `aria-current`は維持する。
+- `CALL-CC-04`のお客役前提情報には、本人確認で答える情報として契約者氏名、登録住所、登録電話番号、契約者本人からの架電、照合補助を独立ブロックで表示する。
+- 検証済み: `npm.cmd test` 129件成功、`npm.cmd run build`成功、`git diff --check`成功、`docker compose --env-file .env.local up --build -d`成功、`http://localhost:4173/`で`CALL-CC-04`カード選択と中央ペインの本人確認ブロック表示を確認。

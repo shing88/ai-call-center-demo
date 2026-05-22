@@ -71,3 +71,9 @@ docs/ai/inbox/pro-instructions/**
 ## 追加ファイルの利用
 
 追加でファイルを読んだ場合は、PRの`Context usage`に記録する。
+# 更新メモ (2026-05-22)
+
+- 現在のPR段階: Scenario spotlight and caller verification follow-up。
+- 追加対応: シナリオ詳細を中央ペインへ移動し、左のデモシナリオ一覧はカード全体で選択できるUIへ変更した。
+- `CALL-CC-04`では、お客役が本人確認で答える契約者氏名、登録住所、登録電話番号、契約者本人からの架電、照合補助を独立表示する。
+- 次に確認する場合: `npm.cmd test`、`npm.cmd run build`、`git diff --check`、`docker compose --env-file .env.local up --build -d`、ブラウザで`CALL-CC-04`カード選択。
