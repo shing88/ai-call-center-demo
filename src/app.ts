@@ -162,6 +162,15 @@ export interface QueueSummary {
   averageWaitSeconds: number;
 }
 
+interface DemoScenarioSpotlight {
+  callId: string;
+  title: string;
+  scenarioDetail: string;
+  demoGoal: string;
+  expectedFlow: string[];
+  presenterCue: string;
+}
+
 export const demoState: DemoState = {
   agentName: "サポートOps",
   executiveScenario: {
@@ -290,6 +299,124 @@ export function buildQueueSummary(items: QueueItem[]): QueueSummary {
     humanReview: items.filter((item) => item.status === "human-review").length,
     highPriority: items.filter((item) => item.priority === "high").length,
     averageWaitSeconds: items.length === 0 ? 0 : Math.round(totalWaitSeconds / items.length)
+  };
+}
+
+function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSpotlight {
+  if (!item) {
+    return {
+      callId: "未選択",
+      title: "デモシナリオ未選択",
+      scenarioDetail:
+        "左のデモシナリオから案件を選ぶと、お客様設定、AIが最初に確認すべきこと、期待される会話の流れをここに表示します。",
+      demoGoal:
+        "デモ開始前に、視聴者へ「何を見せるのか」と「どこまで断定しないのか」を共有します。",
+      expectedFlow: [
+        "シナリオを選択する。",
+        "本人確認や提供エリア確認など、最初の確認ポイントを整理する。",
+        "根拠候補とポリシー判定を見ながら応答ドラフトを確認する。"
+      ],
+      presenterCue: "まず左のデモシナリオを選択してください。"
+    };
+  }
+
+  const defaultSpotlight: DemoScenarioSpotlight = {
+    callId: item.id,
+    title: item.topic,
+    scenarioDetail: `${item.callerName}さんからの問い合わせ。${item.excerpt}`,
+    demoGoal:
+      "AIが問い合わせ内容を整理し、根拠候補とポリシー判定に沿って、断定しない下書きと次アクションを示す流れを見せます。",
+    expectedFlow: [
+      "挨拶し、問い合わせ内容を短く復唱する。",
+      "本人確認または提供可否確認が必要な範囲を切り分ける。",
+      "公開情報で案内できる内容と、担当者確認へ回す内容を分けて提示する。",
+      "応答ドラフト、根拠候補、ポリシー判定、次アクションを確認する。"
+    ],
+    presenterCue: "AIがいきなり確定回答せず、根拠とガードレールを示す点を確認してください。"
+  };
+
+  const spotlights: Record<string, Omit<DemoScenarioSpotlight, "callId">> = {
+    "CALL-CC-01": {
+      title: "地域安全情報の一般案内デモ",
+      scenarioDetail:
+        "大雨前に道路・河川カメラや地域情報を確認したいお客様へ、安全・安心123チャンネルと一般的な確認導線を案内するシナリオです。",
+      demoGoal:
+        "地域情報の案内はできるが、個別地点の安全判断や避難判断は断定せず、公式情報確認へ誘導する動きを見せます。",
+      expectedFlow: [
+        "挨拶し、大雨前に地域情報を確認したい意図を復唱する。",
+        "テレビで確認できる情報種別と、案内できる範囲を整理する。",
+        "個別の安全判断は自治体・防災機関・公式警報を確認するよう案内する。",
+        "必要なら担当者確認や追加の視聴方法案内へ引き継ぐ。"
+      ],
+      presenterCue: "災害・安全判断をAIが断定しない点を見せます。"
+    },
+    "CALL-CC-02": {
+      title: "障害・補償相談の上席確認デモ",
+      scenarioDetail:
+        "ネット接続不調で仕事に影響したという相談に対し、障害状況や補償可否をAIだけで決めず、人の確認へ回すシナリオです。",
+      demoGoal:
+        "補償、障害認定、個別契約判断をAIが確定せず、上席確認に必要な要点を整理する動きを見せます。",
+      expectedFlow: [
+        "挨拶し、接続不調と補償相談の要点を復唱する。",
+        "契約状態、障害状況、補償可否は本人確認と担当者確認が必要だと説明する。",
+        "影響範囲、発生日時、利用環境など確認すべき項目を整理する。",
+        "人の確認が必要な案件として引き継ぎメモを作る。"
+      ],
+      presenterCue: "高リスクな補償判断を自動回答しない点を見せます。"
+    },
+    "CALL-CC-03": {
+      title: "10G/Wi-Fi相談の公開情報案内デモ",
+      scenarioDetail:
+        "春日井市の架空加入者が、テレワーク中のWi-Fi不安定をきっかけにCCNet光10Gへ変えられるか相談するシナリオです。",
+      demoGoal:
+        "公開情報として10GやメッシュWi-Fiの選択肢を案内しつつ、契約状態、提供可否、速度改善の保証を断定しない流れを見せます。",
+      expectedFlow: [
+        "挨拶し、Wi-Fi不安定と10G相談の要点を復唱する。",
+        "本人確認前は契約状態や変更可否を断定しないと説明する。",
+        "利用端末数、設置場所、メッシュWi-Fi、10G提供可否など確認観点を整理する。",
+        "公開情報の一般案内を示し、担当者確認へつなぐ。"
+      ],
+      presenterCue: "速度改善や10G提供可否を約束しない点を見せます。"
+    },
+    "CALL-CC-04": {
+      title: "既存ネット加入者のケーブルプラス電話追加デモ",
+      scenarioDetail:
+        "既存のCCNet光1G加入者が、固定電話を追加し、現在の電話番号・電話機の継続とauスマホとのセットメリットを確認したいシナリオです。",
+      demoGoal:
+        "契約追加に進む前に、契約者の氏名・登録住所・登録電話番号と、電話口の相手が契約者本人であることを確認し、本人以外からの電話申し込みは受け付けない流れを見せます。",
+      expectedFlow: [
+        "挨拶し、現在のネット契約に固定電話を追加したい要件を復唱する。",
+        "既契約者の電話申込は契約者本人のみ可能だと説明する。",
+        "契約者の氏名・登録住所・登録電話番号と、本人からの架電であることを確認する。",
+        "電話番号や電話機の継続希望、携帯キャリア、通話量、番号表示などの希望を確認する。",
+        "ケーブルプラス電話とケーブルラインの選択肢、料金目安、確認が必要な項目を提示する。",
+        "追加受付完了、番号継続可否、割引適用、工事日、最終料金は断定せず担当者確認へ引き継ぐ。"
+      ],
+      presenterCue: "本人確認と、本人以外の電話申込不可を最初に見せるシナリオです。"
+    },
+    "CALL-CC-05": {
+      title: "ネット新規加入時のケーブルプラス電話提案デモ",
+      scenarioDetail:
+        "新築戸建てへ引っ越し予定の見込み顧客が、ネット新規加入と固定電話をまとめるべきか相談するシナリオです。",
+      demoGoal:
+        "住居種別、提供エリア、利用目的、Wi-Fi台数、固定電話の必要性、携帯キャリアを確認してから、UQ mobile利用者にケーブルプラス電話を候補提示する流れを見せます。",
+      expectedFlow: [
+        "挨拶し、新規加入検討とネット・固定電話の組み合わせ相談であることを確認する。",
+        "住居種別、提供エリア確認、利用目的、利用人数、Wi-Fi台数を聞く。",
+        "固定電話の必要性、番号引き継ぎ希望、携帯キャリアを確認する。",
+        "ネットコースの考え方と、ケーブルプラス電話/ケーブルラインの比較観点を提示する。",
+        "料金シミュレーション、提供エリア確認、電話説明または訪問説明へ案内する。",
+        "申込可否、工事費、番号継続、キャンペーン適用、最終月額は正式確認後と明示する。"
+      ],
+      presenterCue: "商品を押し付けず、条件確認後に選択肢として提案する点を見せます。"
+    }
+  };
+
+  const spotlight = spotlights[item.id] ?? defaultSpotlight;
+
+  return {
+    callId: item.id,
+    ...spotlight
   };
 }
 
@@ -745,6 +872,7 @@ export function renderApp(state: DemoState = demoState): string {
   const summary = buildQueueSummary(state.activeQueue);
   const selectedCallId = state.assistantEvidence.callId;
   const selectedQueueItem = state.activeQueue.find((item) => item.id === selectedCallId);
+  const scenarioSpotlight = buildDemoScenarioSpotlight(selectedQueueItem);
   const conversationDraft = buildAssistantConversationDraft(
     selectedQueueItem,
     state.assistantEvidence
@@ -843,6 +971,8 @@ export function renderApp(state: DemoState = demoState): string {
           <small>現在のデモシナリオ平均</small>
         </article>
       </section>
+
+      ${renderDemoScenarioSpotlight(scenarioSpotlight)}
 
       <section class="operations-layout" aria-label="AIコールセンター デモ ワークスペース">
         <aside class="column column--left">
@@ -1649,6 +1779,41 @@ function renderAssistantEvidenceItem(item: AssistantEvidenceItem): string {
       <p>${escapeHtml(item.snippet)}</p>
       <span class="evidence-score">スコア ${item.score}</span>
     </article>
+  `;
+}
+
+function renderDemoScenarioSpotlight(scenario: DemoScenarioSpotlight): string {
+  return `
+    <section
+      class="scenario-spotlight"
+      aria-labelledby="scenario-spotlight-title"
+      data-scenario-spotlight-call-id="${escapeHtml(scenario.callId)}"
+    >
+      <div class="scenario-spotlight__main">
+        <p class="eyebrow">シナリオ詳細</p>
+        <div class="scenario-spotlight__title-row">
+          <h2 id="scenario-spotlight-title">${escapeHtml(scenario.title)}</h2>
+          <span>${escapeHtml(scenario.callId)}</span>
+        </div>
+        <p>${escapeHtml(scenario.scenarioDetail)}</p>
+        <div class="scenario-goal">
+          <span>デモの見せどころ</span>
+          <strong>${escapeHtml(scenario.demoGoal)}</strong>
+        </div>
+      </div>
+      <div class="scenario-spotlight__flow">
+        <div class="scenario-flow-heading">
+          <p class="eyebrow">デモ開始後に期待される話の流れ</p>
+          <span>${scenario.expectedFlow.length}ステップ</span>
+        </div>
+        <ol>
+          ${scenario.expectedFlow
+            .map((step, index) => `<li><span>${index + 1}</span>${escapeHtml(step)}</li>`)
+            .join("")}
+        </ol>
+        <p class="scenario-cue">${escapeHtml(scenario.presenterCue)}</p>
+      </div>
+    </section>
   `;
 }
 

@@ -4,7 +4,7 @@
 
 次のタスク: CCNetケーブルプラス電話シナリオ追加
 
-現在のPR段階: Cable Plus scenario expansion
+現在のPR段階: Scenario spotlight and caller verification follow-up
 
 Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controls、Business-rule grounded operator behavior、Call recording and handoff、Local JSON handoff persistenceは実装・merge済み。
 
@@ -15,7 +15,7 @@ Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime fo
 
 各シナリオでは、挨拶、本人確認または提供エリア確認、電話番号・電話機継続希望、携帯キャリア、通話量、商品選択肢、公開料金目安、断定禁止、担当者確認または料金シミュレーションへの次アクションを固定する。
 
-後続計画: 実装後は`npm.cmd test`、`npm.cmd run build`、`git diff --check`を確認する。余力があればDockerで再ビルドして、`http://localhost:4173/`に`CALL-CC-04` / `CALL-CC-05`が表示されることを確認する。
+後続計画: 実装後は`npm.cmd test`、`npm.cmd run build`、`git diff --check`を確認する。余力があればDockerで再ビルドして、`http://localhost:4173/`に`CALL-CC-04` / `CALL-CC-05`が表示されること、選択中シナリオの詳細と期待される話の流れがKPI帯の直下で切り替わることを確認する。
 
 この段階では`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信はまだ入れない。
 

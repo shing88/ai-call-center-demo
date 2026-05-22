@@ -384,6 +384,66 @@ test("renderApp leads with an executive demo brief that connects evidence, polic
   assert.doesNotMatch(html, /Live API connected/);
 });
 
+test("renderApp shows selected scenario details and expected demo flow before the workspace", () => {
+  const html = renderApp({
+    ...demoState,
+    assistantEvidence: {
+      ...demoState.assistantEvidence,
+      callId: "CALL-CC-04",
+      query: "ケーブルプラス電話 追加 customer_ccnet_2004",
+      resultCount: 1,
+      results: [
+        {
+          sourcePath: "scenarios/scenario_06_ccnet_cableplus_existing_net_add.md",
+          section: "応対ステップ",
+          snippet: "契約者本人であることを確認する。",
+          score: 12
+        }
+      ]
+    }
+  });
+  const scenarioIndex = html.indexOf('id="scenario-spotlight-title"');
+  const queueIndex = html.indexOf('id="queue-title"');
+  const workspaceIndex = html.indexOf('id="call-workspace-title"');
+
+  assert.ok(scenarioIndex >= 0);
+  assert.ok(queueIndex > scenarioIndex);
+  assert.ok(workspaceIndex > scenarioIndex);
+  assert.match(html, /data-scenario-spotlight-call-id="CALL-CC-04"/);
+  assert.match(html, /シナリオ詳細/);
+  assert.match(html, /デモ開始後に期待される話の流れ/);
+  assert.match(html, /既存ネット加入者のケーブルプラス電話追加デモ/);
+  assert.match(html, /契約者の氏名・登録住所・登録電話番号/);
+  assert.match(html, /本人以外からの電話申し込みは受け付けない/);
+  assert.match(html, /6ステップ/);
+});
+
+test("renderApp switches the scenario detail when another demo scenario is selected", () => {
+  const html = renderApp({
+    ...demoState,
+    assistantEvidence: {
+      ...demoState.assistantEvidence,
+      callId: "CALL-CC-05",
+      query: "ネット新規加入 ケーブルプラス電話 customer_ccnet_2005",
+      resultCount: 1,
+      results: [
+        {
+          sourcePath: "scenarios/scenario_07_ccnet_new_internet_cableplus_recommendation.md",
+          section: "応対ステップ",
+          snippet: "住居種別、提供エリア確認、利用目的を確認する。",
+          score: 12
+        }
+      ]
+    }
+  });
+
+  assert.match(html, /data-scenario-spotlight-call-id="CALL-CC-05"/);
+  assert.match(html, /ネット新規加入時のケーブルプラス電話提案デモ/);
+  assert.match(html, /住居種別、提供エリア、利用目的、Wi-Fi台数/);
+  assert.match(html, /料金シミュレーション、提供エリア確認/);
+  assert.doesNotMatch(html, /本人以外からの電話申し込みは受け付けない/);
+});
+
 test("renderApp switches the unsent operator input with assistant evidence call id", () => {
   const state: DemoState = {
     agentName: "Support Ops",

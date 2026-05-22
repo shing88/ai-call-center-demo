@@ -335,6 +335,125 @@ button:disabled {
   font-weight: 700;
 }
 
+.scenario-spotlight {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 16px;
+  margin: 16px 24px 0;
+  overflow: hidden;
+  border: 1px solid #bfd0ff;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(232, 239, 255, 0.92) 0%, rgba(255, 255, 255, 0.96) 56%),
+    var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.scenario-spotlight__main,
+.scenario-spotlight__flow {
+  min-width: 0;
+  padding: 18px;
+}
+
+.scenario-spotlight__main {
+  border-right: 1px solid rgba(191, 208, 255, 0.7);
+}
+
+.scenario-spotlight__title-row,
+.scenario-flow-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.scenario-spotlight h2 {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.scenario-spotlight__title-row > span,
+.scenario-flow-heading > span {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.scenario-spotlight__main > p:not(.eyebrow) {
+  margin-top: 12px;
+  color: var(--text-sub);
+  font-size: 14px;
+}
+
+.scenario-goal {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(196, 118, 0, 0.24);
+  border-radius: var(--radius-sm);
+  background: var(--warn-soft);
+}
+
+.scenario-goal span {
+  display: block;
+  color: var(--warn);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.scenario-goal strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.scenario-spotlight__flow ol {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scenario-spotlight__flow li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.scenario-spotlight__flow li > span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.scenario-cue {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .operations-layout {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr) 360px;
@@ -1133,6 +1252,15 @@ dd {
 }
 
 @media (max-width: 1180px) {
+  .scenario-spotlight {
+    grid-template-columns: 1fr;
+  }
+
+  .scenario-spotlight__main {
+    border-right: 0;
+    border-bottom: 1px solid rgba(191, 208, 255, 0.7);
+  }
+
   .operations-layout {
     grid-template-columns: 300px minmax(0, 1fr);
   }
@@ -1155,6 +1283,21 @@ dd {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     padding-inline: 16px;
+  }
+
+  .scenario-spotlight {
+    margin: 16px 16px 0;
+  }
+
+  .scenario-spotlight__main,
+  .scenario-spotlight__flow {
+    padding: 16px;
+  }
+
+  .scenario-spotlight__title-row,
+  .scenario-flow-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .operations-layout {
