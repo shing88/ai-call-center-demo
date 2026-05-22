@@ -432,7 +432,7 @@ test("renderApp shows selected scenario details in the center workspace", () => 
   assert.match(html, /6ステップ/);
 });
 
-test("renderApp starts every demo scenario with identity verification before the customer issue", () => {
+test("renderApp starts every demo scenario with CCNet greeting, purpose intake, then identity verification", () => {
   for (const item of demoState.activeQueue) {
     const html = renderApp({
       ...demoState,
@@ -445,16 +445,18 @@ test("renderApp starts every demo scenario with identity verification before the
       }
     });
 
-    const flowStartIndex = html.indexOf(
-      "<span>1</span>挨拶し、本人確認"
+    const greetingIndex = html.indexOf(
+      "<span>1</span>はい、CCNetコールセンターのAIオペレーターです。と名乗り、本日の用件を短く聞く。"
     );
-    const issueIndex = html.indexOf("本人確認後に用件");
+    const verificationIndex = html.indexOf("本人確認へ進む");
+    const detailIndex = html.indexOf("本人確認後に", verificationIndex);
 
     assert.match(html, new RegExp(`data-scenario-spotlight-call-id="${item.id}"`));
     assert.match(html, /本人確認で答える情報/);
     assert.match(html, /0000-00-0000/);
-    assert.ok(flowStartIndex >= 0, `${item.id} should start flow with identity verification`);
-    assert.ok(issueIndex > flowStartIndex, `${item.id} should ask the issue after verification`);
+    assert.ok(greetingIndex >= 0, `${item.id} should start flow with CCNet greeting`);
+    assert.ok(verificationIndex > greetingIndex, `${item.id} should verify after purpose intake`);
+    assert.ok(detailIndex > verificationIndex, `${item.id} should move into details after verification`);
   }
 });
 
