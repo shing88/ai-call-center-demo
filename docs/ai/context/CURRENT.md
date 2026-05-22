@@ -28,7 +28,7 @@
 - ブラウザ入口`src/main.ts`のruntime dependency graphはNode-only moduleを含めない。fallback rehearsalはbrowser-safeな`src/demo-scenario-cases.ts`を使う。knowledge loaderはブラウザ入口から到達しない。browser-side fetchは`window.fetch(...)` wrapper経由で呼び、`fetch`のunbound invocationを避ける。`src/realtime-runtime-health.ts`はbrowser-safeに`/api/health`を検証し、Realtime boundaryのconfigured表示へ変換する。
 - evidence manifestは読み込み時にbundle/result単位まで検証し、不正なmanifestはfallback表示へ戻す。
 - CCNet向けデモは公開HP、サービス詳細、約款、重要事項説明に合わせた架空シナリオと架空顧客モックを使う。実顧客データは使わない。
-- CCNet向けデモには、既存ネット加入者がケーブルプラス電話を追加する`CALL-CC-04`と、新規ネット加入希望者へケーブルプラス電話を提案する`CALL-CC-05`を含める。どちらも挨拶、本人確認または提供エリア確認、商品選択肢提示、料金目安、断定禁止、担当者確認への引き継ぎを固定する。既契約者の電話申し込みでは、契約者の氏名、登録住所、登録電話番号、電話口の相手が契約者本人であることを確認し、本人以外からの電話申し込みは受け付けない。選択中のデモシナリオは、KPI帯の直下にシナリオ詳細、お客役が知っておく前提情報、本人確認シミュレーション用の架空照合値、デモ開始後に期待される話の流れとして表示する。`CALL-CC-02`のCCNet Air相談は、公開ページの対応エリアに合わせて小牧市の架空集合住宅設定として扱う。
+- CCNet向けデモには、既存ネット加入者がケーブルプラス電話を追加する`CALL-CC-04`と、新規ネット加入希望者へケーブルプラス電話を提案する`CALL-CC-05`を含める。応対ロールは、CCNetコールセンターのAIオペレーターとして名乗る、用件を短く聞く、聞いた用件だけを復唱する、個別確認の前に本人確認へ進む、本人確認後に詳細確認と商品選択肢提示へ進む順序を固定する。シナリオ、架空顧客プロファイル、本人確認用の照合値は内部コンテキストであり、AIが事前に知っているかのように話してはいけない。既契約者の電話申し込みでは、契約者の氏名、登録住所、登録電話番号、電話口の相手が契約者本人であることを確認し、本人以外からの電話申し込みは受け付けない。選択中のデモシナリオは、KPI帯の直下にシナリオ詳細、お客役が知っておく前提情報、本人確認シミュレーション用の架空照合値、デモ開始後に期待される話の流れとして表示する。`CALL-CC-02`のCCNet Air相談は、公開ページの対応エリアに合わせて小牧市の架空集合住宅設定として扱う。
 - 実電話、認証、本番DB、本番接続は未実装。Realtime音声はブラウザの`Start call`から短命client secretで接続するデモ境界のみ。Realtime handoff recordはserver-side local JSONへ保存できるが、実顧客データや外部送信は扱わない。Operator noteはbrowser-onlyの未送信値。
 
 ## 現在の主要コード
@@ -59,7 +59,7 @@
 - ローカルテスト: `npm.cmd test`。POSIX/CIでは`npm test`。
 - ローカルビルド: `npm.cmd run build`。POSIX/CIでは`npm run build`。
 - Docker確認: `docker compose up --build`後、`http://localhost:4173/`と`http://localhost:4173/api/health`を確認する。
-- `npm test`は126件。Call workspace、Realtime boundary、Realtime runtime health reflection、Realtime call controls、Realtime failure diagnostics、Realtime transcript collector、Realtime handoff record、Realtime local JSON persistence、Realtime session grounding、server-side token endpoint adapter、server-side Realtime WebRTC calls adapter、disabled fallback、Node server runtime、OpenAI client secret request境界、WebRTC SDP offer/answer、server error code/message表示、fetch TypeError detail、remote audio stream hook、data channel open時の`response.create`、`response.output_audio_transcript.done`と`response.done`の同一transcript重複排除、保存済みhandoff record読み込み時のtranscript重複正規化、fallback復帰、manifest validation、ブラウザAPI key禁止、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないこと、browser entrypointが`window.fetch(...)` wrapperを使うことを固定している。
+- `npm test`は133件。Call workspace、Realtime boundary、Realtime runtime health reflection、Realtime call controls、Realtime failure diagnostics、Realtime transcript collector、Realtime handoff record、Realtime local JSON persistence、Realtime session grounding、server-side token endpoint adapter、server-side Realtime WebRTC calls adapter、disabled fallback、Node server runtime、OpenAI client secret request境界、WebRTC SDP offer/answer、server error code/message表示、fetch TypeError detail、remote audio stream hook、data channel open時の`response.create`、`response.output_audio_transcript.done`と`response.done`の同一transcript重複排除、保存済みhandoff record読み込み時のtranscript重複正規化、fallback復帰、manifest validation、ブラウザAPI key禁止、compiled browser-facing moduleのsecret非露出、ブラウザ入口dependency graphにNode-only moduleが混ざらないこと、browser entrypointが`window.fetch(...)` wrapperを使うこと、CCNetコールセンター応対ロールが用件聞き取り、本人確認、詳細確認の順序と内部情報の事前開示禁止を守ることを固定している。
 - `.github/workflows/ci.yml`で`npm ci`、`npm test`、`npm run build`を実行する。
 
 ## 現在のワークフロー
@@ -72,7 +72,7 @@
 ## 次のハンドオフ
 
 - Task 28 `browser-realtime-voice-demo`はlocal JSON handoff persistenceまでPR化・merge済み。
-- 現在の小PRは、CCNet公開仕様との整合修正。`CALL-CC-02`を小牧市のCCNet Air設定へ寄せ、メッシュWi-Fi 3台目以降料金を550円に直し、戸建て向け現行料金ページで前面に出ていない300M/30Mを主選択肢から外す。対象は`knowledge/business_rules/005_ccnet_public_service_guidance.md`、`knowledge/customer_contracts/customer_ccnet_2001.md`、`knowledge/customer_contracts/customer_ccnet_2003.md`、`src/app.ts`、`tests/app.test.ts`、`tests/knowledge.test.ts`。
+- 現在の小PRは、CCNetコールセンター応対ロールの追加。AIは「CCNetコールセンターのAIオペレーター」として名乗り、まず用件を聞き、聞いた内容だけを復唱し、本人確認後に詳細確認へ進む。シナリオや架空顧客情報に書かれているだけの情報を、AIが事前に知っているかのように話すことは禁止する。対象は`knowledge/business_rules/006_ccnet_call_center_operator_role.md`、`knowledge/business_rules/005_ccnet_public_service_guidance.md`、`knowledge/scenarios/*.md`のCCNetシナリオ、`src/app.ts`、`src/realtime-session-context.ts`、`tests/*.test.ts`。
 - `OPENAI_API_KEY`をGit管理外の`.env.local`で用意したDocker環境では、`GET /api/health`が`configured` / `ready`を返し、`POST /api/realtime/client-secret`が`HTTP 200` / `status=ready` / `valueあり`を返すところまで確認済み。secret値は表示・保存しない。
 - ユーザー実機ブラウザでは、マイク許可後に`Stage: realtime-calls`でfallbackへ戻り、同一originの`/api/realtime/calls`到達までは確認できた。その後、browser entrypointでunbound `fetch`が`TypeError: Failed to execute 'fetch' on 'Window': Illegal invocation.`になることも確認したため、`window.fetch(...)` wrapper経由に修正済み。
 - 修正後のユーザー実機ブラウザでは、`Realtime call connected`まで到達し、ユーザーが`End call`した。Docker local JSONには`CALL-CC-03`の`status=recorded` handoff recordが保存され、assistant transcript delta、summary、evidence references、policy decision、next action、guardrailsが残った。`GET /api/realtime/handoffs?callId=CALL-CC-03`は最新recordを返し、ブラウザreload後も`Realtime handoff record`が復元表示された。
@@ -85,6 +85,7 @@
 - 左のデモシナリオ一覧は「開く」ボタンを廃止し、カード全体をクリックまたはEnter/Spaceで選択する。`data-queue-open` / `aria-pressed` / `aria-current`は維持する。
 - `CALL-CC-04`のお客役前提情報には、本人確認で答える情報として契約者氏名、登録住所、登録電話番号、契約者本人からの架電、照合補助を独立ブロックで表示する。
 - 契約者氏名と登録住所には、お客役が読み上げやすいようにふりがなを併記する。
-- 全デモシナリオは、挨拶後に本人確認を完了してから用件を聞く流れに統一する。`CALL-CC-01`から`CALL-CC-05`まで、本人確認で答える架空照合値を画面とknowledge customer profileに持つ。
+- 全デモシナリオは、挨拶後に用件の大枠を聞き、聞いた内容だけを復唱してから本人確認へ進む流れに更新した。`CALL-CC-01`から`CALL-CC-05`まで、本人確認で答える架空照合値を画面とknowledge customer profileに持つが、AIから先に読み上げない。
 - 検証済み: `npm.cmd test` 131件成功、`npm.cmd run build`成功、`git diff --check`成功、`docker compose --env-file .env.local up --build -d`成功、`http://localhost:4173/`で`CALL-CC-01`から`CALL-CC-05`まで本人確認後に用件を聞く流れと本人確認ブロック表示を確認。
 - 仕様整合修正の検証済み: `npm.cmd test` 132件成功、`npm.cmd run build`成功、`git diff --check`成功。
+- 応対ロール追加PRの検証済み: `npm.cmd test` 133件成功、`npm.cmd run build`成功、`git diff --check`成功。新しい`006_ccnet_call_center_operator_role.md`で、挨拶、用件聞き取り、用件復唱、本人確認、詳細確認の順序と、内部シナリオ情報を事前開示しない境界を固定した。

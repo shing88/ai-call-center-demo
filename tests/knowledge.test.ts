@@ -16,13 +16,28 @@ function readKnowledgeFile(relativePath: string): string {
 }
 
 test("knowledge baseline contains the required fictional document sets", () => {
-  assert.equal(markdownFiles("business_rules").length, 5);
+  assert.equal(markdownFiles("business_rules").length, 6);
   assert.equal(markdownFiles("customer_contracts").length, 8);
   assert.equal(markdownFiles("scenarios").length, 7);
 
   const readme = readKnowledgeFile("README.md");
   assert.match(readme, /架空/);
   assert.match(readme, /実在/);
+});
+
+test("CCNet call center operator role fixes greeting, purpose intake, verification, and detail order", () => {
+  const content = readKnowledgeFile("business_rules/006_ccnet_call_center_operator_role.md");
+
+  assert.match(content, /^# CCNetコールセンター応対ロール/m);
+  assert.match(content, /はい、CCNetコールセンターのAIオペレーターです/);
+  assert.match(content, /本日はどのようなご用件でしょうか/);
+  assert.match(content, /用件を一文で復唱/);
+  assert.match(content, /本人確認が必要/);
+  assert.match(content, /内部コンテキスト/);
+  assert.match(content, /知っているかのように話してはいけない/);
+  assert.match(content, /AIから先に読み上げず/);
+  assert.match(content, /本人確認後に、サービス利用状況/);
+  assert.match(content, /本人以外からの電話申し込みは受け付けず/);
 });
 
 test("customer contracts include required safety sections", () => {
