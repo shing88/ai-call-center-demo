@@ -2,25 +2,22 @@
 
 ## タスク
 
-次のタスク: CCNetコールセンター応対ロール追加
+次のタスク: READMEへ最新デモ状態とAIロール定義を反映
 
-現在のPR段階: Call-center operator role follow-up
+現在のPR段階: README documentation follow-up
 
 Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controls、Business-rule grounded operator behavior、Call recording and handoff、Local JSON handoff persistenceは実装・merge済み。
 
-この小PRでは、マージ済みCCNetデモシナリオに共通するコールセンター応対ロールを追加し、次の会話順序を固定する。
+この小PRでは、これまでのUI/Realtime/CCNet応対ロール修正を`README.md`へ反映する。
 
-- AIは「CCNetコールセンターのAIオペレーターです」と名乗る。
-- まず本日の用件を短く聞く。
-- 聞いた用件だけを一文で復唱し、個別確認の前に本人確認が必要であることを説明する。
-- 既契約者または申込相談者として本人確認・提供エリア確認へ進む。
-- 本人確認後に詳細な利用状況、商品選択肢、料金目安、担当者確認事項へ進む。
-- シナリオ、架空顧客プロファイル、本人確認用の照合値は内部コンテキストであり、AIが事前に知っているかのように話してはいけない。
-- 本人確認の答えはAIから先に読み上げず、足りない情報は質問として聞く。
+- 日本語UI、3カラム、デモシナリオカード選択、中央ペインのシナリオ詳細をREADMEへ反映する。
+- Realtime接続境界、server-side client secret、`/api/realtime/calls`、`終了`後のlocal JSON handoff保存をREADMEへ反映する。
+- AIロール定義の場所として、`knowledge/business_rules/006_ccnet_call_center_operator_role.md`、`src/realtime-session-context.ts`、`knowledge/business_rules/005_ccnet_public_service_guidance.md`、CCNetシナリオMarkdown、`src/app.ts`、`src/response-policy.ts`の役割をREADMEへ明記する。
+- シナリオや架空顧客情報は内部コンテキストであり、AIが事前に知っているかのように話してはいけない境界をREADMEにも明記する。
 
 既存のセキュリティ境界、Realtime接続、サーバー実装、外部送信ブロック、本番DBブロックには手を入れない。
 
-検証済み: `npm.cmd test` 133件成功、`npm.cmd run build`成功、`git diff --check`成功。
+検証対象: `git diff --check`。README/contextのみの変更なので、`npm.cmd test`と`npm.cmd run build`は原則不要。
 
 この段階では`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信はまだ入れない。
 
@@ -86,3 +83,4 @@ docs/ai/inbox/pro-instructions/**
 - 次に確認する場合: `npm.cmd test`、`npm.cmd run build`、`git diff --check`、`docker compose --env-file .env.local up --build -d`、ブラウザで`CALL-CC-04`カード選択。
 - 仕様整合修正PR: `CALL-CC-02`を小牧市のCCNet Air設定へ変更し、メッシュWi-Fi 3台目以降550円、300M/30Mを主案内から外すテストを追加する。検証対象は`npm.cmd test`、`npm.cmd run build`、`git diff --check`。
 - 応対ロール追加PR: `006_ccnet_call_center_operator_role.md`を追加し、Realtime instructionsとシナリオ画面の期待フローを「名乗り、用件聞き取り、用件復唱、本人確認、詳細確認」へ変更した。AIがシナリオ内部情報を事前に知っているように話すことを禁止するテストを追加した。検証済み: `npm.cmd test` 133件成功、`npm.cmd run build`成功、`git diff --check`成功。
+- README更新PR: これまでのUI/Realtime/CCNet応対ロール修正を`README.md`へ反映する。AIロール定義の場所と、Realtimeモデルへ渡るロール指示が`src/realtime-session-context.ts`で組み立てられることを明記する。検証対象は`git diff --check`。
