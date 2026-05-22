@@ -418,8 +418,11 @@ test("renderApp shows selected scenario details in the center workspace", () => 
   assert.match(html, /既存ネット加入者のケーブルプラス電話追加デモ/);
   assert.match(html, /森 彩乃役/);
   assert.match(html, /CCNet光1GとメッシュWi-Fi 2台を利用中/);
-  assert.match(html, /契約者氏名: 森 彩乃/);
-  assert.match(html, /登録住所: 豊川市デモ町1丁目2番3号/);
+  assert.match(html, /契約者氏名: 森 彩乃（もり あやの）/);
+  assert.match(
+    html,
+    /登録住所: 豊川市デモ町1丁目2番3号（とよかわし でもまち いっちょうめ にばん さんごう）/
+  );
   assert.match(html, /登録電話番号: 0000-00-0000/);
   assert.match(html, /電話口の相手: 契約者本人/);
   assert.match(html, /サービス開始月 2025年4月/);

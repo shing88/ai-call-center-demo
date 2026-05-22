@@ -69,13 +69,17 @@ test("CCNet Cable Plus existing-customer scenario requires contractor identity a
   const scenario = readKnowledgeFile("scenarios/scenario_06_ccnet_cableplus_existing_net_add.md");
 
   assert.match(customer, /契約者の氏名/);
+  assert.match(customer, /森 彩乃（もり あやの）/);
   assert.match(customer, /登録住所/);
   assert.match(customer, /豊川市デモ町1丁目2番3号/);
+  assert.match(customer, /とよかわし でもまち いっちょうめ にばん さんごう/);
   assert.match(customer, /登録電話番号/);
   assert.match(customer, /0000-00-0000/);
   assert.match(customer, /契約者本人以外からの電話申し込みはできない/);
   assert.match(scenario, /電話口の相手が契約者本人/);
   assert.match(scenario, /豊川市デモ町1丁目2番3号/);
+  assert.match(scenario, /もり あやの/);
+  assert.match(scenario, /とよかわし でもまち いっちょうめ にばん さんごう/);
   assert.match(scenario, /0000-00-0000/);
   assert.match(scenario, /契約者本人以外からの電話申し込みは受け付けず/);
 });
