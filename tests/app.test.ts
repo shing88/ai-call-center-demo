@@ -487,6 +487,24 @@ test("renderApp switches the scenario detail when another demo scenario is selec
   assert.doesNotMatch(html, /本人以外からの電話申し込みは受け付けない/);
 });
 
+test("renderApp keeps the CCNet Air scenario in a matching public service area", () => {
+  const html = renderApp({
+    ...demoState,
+    assistantEvidence: {
+      ...demoState.assistantEvidence,
+      callId: "CALL-CC-02",
+      query: "障害と補償の相談 customer_ccnet_2003",
+      resultCount: 0,
+      results: []
+    }
+  });
+
+  assert.match(html, /data-scenario-spotlight-call-id="CALL-CC-02"/);
+  assert.match(html, /小牧市の集合住宅でCCNet Air LTE/);
+  assert.match(html, /登録住所: 小牧市デモ町3丁目4番5号 デモハイツ101号室/);
+  assert.doesNotMatch(html, /各務原市の集合住宅でCCNet Air LTE/);
+});
+
 test("renderApp switches the unsent operator input with assistant evidence call id", () => {
   const state: DemoState = {
     agentName: "Support Ops",

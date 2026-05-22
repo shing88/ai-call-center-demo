@@ -45,6 +45,8 @@ test("CCNet public-fit business rule reflects service details, terms, and import
 
   assert.match(content, /10G 8,077円/);
   assert.match(content, /メッシュWi-Fi 990円/);
+  assert.match(content, /3台目以降は1台につき月額550円/);
+  assert.doesNotMatch(content, /CCNet光300M|CCNet光30M/);
   assert.match(content, /36ヶ月/);
   assert.match(content, /初期契約解除制度/);
   assert.match(content, /ベストエフォート/);
@@ -59,6 +61,7 @@ test("CCNet fictional customer mockups keep realistic service state without real
   assert.match(content, /customer_ccnet_2001/);
   assert.match(content, /CCNet光1G おとく割/);
   assert.match(content, /メッシュWi-Fi/);
+  assert.match(content, /3台目以降は1台550円/);
   assert.match(content, /10G変更/);
   assert.match(content, /架空顧客契約/);
   assert.match(content, /デモ登録住所/);
@@ -75,7 +78,7 @@ test("CCNet demo customer profiles include identity answers for every visible sc
     [
       "customer_ccnet_2003.md",
       /佐藤 亮（さとう りょう）/,
-      /各務原市デモ町3丁目4番5号 デモハイツ101号室/
+      /小牧市デモ町3丁目4番5号 デモハイツ101号室/
     ],
     ["customer_ccnet_2004.md", /森 彩乃（もり あやの）/, /豊川市デモ町1丁目2番3号/],
     ["customer_ccnet_2005.md", /西村 陽太（にしむら ようた）/, /小牧市デモ町5丁目6番7号/]

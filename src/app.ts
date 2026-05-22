@@ -243,7 +243,7 @@ export const demoState: DemoState = {
       waitSeconds: 142,
       excerpt: "ネットがつながりにくく仕事に影響したので、障害状況と補償可否を上席に確認してほしいです。",
       customerId: "customer_ccnet_2003",
-      serviceArea: "各務原市 / 集合住宅",
+      serviceArea: "小牧市 / 集合住宅",
       servicePlan: "CCNet Air LTE + 無線機器",
       verificationStatus: "unverified"
     },
@@ -396,13 +396,13 @@ function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSp
         "人の確認が必要な案件として引き継ぎメモを作る。"
       ],
       actorContext: [
-        "佐藤 亮役。各務原市の集合住宅でCCNet Air LTEと無線機器を利用中という設定。",
+        "佐藤 亮役。小牧市の集合住宅でCCNet Air LTEと無線機器を利用中という設定。",
         "本人確認を求められたら、下のデモ用照合値に答える。本人確認後に、仕事に影響した障害状況と補償可否を強めに確認したい。",
         "補償額、障害認定、契約状態の確定情報はお客役からも断定しない。"
       ],
       identityCheckContext: [
         "契約者氏名: 佐藤 亮（さとう りょう）",
-        "登録住所: 各務原市デモ町3丁目4番5号 デモハイツ101号室（かかみがはらし でもまち さんちょうめ よんばん ごごう でもはいつ いちまるいちごうしつ）",
+        "登録住所: 小牧市デモ町3丁目4番5号 デモハイツ101号室（こまきし でもまち さんちょうめ よんばん ごごう でもはいつ いちまるいちごうしつ）",
         "登録電話番号: 0000-00-0000",
         "電話口の相手: 契約者本人",
         "照合補助: サービス開始月 2026年2月 / デモ用合言葉カテゴリ 通勤経路"
