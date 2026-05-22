@@ -35,7 +35,8 @@ test("customer contracts include required safety sections", () => {
     assert.match(content, /^## 本人確認項目/m);
     assert.match(content, /^## 特約/m);
     assert.match(content, /^## 注意事項/m);
-    assert.doesNotMatch(content, /\d{2,4}-\d{2,4}-\d{4}/);
+    const contentWithoutAllowedDemoPhone = content.replaceAll("0000-00-0000", "");
+    assert.doesNotMatch(contentWithoutAllowedDemoPhone, /\d{2,4}-\d{2,4}-\d{4}/);
   }
 });
 
@@ -69,11 +70,14 @@ test("CCNet Cable Plus existing-customer scenario requires contractor identity a
 
   assert.match(customer, /契約者の氏名/);
   assert.match(customer, /登録住所/);
+  assert.match(customer, /豊川市デモ町1丁目2番3号/);
   assert.match(customer, /登録電話番号/);
+  assert.match(customer, /0000-00-0000/);
   assert.match(customer, /契約者本人以外からの電話申し込みはできない/);
   assert.match(scenario, /電話口の相手が契約者本人/);
+  assert.match(scenario, /豊川市デモ町1丁目2番3号/);
+  assert.match(scenario, /0000-00-0000/);
   assert.match(scenario, /契約者本人以外からの電話申し込みは受け付けず/);
-  assert.doesNotMatch(customer, /\d{2,4}-\d{2,4}-\d{4}|丁目|番地/);
 });
 
 test("business rules separate pre-verification guidance from restricted details", () => {

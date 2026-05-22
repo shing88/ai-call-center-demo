@@ -416,12 +416,13 @@ test("renderApp shows selected scenario details and expected demo flow before th
   assert.match(html, /既存ネット加入者のケーブルプラス電話追加デモ/);
   assert.match(html, /森 彩乃役/);
   assert.match(html, /CCNet光1GとメッシュWi-Fi 2台を利用中/);
+  assert.match(html, /デモ登録住所「豊川市デモ町1丁目2番3号」/);
+  assert.match(html, /デモ登録電話番号「0000-00-0000」/);
   assert.match(html, /サービス開始月は2025年4月/);
   assert.match(html, /デモ用合言葉カテゴリは町内会/);
   assert.match(html, /契約者の氏名・登録住所・登録電話番号/);
   assert.match(html, /本人以外からの電話申し込みは受け付けない/);
   assert.match(html, /6ステップ/);
-  assert.doesNotMatch(html, /\d{2,4}-\d{2,4}-\d{4}/);
 });
 
 test("renderApp switches the scenario detail when another demo scenario is selected", () => {

@@ -28,7 +28,7 @@
 - ブラウザ入口`src/main.ts`のruntime dependency graphはNode-only moduleを含めない。fallback rehearsalはbrowser-safeな`src/demo-scenario-cases.ts`を使う。knowledge loaderはブラウザ入口から到達しない。browser-side fetchは`window.fetch(...)` wrapper経由で呼び、`fetch`のunbound invocationを避ける。`src/realtime-runtime-health.ts`はbrowser-safeに`/api/health`を検証し、Realtime boundaryのconfigured表示へ変換する。
 - evidence manifestは読み込み時にbundle/result単位まで検証し、不正なmanifestはfallback表示へ戻す。
 - CCNet向けデモは公開HP、サービス詳細、約款、重要事項説明に合わせた架空シナリオと架空顧客モックを使う。実顧客データは使わない。
-- CCNet向けデモには、既存ネット加入者がケーブルプラス電話を追加する`CALL-CC-04`と、新規ネット加入希望者へケーブルプラス電話を提案する`CALL-CC-05`を含める。どちらも挨拶、本人確認または提供エリア確認、商品選択肢提示、料金目安、断定禁止、担当者確認への引き継ぎを固定する。既契約者の電話申し込みでは、契約者の氏名、登録住所、登録電話番号、電話口の相手が契約者本人であることを確認し、本人以外からの電話申し込みは受け付けない。選択中のデモシナリオは、KPI帯の直下にシナリオ詳細、お客役が知っておく前提情報、デモ開始後に期待される話の流れとして表示する。
+- CCNet向けデモには、既存ネット加入者がケーブルプラス電話を追加する`CALL-CC-04`と、新規ネット加入希望者へケーブルプラス電話を提案する`CALL-CC-05`を含める。どちらも挨拶、本人確認または提供エリア確認、商品選択肢提示、料金目安、断定禁止、担当者確認への引き継ぎを固定する。既契約者の電話申し込みでは、契約者の氏名、登録住所、登録電話番号、電話口の相手が契約者本人であることを確認し、本人以外からの電話申し込みは受け付けない。選択中のデモシナリオは、KPI帯の直下にシナリオ詳細、お客役が知っておく前提情報、本人確認シミュレーション用の架空照合値、デモ開始後に期待される話の流れとして表示する。
 - 実電話、認証、本番DB、本番接続は未実装。Realtime音声はブラウザの`Start call`から短命client secretで接続するデモ境界のみ。Realtime handoff recordはserver-side local JSONへ保存できるが、実顧客データや外部送信は扱わない。Operator noteはbrowser-onlyの未送信値。
 
 ## 現在の主要コード
