@@ -48,6 +48,8 @@ test("CCNet public-fit business rule reflects service details, terms, and import
   assert.match(content, /初期契約解除制度/);
   assert.match(content, /ベストエフォート/);
   assert.match(content, /契約状態.*本人確認後/s);
+  assert.match(content, /契約者の氏名、登録住所、登録電話番号/);
+  assert.match(content, /契約者本人以外からの電話申し込みは受け付けず/);
 });
 
 test("CCNet fictional customer mockups keep realistic service state without real identifiers", () => {
@@ -59,6 +61,19 @@ test("CCNet fictional customer mockups keep realistic service state without real
   assert.match(content, /10G変更/);
   assert.match(content, /架空顧客契約/);
   assert.doesNotMatch(content, /\d{2,4}-\d{2,4}-\d{4}|丁目|番地/);
+});
+
+test("CCNet Cable Plus existing-customer scenario requires contractor identity and caller verification", () => {
+  const customer = readKnowledgeFile("customer_contracts/customer_ccnet_2004.md");
+  const scenario = readKnowledgeFile("scenarios/scenario_06_ccnet_cableplus_existing_net_add.md");
+
+  assert.match(customer, /契約者の氏名/);
+  assert.match(customer, /登録住所/);
+  assert.match(customer, /登録電話番号/);
+  assert.match(customer, /契約者本人以外からの電話申し込みはできない/);
+  assert.match(scenario, /電話口の相手が契約者本人/);
+  assert.match(scenario, /契約者本人以外からの電話申し込みは受け付けず/);
+  assert.doesNotMatch(customer, /\d{2,4}-\d{2,4}-\d{4}|丁目|番地/);
 });
 
 test("business rules separate pre-verification guidance from restricted details", () => {

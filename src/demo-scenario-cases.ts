@@ -131,7 +131,7 @@ export const demoScenarioRegressionCases: readonly DemoScenarioRegressionCase[] 
       verificationStatus: "unverified"
     },
     operatorNoteValue:
-      "挨拶済み。本人確認前なので追加可否、番号継続、割引適用、最終料金は断定しない。ケーブルプラス電話とケーブルラインの選択肢を整理する。",
+      "挨拶済み。既契約者の電話申込は契約者本人のみ。氏名、住所、登録電話番号、本人からの架電を確認するまで追加可否、番号継続、割引適用、最終料金は断定しない。ケーブルプラス電話とケーブルラインの選択肢を整理する。",
     categories: ["business_rules", "customer_contracts", "scenarios"],
     customerId: "customer_ccnet_2004",
     evidenceLimit: 5,
