@@ -162,6 +162,17 @@ export interface QueueSummary {
   averageWaitSeconds: number;
 }
 
+interface DemoScenarioSpotlight {
+  callId: string;
+  title: string;
+  scenarioDetail: string;
+  demoGoal: string;
+  actorContext: string[];
+  identityCheckContext: string[];
+  expectedFlow: string[];
+  presenterCue: string;
+}
+
 export const demoState: DemoState = {
   agentName: "サポートOps",
   executiveScenario: {
@@ -290,6 +301,208 @@ export function buildQueueSummary(items: QueueItem[]): QueueSummary {
     humanReview: items.filter((item) => item.status === "human-review").length,
     highPriority: items.filter((item) => item.priority === "high").length,
     averageWaitSeconds: items.length === 0 ? 0 : Math.round(totalWaitSeconds / items.length)
+  };
+}
+
+function buildDemoScenarioSpotlight(item: QueueItem | undefined): DemoScenarioSpotlight {
+  if (!item) {
+    return {
+      callId: "未選択",
+      title: "デモシナリオ未選択",
+      scenarioDetail:
+        "左のデモシナリオから案件を選ぶと、お客様設定、AIが最初に確認すべきこと、期待される会話の流れをここに表示します。",
+      demoGoal:
+        "デモ開始前に、視聴者へ「何を見せるのか」と「どこまで断定しないのか」を共有します。",
+      actorContext: [
+        "お客役は、左のデモシナリオに表示される顧客名、相談内容、契約状態を確認してから開始します。",
+        "契約状態や本人確認の回答は、選択したシナリオの表示内容だけを使います。",
+        "実在の住所、電話番号、契約番号、請求情報は使いません。"
+      ],
+      identityCheckContext: [
+        "本人確認が必要なシナリオでは、ここにデモ用の照合回答を表示します。"
+      ],
+      expectedFlow: [
+        "シナリオを選択する。",
+        "挨拶し、本人確認を完了してから用件を聞く。",
+        "根拠候補とポリシー判定を見ながら応答ドラフトを確認する。"
+      ],
+      presenterCue: "まず左のデモシナリオを選択してください。"
+    };
+  }
+
+  const defaultSpotlight: DemoScenarioSpotlight = {
+    callId: item.id,
+    title: item.topic,
+    scenarioDetail: `${item.callerName}さんからの問い合わせ。${item.excerpt}`,
+    demoGoal:
+      "AIが問い合わせ内容を整理し、根拠候補とポリシー判定に沿って、断定しない下書きと次アクションを示す流れを見せます。",
+    expectedFlow: [
+      "挨拶し、本人確認を完了してから用件を聞く。",
+      "本人確認後に用件を聞き、短く復唱して提供可否確認が必要な範囲を切り分ける。",
+      "公開情報で案内できる内容と、担当者確認へ回す内容を分けて提示する。",
+      "応答ドラフト、根拠候補、ポリシー判定、次アクションを確認する。"
+    ],
+    actorContext: [
+      `${item.callerName}役として、相談内容は「${item.excerpt}」から始める。`,
+      `契約・利用状況は「${item.servicePlan ?? "未設定"}」、エリアは「${item.serviceArea ?? "未設定"}」。`,
+      `${verificationLabel(item.verificationStatus)}として振る舞い、本人確認前に契約確定情報を要求しすぎない。`
+    ],
+    identityCheckContext: [
+      "このシナリオ固有の本人確認用回答は設定されていません。必要な場合はデモ用の照合値だけを使います。",
+      "登録電話番号: 0000-00-0000"
+    ],
+    presenterCue: "AIがいきなり確定回答せず、根拠とガードレールを示す点を確認してください。"
+  };
+
+  const spotlights: Record<string, Omit<DemoScenarioSpotlight, "callId">> = {
+    "CALL-CC-01": {
+      title: "地域安全情報の一般案内デモ",
+      scenarioDetail:
+        "大雨前に道路・河川カメラや地域情報を確認したいお客様へ、安全・安心123チャンネルと一般的な確認導線を案内するシナリオです。",
+      demoGoal:
+        "地域情報の案内はできるが、個別地点の安全判断や避難判断は断定せず、公式情報確認へ誘導する動きを見せます。",
+      expectedFlow: [
+        "挨拶し、本人確認を完了してから用件を聞く。",
+        "本人確認後に用件を聞き、大雨前に地域情報を確認したい意図を復唱する。",
+        "テレビで確認できる情報種別と、案内できる範囲を整理する。",
+        "個別の安全判断は自治体・防災機関・公式警報を確認するよう案内する。",
+        "必要なら担当者確認や追加の視聴方法案内へ引き継ぐ。"
+      ],
+      actorContext: [
+        "田中 美咲役。小牧市の戸建てでテレビ ファミリーAと安全・安心123チャンネルを利用中という設定。",
+        "本人確認を求められたら、下のデモ用照合値に答える。本人確認後に地域情報の見方を相談する。",
+        "大雨前で道路・河川カメラ、防災、防犯情報をテレビで確認したい。"
+      ],
+      identityCheckContext: [
+        "契約者氏名: 田中 美咲（たなか みさき）",
+        "登録住所: 小牧市デモ町2丁目3番4号（こまきし でもまち にちょうめ さんばん よんごう）",
+        "登録電話番号: 0000-00-0000",
+        "電話口の相手: 契約者本人",
+        "照合補助: サービス開始月 2023年6月 / デモ用合言葉カテゴリ 町内行事"
+      ],
+      presenterCue: "災害・安全判断をAIが断定しない点を見せます。"
+    },
+    "CALL-CC-02": {
+      title: "障害・補償相談の上席確認デモ",
+      scenarioDetail:
+        "ネット接続不調で仕事に影響したという相談に対し、障害状況や補償可否をAIだけで決めず、人の確認へ回すシナリオです。",
+      demoGoal:
+        "補償、障害認定、個別契約判断をAIが確定せず、上席確認に必要な要点を整理する動きを見せます。",
+      expectedFlow: [
+        "挨拶し、本人確認を完了してから用件を聞く。",
+        "本人確認後に用件を聞き、接続不調と補償相談の要点を復唱する。",
+        "契約状態、障害状況、補償可否は担当者確認が必要だと説明する。",
+        "影響範囲、発生日時、利用環境など確認すべき項目を整理する。",
+        "人の確認が必要な案件として引き継ぎメモを作る。"
+      ],
+      actorContext: [
+        "佐藤 亮役。各務原市の集合住宅でCCNet Air LTEと無線機器を利用中という設定。",
+        "本人確認を求められたら、下のデモ用照合値に答える。本人確認後に、仕事に影響した障害状況と補償可否を強めに確認したい。",
+        "補償額、障害認定、契約状態の確定情報はお客役からも断定しない。"
+      ],
+      identityCheckContext: [
+        "契約者氏名: 佐藤 亮（さとう りょう）",
+        "登録住所: 各務原市デモ町3丁目4番5号 デモハイツ101号室（かかみがはらし でもまち さんちょうめ よんばん ごごう でもはいつ いちまるいちごうしつ）",
+        "登録電話番号: 0000-00-0000",
+        "電話口の相手: 契約者本人",
+        "照合補助: サービス開始月 2026年2月 / デモ用合言葉カテゴリ 通勤経路"
+      ],
+      presenterCue: "高リスクな補償判断を自動回答しない点を見せます。"
+    },
+    "CALL-CC-03": {
+      title: "10G/Wi-Fi相談の公開情報案内デモ",
+      scenarioDetail:
+        "春日井市の架空加入者が、テレワーク中のWi-Fi不安定をきっかけにCCNet光10Gへ変えられるか相談するシナリオです。",
+      demoGoal:
+        "公開情報として10GやメッシュWi-Fiの選択肢を案内しつつ、契約状態、提供可否、速度改善の保証を断定しない流れを見せます。",
+      expectedFlow: [
+        "挨拶し、本人確認を完了してから用件を聞く。",
+        "本人確認後に用件を聞き、Wi-Fi不安定と10G相談の要点を復唱する。",
+        "契約状態や変更可否は提供条件と担当者確認が必要だと説明する。",
+        "利用端末数、設置場所、メッシュWi-Fi、10G提供可否など確認観点を整理する。",
+        "公開情報の一般案内を示し、担当者確認へつなぐ。"
+      ],
+      actorContext: [
+        "山本 花役。春日井市の戸建てでCCNet光1G おとく割、テレビ、ケーブルライン、メッシュWi-Fiを利用中という設定。",
+        "本人確認を求められたら、下のデモ用照合値に答える。本人確認後に、テレワーク中のWi-Fi不安定とCCNet光10Gへの変更可否を相談する。",
+        "10G提供可否、工事日、料金、速度改善の保証はまだ知らない前提で話す。"
+      ],
+      identityCheckContext: [
+        "契約者氏名: 山本 花（やまもと はな）",
+        "登録住所: 春日井市デモ町4丁目5番6号（かすがいし でもまち よんちょうめ ごばん ろくごう）",
+        "登録電話番号: 0000-00-0000",
+        "電話口の相手: 契約者本人",
+        "照合補助: サービス開始月 2024年8月 / デモ用合言葉カテゴリ 地域イベント"
+      ],
+      presenterCue: "速度改善や10G提供可否を約束しない点を見せます。"
+    },
+    "CALL-CC-04": {
+      title: "既存ネット加入者のケーブルプラス電話追加デモ",
+      scenarioDetail:
+        "既存のCCNet光1G加入者が、固定電話を追加し、現在の電話番号・電話機の継続とauスマホとのセットメリットを確認したいシナリオです。",
+      demoGoal:
+        "契約追加に進む前に、契約者の氏名・登録住所・登録電話番号と、電話口の相手が契約者本人であることを確認し、本人以外からの電話申し込みは受け付けない流れを見せます。",
+      expectedFlow: [
+        "挨拶し、本人確認を完了してから用件を聞く。",
+        "本人確認後に用件を聞き、現在のネット契約に固定電話を追加したい要件を復唱する。",
+        "既契約者の電話申込は契約者本人のみ可能だと説明する。",
+        "電話番号や電話機の継続希望、携帯キャリア、通話量、番号表示などの希望を確認する。",
+        "ケーブルプラス電話とケーブルラインの選択肢、料金目安、確認が必要な項目を提示する。",
+        "追加受付完了、番号継続可否、割引適用、工事日、最終料金は断定せず担当者確認へ引き継ぐ。"
+      ],
+      actorContext: [
+        "森 彩乃役。豊川市の戸建てでCCNet光1GとメッシュWi-Fi 2台を利用中、固定電話は未加入という設定。",
+        "契約者本人として電話している。本人確認を求められたら、下のデモ用照合値に答える。",
+        "サービス開始月は2025年4月、デモ用合言葉カテゴリは町内会。表示されたデモ照合値以外の住所・電話番号は言わない。",
+        "自宅の電話番号と電話機をできれば継続したい。auスマホとのセットメリット、通話量が多い場合の選択肢も聞く。",
+        "追加可否、番号継続、割引適用、工事日、最終料金はまだ知らない前提で話す。"
+      ],
+      identityCheckContext: [
+        "契約者氏名: 森 彩乃（もり あやの）",
+        "登録住所: 豊川市デモ町1丁目2番3号（とよかわし でもまち いっちょうめ にばん さんごう）",
+        "登録電話番号: 0000-00-0000",
+        "電話口の相手: 契約者本人",
+        "照合補助: サービス開始月 2025年4月 / デモ用合言葉カテゴリ 町内会"
+      ],
+      presenterCue: "本人確認と、本人以外の電話申込不可を最初に見せるシナリオです。"
+    },
+    "CALL-CC-05": {
+      title: "ネット新規加入時のケーブルプラス電話提案デモ",
+      scenarioDetail:
+        "新築戸建てへ引っ越し予定の見込み顧客が、ネット新規加入と固定電話をまとめるべきか相談するシナリオです。",
+      demoGoal:
+        "住居種別、提供エリア、利用目的、Wi-Fi台数、固定電話の必要性、携帯キャリアを確認してから、UQ mobile利用者にケーブルプラス電話を候補提示する流れを見せます。",
+      expectedFlow: [
+        "挨拶し、本人確認を完了してから用件を聞く。",
+        "本人確認後に用件を聞き、新規加入検討とネット・固定電話の組み合わせ相談であることを確認する。",
+        "住居種別、提供エリア確認、利用目的、利用人数、Wi-Fi台数を聞く。",
+        "固定電話の必要性、番号引き継ぎ希望、携帯キャリアを確認する。",
+        "ネットコースの考え方と、ケーブルプラス電話/ケーブルラインの比較観点を提示する。",
+        "料金シミュレーション、提供エリア確認、電話説明または訪問説明へ案内する。",
+        "申込可否、工事費、番号継続、キャンペーン適用、最終月額は正式確認後と明示する。"
+      ],
+      actorContext: [
+        "西村 陽太役。小牧市で新築戸建てに引っ越し予定、CCNet未加入の見込み顧客という設定。",
+        "本人確認を求められたら、下のデモ用照合値に答える。本人確認後に、テレワークと動画視聴が多く、家族にUQ mobile利用者がいることを話す。",
+        "固定電話を付けるべきか迷っている。現在の電話番号を引き継ぐかは相談しながら決めたい。",
+        "申込可否、キャンペーン適用、工事費、番号継続、最終月額はまだ知らない前提で話す。"
+      ],
+      identityCheckContext: [
+        "相談者氏名: 西村 陽太（にしむら ようた）",
+        "設置予定住所: 小牧市デモ町5丁目6番7号（こまきし でもまち ごちょうめ ろくばん ななごう）",
+        "連絡先電話番号: 0000-00-0000",
+        "電話口の相手: 相談者本人",
+        "照合補助: 相談開始月 2026年5月 / デモ用合言葉カテゴリ 引っ越し予定"
+      ],
+      presenterCue: "商品を押し付けず、条件確認後に選択肢として提案する点を見せます。"
+    }
+  };
+
+  const spotlight = spotlights[item.id] ?? defaultSpotlight;
+
+  return {
+    callId: item.id,
+    ...spotlight
   };
 }
 
@@ -745,6 +958,7 @@ export function renderApp(state: DemoState = demoState): string {
   const summary = buildQueueSummary(state.activeQueue);
   const selectedCallId = state.assistantEvidence.callId;
   const selectedQueueItem = state.activeQueue.find((item) => item.id === selectedCallId);
+  const scenarioSpotlight = buildDemoScenarioSpotlight(selectedQueueItem);
   const conversationDraft = buildAssistantConversationDraft(
     selectedQueueItem,
     state.assistantEvidence
@@ -865,6 +1079,7 @@ export function renderApp(state: DemoState = demoState): string {
         </aside>
 
         <section class="column column--center" aria-labelledby="assistant-title">
+          ${renderDemoScenarioSpotlight(scenarioSpotlight)}
           ${renderRealtimeStatusBar(realtimeConnection, realtimeCallControls)}
           ${renderCallWorkspace(selectedQueueItem, callSummary, policyGuard)}
           ${renderConversationThreadPreview(threadPreview)}
@@ -1652,6 +1867,57 @@ function renderAssistantEvidenceItem(item: AssistantEvidenceItem): string {
   `;
 }
 
+function renderDemoScenarioSpotlight(scenario: DemoScenarioSpotlight): string {
+  return `
+    <section
+      class="scenario-spotlight"
+      aria-labelledby="scenario-spotlight-title"
+      data-scenario-spotlight-call-id="${escapeHtml(scenario.callId)}"
+    >
+      <div class="scenario-spotlight__main">
+        <p class="eyebrow">シナリオ詳細</p>
+        <div class="scenario-spotlight__title-row">
+          <h2 id="scenario-spotlight-title">${escapeHtml(scenario.title)}</h2>
+          <span>${escapeHtml(scenario.callId)}</span>
+        </div>
+        <p>${escapeHtml(scenario.scenarioDetail)}</p>
+        <div class="scenario-goal">
+          <span>デモの見せどころ</span>
+          <strong>${escapeHtml(scenario.demoGoal)}</strong>
+        </div>
+        <div class="scenario-actor-context">
+          <span>お客役が知っておく前提情報</span>
+          <ul>
+            ${scenario.actorContext
+              .map((context) => `<li>${escapeHtml(context)}</li>`)
+              .join("")}
+          </ul>
+          <div class="scenario-identity-context">
+            <strong>本人確認で答える情報</strong>
+            <ul>
+              ${scenario.identityCheckContext
+                .map((context) => `<li>${escapeHtml(context)}</li>`)
+                .join("")}
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="scenario-spotlight__flow">
+        <div class="scenario-flow-heading">
+          <p class="eyebrow">デモ開始後に期待される話の流れ</p>
+          <span>${scenario.expectedFlow.length}ステップ</span>
+        </div>
+        <ol>
+          ${scenario.expectedFlow
+            .map((step, index) => `<li><span>${index + 1}</span>${escapeHtml(step)}</li>`)
+            .join("")}
+        </ol>
+        <p class="scenario-cue">${escapeHtml(scenario.presenterCue)}</p>
+      </div>
+    </section>
+  `;
+}
+
 function renderQueueItem(item: QueueItem, selectedCallId: string): string {
   const isSelected = item.id === selectedCallId;
   const escapedId = escapeHtml(item.id);
@@ -1671,7 +1937,9 @@ function renderQueueItem(item: QueueItem, selectedCallId: string): string {
       isSelected ? " queue-item--selected is-selected" : ""
     }" data-status="${escapeHtml(item.status)}" data-priority="${escapeHtml(
       item.priority
-    )}" data-queue-call-id="${escapedId}"${isSelected ? ' aria-current="true"' : ""}>
+    )}" data-queue-call-id="${escapedId}" data-queue-open="${escapedId}" role="button" tabindex="0" aria-label="${escapedTopic}を選択" aria-pressed="${
+      isSelected ? "true" : "false"
+    }"${isSelected ? ' aria-current="true"' : ""}>
       <div class="queue-main">
         <div class="queue-title-row">
           <h3>${escapedTopic}</h3>
@@ -1684,14 +1952,6 @@ function renderQueueItem(item: QueueItem, selectedCallId: string): string {
           ${metaItems.map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
         </div>
       </div>
-      <button
-        type="button"
-        data-queue-open="${escapedId}"
-        aria-label="${escapedTopic}を開く"
-        aria-pressed="${isSelected ? "true" : "false"}"
-      >
-        開く
-      </button>
     </article>
   `;
 }

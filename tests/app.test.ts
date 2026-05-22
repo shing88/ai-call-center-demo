@@ -384,6 +384,109 @@ test("renderApp leads with an executive demo brief that connects evidence, polic
   assert.doesNotMatch(html, /Live API connected/);
 });
 
+test("renderApp shows selected scenario details in the center workspace", () => {
+  const html = renderApp({
+    ...demoState,
+    assistantEvidence: {
+      ...demoState.assistantEvidence,
+      callId: "CALL-CC-04",
+      query: "ケーブルプラス電話 追加 customer_ccnet_2004",
+      resultCount: 1,
+      results: [
+        {
+          sourcePath: "scenarios/scenario_06_ccnet_cableplus_existing_net_add.md",
+          section: "応対ステップ",
+          snippet: "契約者本人であることを確認する。",
+          score: 12
+        }
+      ]
+    }
+  });
+  const scenarioIndex = html.indexOf('id="scenario-spotlight-title"');
+  const queueIndex = html.indexOf('id="queue-title"');
+  const workspaceIndex = html.indexOf('id="call-workspace-title"');
+
+  assert.ok(scenarioIndex >= 0);
+  assert.ok(queueIndex >= 0);
+  assert.ok(scenarioIndex > queueIndex);
+  assert.ok(workspaceIndex > scenarioIndex);
+  assert.match(html, /data-scenario-spotlight-call-id="CALL-CC-04"/);
+  assert.match(html, /シナリオ詳細/);
+  assert.match(html, /お客役が知っておく前提情報/);
+  assert.match(html, /本人確認で答える情報/);
+  assert.match(html, /デモ開始後に期待される話の流れ/);
+  assert.match(html, /既存ネット加入者のケーブルプラス電話追加デモ/);
+  assert.match(html, /森 彩乃役/);
+  assert.match(html, /CCNet光1GとメッシュWi-Fi 2台を利用中/);
+  assert.match(html, /契約者氏名: 森 彩乃（もり あやの）/);
+  assert.match(
+    html,
+    /登録住所: 豊川市デモ町1丁目2番3号（とよかわし でもまち いっちょうめ にばん さんごう）/
+  );
+  assert.match(html, /登録電話番号: 0000-00-0000/);
+  assert.match(html, /電話口の相手: 契約者本人/);
+  assert.match(html, /サービス開始月 2025年4月/);
+  assert.match(html, /デモ用合言葉カテゴリ 町内会/);
+  assert.match(html, /契約者の氏名・登録住所・登録電話番号/);
+  assert.match(html, /本人以外からの電話申し込みは受け付けない/);
+  assert.match(html, /6ステップ/);
+});
+
+test("renderApp starts every demo scenario with identity verification before the customer issue", () => {
+  for (const item of demoState.activeQueue) {
+    const html = renderApp({
+      ...demoState,
+      assistantEvidence: {
+        ...demoState.assistantEvidence,
+        callId: item.id,
+        query: `${item.topic} ${item.customerId}`,
+        resultCount: 0,
+        results: []
+      }
+    });
+
+    const flowStartIndex = html.indexOf(
+      "<span>1</span>挨拶し、本人確認"
+    );
+    const issueIndex = html.indexOf("本人確認後に用件");
+
+    assert.match(html, new RegExp(`data-scenario-spotlight-call-id="${item.id}"`));
+    assert.match(html, /本人確認で答える情報/);
+    assert.match(html, /0000-00-0000/);
+    assert.ok(flowStartIndex >= 0, `${item.id} should start flow with identity verification`);
+    assert.ok(issueIndex > flowStartIndex, `${item.id} should ask the issue after verification`);
+  }
+});
+
+test("renderApp switches the scenario detail when another demo scenario is selected", () => {
+  const html = renderApp({
+    ...demoState,
+    assistantEvidence: {
+      ...demoState.assistantEvidence,
+      callId: "CALL-CC-05",
+      query: "ネット新規加入 ケーブルプラス電話 customer_ccnet_2005",
+      resultCount: 1,
+      results: [
+        {
+          sourcePath: "scenarios/scenario_07_ccnet_new_internet_cableplus_recommendation.md",
+          section: "応対ステップ",
+          snippet: "住居種別、提供エリア確認、利用目的を確認する。",
+          score: 12
+        }
+      ]
+    }
+  });
+
+  assert.match(html, /data-scenario-spotlight-call-id="CALL-CC-05"/);
+  assert.match(html, /ネット新規加入時のケーブルプラス電話提案デモ/);
+  assert.match(html, /西村 陽太役/);
+  assert.match(html, /小牧市で新築戸建てに引っ越し予定/);
+  assert.match(html, /家族にUQ mobile利用者/);
+  assert.match(html, /住居種別、提供エリア、利用目的、Wi-Fi台数/);
+  assert.match(html, /料金シミュレーション、提供エリア確認/);
+  assert.doesNotMatch(html, /本人以外からの電話申し込みは受け付けない/);
+});
+
 test("renderApp switches the unsent operator input with assistant evidence call id", () => {
   const state: DemoState = {
     agentName: "Support Ops",
@@ -557,12 +660,16 @@ test("renderApp marks the selected queue item from assistant evidence", () => {
 
   assert.match(html, /data-queue-call-id="CALL-CC-03"/);
   assert.match(html, /data-queue-open="CALL-CC-03"/);
+  assert.match(html, /role="button"/);
+  assert.match(html, /tabindex="0"/);
+  assert.match(html, /aria-label=".*を選択"/);
   assert.match(html, /customer_ccnet_2001/);
   assert.match(html, /春日井市 \/ 戸建て/);
   assert.match(html, /本人確認: 未完了/);
   assert.match(html, /queue-item--selected/);
   assert.match(html, /aria-current="true"/);
   assert.match(html, /aria-pressed="true"/);
+  assert.doesNotMatch(html, />開く<\/button>/);
 });
 
 test("renderApp frames the selected call as a review-only call workspace", () => {

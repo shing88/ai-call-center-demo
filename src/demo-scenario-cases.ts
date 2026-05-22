@@ -131,7 +131,7 @@ export const demoScenarioRegressionCases: readonly DemoScenarioRegressionCase[] 
       verificationStatus: "unverified"
     },
     operatorNoteValue:
-      "挨拶済み。本人確認前なので追加可否、番号継続、割引適用、最終料金は断定しない。ケーブルプラス電話とケーブルラインの選択肢を整理する。",
+      "挨拶済み。まず氏名、住所、登録電話番号、本人からの架電を確認し、本人確認後に固定電話追加の用件を聞く。既契約者の電話申込は契約者本人のみ。追加可否、番号継続、割引適用、最終料金は断定しない。ケーブルプラス電話とケーブルラインの選択肢を整理する。",
     categories: ["business_rules", "customer_contracts", "scenarios"],
     customerId: "customer_ccnet_2004",
     evidenceLimit: 5,
@@ -167,7 +167,7 @@ export const demoScenarioRegressionCases: readonly DemoScenarioRegressionCase[] 
       verificationStatus: "unverified"
     },
     operatorNoteValue:
-      "挨拶済み。新規加入検討として住居種別、提供エリア、利用目的、携帯キャリア、固定電話の必要性を確認する。申込可否、工事費、番号継続、キャンペーン適用、最終月額は断定しない。",
+      "挨拶済み。まず相談者氏名、設置予定住所、連絡先電話番号、本人からの相談を確認し、本人確認後に新規加入の用件を聞く。住居種別、提供エリア、利用目的、携帯キャリア、固定電話の必要性を確認する。申込可否、工事費、番号継続、キャンペーン適用、最終月額は断定しない。",
     categories: ["business_rules", "customer_contracts", "scenarios"],
     customerId: "customer_ccnet_2005",
     evidenceLimit: 5,

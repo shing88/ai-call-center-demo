@@ -4,7 +4,7 @@
 
 次のタスク: CCNetケーブルプラス電話シナリオ追加
 
-現在のPR段階: Cable Plus scenario expansion
+現在のPR段階: Scenario spotlight and caller verification follow-up
 
 Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controls、Business-rule grounded operator behavior、Call recording and handoff、Local JSON handoff persistenceは実装・merge済み。
 
@@ -15,7 +15,7 @@ Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime fo
 
 各シナリオでは、挨拶、本人確認または提供エリア確認、電話番号・電話機継続希望、携帯キャリア、通話量、商品選択肢、公開料金目安、断定禁止、担当者確認または料金シミュレーションへの次アクションを固定する。
 
-後続計画: 実装後は`npm.cmd test`、`npm.cmd run build`、`git diff --check`を確認する。余力があればDockerで再ビルドして、`http://localhost:4173/`に`CALL-CC-04` / `CALL-CC-05`が表示されることを確認する。
+後続計画: 実装後は`npm.cmd test`、`npm.cmd run build`、`git diff --check`を確認する。余力があればDockerで再ビルドして、`http://localhost:4173/`に`CALL-CC-04` / `CALL-CC-05`が表示されること、選択中シナリオの詳細、お客役が知っておく前提情報、本人確認シミュレーション用の架空照合値、期待される話の流れがKPI帯の直下で切り替わることを確認する。
 
 この段階では`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信はまだ入れない。
 
@@ -71,3 +71,11 @@ docs/ai/inbox/pro-instructions/**
 ## 追加ファイルの利用
 
 追加でファイルを読んだ場合は、PRの`Context usage`に記録する。
+# 更新メモ (2026-05-22)
+
+- 現在のPR段階: Scenario spotlight and caller verification follow-up。
+- 追加対応: シナリオ詳細を中央ペインへ移動し、左のデモシナリオ一覧はカード全体で選択できるUIへ変更した。
+- `CALL-CC-04`では、お客役が本人確認で答える契約者氏名、登録住所、登録電話番号、契約者本人からの架電、照合補助を独立表示する。
+- 契約者氏名と登録住所はふりがな付きで表示する。
+- 全デモシナリオは、本人確認を先に行い、本人確認後に用件を聞く流れへ統一する。
+- 次に確認する場合: `npm.cmd test`、`npm.cmd run build`、`git diff --check`、`docker compose --env-file .env.local up --build -d`、ブラウザで`CALL-CC-04`カード選択。

@@ -138,13 +138,40 @@ appRoot.addEventListener("click", (event) => {
     return;
   }
 
-  const button = target.closest<HTMLButtonElement>("[data-queue-open]");
+  const queueCard = target.closest<HTMLElement>("[data-queue-open]");
 
-  if (!button || !appRoot.contains(button) || !manifest) {
+  if (!queueCard || !appRoot.contains(queueCard)) {
     return;
   }
 
-  const callId = button.dataset.queueOpen;
+  selectQueueCall(queueCard.dataset.queueOpen);
+});
+
+appRoot.addEventListener("keydown", (event) => {
+  const target = event.target;
+
+  if (!(target instanceof Element)) {
+    return;
+  }
+
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+
+  const queueCard = target.closest<HTMLElement>("[data-queue-open]");
+
+  if (!queueCard || !appRoot.contains(queueCard)) {
+    return;
+  }
+
+  event.preventDefault();
+  selectQueueCall(queueCard.dataset.queueOpen);
+});
+
+function selectQueueCall(callId: string | undefined): void {
+  if (!manifest) {
+    return;
+  }
 
   if (!callId) {
     return;
@@ -165,7 +192,7 @@ appRoot.addEventListener("click", (event) => {
   realtimeCallHandoff = undefined;
   renderCurrentState();
   void loadCurrentPersistedRealtimeCallHandoff();
-});
+}
 
 renderCurrentState();
 void loadCurrentRealtimeRuntimeHealth();
