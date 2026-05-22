@@ -1,6 +1,6 @@
 # 現在のコンテキスト
 
-最終更新: 2026-05-21
+最終更新: 2026-05-22
 
 このファイルには、現在確認済みの状態だけを書く。古い履歴ログとして使わない。
 
@@ -28,6 +28,7 @@
 - ブラウザ入口`src/main.ts`のruntime dependency graphはNode-only moduleを含めない。fallback rehearsalはbrowser-safeな`src/demo-scenario-cases.ts`を使う。knowledge loaderはブラウザ入口から到達しない。browser-side fetchは`window.fetch(...)` wrapper経由で呼び、`fetch`のunbound invocationを避ける。`src/realtime-runtime-health.ts`はbrowser-safeに`/api/health`を検証し、Realtime boundaryのconfigured表示へ変換する。
 - evidence manifestは読み込み時にbundle/result単位まで検証し、不正なmanifestはfallback表示へ戻す。
 - CCNet向けデモは公開HP、サービス詳細、約款、重要事項説明に合わせた架空シナリオと架空顧客モックを使う。実顧客データは使わない。
+- CCNet向けデモには、既存ネット加入者がケーブルプラス電話を追加する`CALL-CC-04`と、新規ネット加入希望者へケーブルプラス電話を提案する`CALL-CC-05`を含める。どちらも挨拶、本人確認または提供エリア確認、商品選択肢提示、料金目安、断定禁止、担当者確認への引き継ぎを固定する。
 - 実電話、認証、本番DB、本番接続は未実装。Realtime音声はブラウザの`Start call`から短命client secretで接続するデモ境界のみ。Realtime handoff recordはserver-side local JSONへ保存できるが、実顧客データや外部送信は扱わない。Operator noteはbrowser-onlyの未送信値。
 
 ## 現在の主要コード
@@ -71,6 +72,7 @@
 ## 次のハンドオフ
 
 - Task 28 `browser-realtime-voice-demo`はlocal JSON handoff persistenceまでPR化・merge済み。
+- 現在の小PRは、CCNet公開情報に合わせたケーブルプラス電話シナリオ追加。`knowledge/business_rules/005_ccnet_public_service_guidance.md`、`knowledge/customer_contracts/customer_ccnet_2004.md`、`knowledge/customer_contracts/customer_ccnet_2005.md`、`knowledge/scenarios/scenario_06_ccnet_cableplus_existing_net_add.md`、`knowledge/scenarios/scenario_07_ccnet_new_internet_cableplus_recommendation.md`、`src/app.ts`、`src/demo-scenario-cases.ts`、関連テストを確認する。
 - `OPENAI_API_KEY`をGit管理外の`.env.local`で用意したDocker環境では、`GET /api/health`が`configured` / `ready`を返し、`POST /api/realtime/client-secret`が`HTTP 200` / `status=ready` / `valueあり`を返すところまで確認済み。secret値は表示・保存しない。
 - ユーザー実機ブラウザでは、マイク許可後に`Stage: realtime-calls`でfallbackへ戻り、同一originの`/api/realtime/calls`到達までは確認できた。その後、browser entrypointでunbound `fetch`が`TypeError: Failed to execute 'fetch' on 'Window': Illegal invocation.`になることも確認したため、`window.fetch(...)` wrapper経由に修正済み。
 - 修正後のユーザー実機ブラウザでは、`Realtime call connected`まで到達し、ユーザーが`End call`した。Docker local JSONには`CALL-CC-03`の`status=recorded` handoff recordが保存され、assistant transcript delta、summary、evidence references、policy decision、next action、guardrailsが残った。`GET /api/realtime/handoffs?callId=CALL-CC-03`は最新recordを返し、ブラウザreload後も`Realtime handoff record`が復元表示された。

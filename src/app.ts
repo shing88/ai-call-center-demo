@@ -249,6 +249,34 @@ export const demoState: DemoState = {
       serviceArea: "春日井市 / 戸建て",
       servicePlan: "CCNet光1G おとく割 + テレビ + ケーブルライン + メッシュWi-Fi",
       verificationStatus: "unverified"
+    },
+    {
+      id: "CALL-CC-04",
+      callerName: "森 彩乃",
+      topic: "ネット契約へケーブルプラス電話追加",
+      status: "waiting",
+      priority: "normal",
+      waitSeconds: 96,
+      excerpt:
+        "今のCCNet光1Gに固定電話を追加したいです。家の電話番号と電話機を使い続けられるか、auスマホとのセットも知りたいです。",
+      customerId: "customer_ccnet_2004",
+      serviceArea: "豊川市 / 戸建て",
+      servicePlan: "CCNet光1G + メッシュWi-Fi / 固定電話未加入",
+      verificationStatus: "unverified"
+    },
+    {
+      id: "CALL-CC-05",
+      callerName: "西村 陽太",
+      topic: "ネット新規加入とケーブルプラス提案",
+      status: "ai-handling",
+      priority: "normal",
+      waitSeconds: 52,
+      excerpt:
+        "新築戸建てでネットを新規契約したいです。UQ mobileを使っていて、固定電話もまとめた方がよいか相談したいです。",
+      customerId: "customer_ccnet_2005",
+      serviceArea: "小牧市 / 新築戸建て予定",
+      servicePlan: "CCNet未加入 / ネット新規検討 + 固定電話検討",
+      verificationStatus: "unverified"
     }
   ]
 };

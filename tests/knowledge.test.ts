@@ -17,8 +17,8 @@ function readKnowledgeFile(relativePath: string): string {
 
 test("knowledge baseline contains the required fictional document sets", () => {
   assert.equal(markdownFiles("business_rules").length, 5);
-  assert.equal(markdownFiles("customer_contracts").length, 6);
-  assert.equal(markdownFiles("scenarios").length, 5);
+  assert.equal(markdownFiles("customer_contracts").length, 8);
+  assert.equal(markdownFiles("scenarios").length, 7);
 
   const readme = readKnowledgeFile("README.md");
   assert.match(readme, /架空/);

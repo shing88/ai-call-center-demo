@@ -2,19 +2,20 @@
 
 ## タスク
 
-次のタスク: Task 28 `browser-realtime-voice-demo`
+次のタスク: CCNetケーブルプラス電話シナリオ追加
 
-現在のPR段階: Realtime response and transcript kickoff
+現在のPR段階: Cable Plus scenario expansion
 
-Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controlsは実装済み。Realtime boundaryは`Realtime not configured`を維持しつつ、server-side token endpoint adapter `POST /api/realtime/client-secret`、OpenAI側`/v1/realtime/client_secrets`のserver-only前提、未設定時の`not-configured` / local fallback、ブラウザAPI key拒否を固定している。
+Task 27 `realtime-token-endpoint-disabled-adapter`、Task 28のServer runtime foundation、Realtime client secret implementation、Browser call controls、Business-rule grounded operator behavior、Call recording and handoff、Local JSON handoff persistenceは実装・merge済み。
 
-Task 28のBusiness-rule grounded operator behaviorも実装済み。選択中callのevidence candidates、業務ルール、架空顧客モック、policy guard、会話プレビュー、Operator noteを短いRealtime instructionsへまとめ、server-side client secret session configへ渡す。
+この小PRでは、CCNet公開情報に合わせて次の2つの架空デモシナリオを追加する。
 
-Task 28のCall recording and handoffも実装済み。`End call`後にtranscript、summary、evidence references、policy decision、next actionをhandoff recordとして画面に残す。
+- 既存ネット加入者がケーブルプラス電話を追加するケース。
+- 新規ネット加入希望者へ、ネット利用目的と携帯キャリアを確認したうえでケーブルプラス電話を提案するケース。
 
-Task 28のLocal JSON handoff persistenceも実装済み。`/api/realtime/handoffs`でhandoff recordをserver-side local JSONへ保存・取得し、Docker Composeでは`./data:/app/data`に保存する。
+各シナリオでは、挨拶、本人確認または提供エリア確認、電話番号・電話機継続希望、携帯キャリア、通話量、商品選択肢、公開料金目安、断定禁止、担当者確認または料金シミュレーションへの次アクションを固定する。
 
-後続計画: `OPENAI_API_KEY`をGit管理外の`.env.local`で用意したDocker環境では、`GET /api/health`が`configured` / `ready`を返し、`POST /api/realtime/client-secret`が`HTTP 200` / `status=ready` / `valueあり`を返すところまで確認済み。ユーザー実機ブラウザではマイク許可後に`Stage: realtime-calls`でfallbackへ戻り、その後unbound browser `fetch`が`Illegal invocation`になることも確認したため、`window.fetch(...)` wrapperに寄せた。修正後の実機ブラウザでは`Realtime call connected`まで到達し、その後ユーザーがAI音声応答を確認した。現在はremote WebRTC audio trackをhidden audio要素へ接続し、data channel open時に`response.create`を送り、session configへ`output_modalities: ["audio"]`、`audio.input.transcription.model: "gpt-4o-transcribe"`、`audio.input.turn_detection.type: "server_vad"`を明示し、`response.output_audio_transcript.done`と`response.done`が同一発話を返す場合のhandoff transcript重複をcollectorと保存済みrecord読み込み時の両方で排除する小PRを進める。次の実機確認では、話した内容とAI応答がhandoff transcriptへ1回ずつ残るかを確認する。keyがない環境では`OPENAI_API_KEY`なしのfallback表示、secret非露出、既存テストだけを確認する。
+後続計画: 実装後は`npm.cmd test`、`npm.cmd run build`、`git diff --check`を確認する。余力があればDockerで再ビルドして、`http://localhost:4173/`に`CALL-CC-04` / `CALL-CC-05`が表示されることを確認する。
 
 この段階では`.env.local`や実secretはcommitしない。実電話接続、認証、本番DB、外部送信はまだ入れない。
 

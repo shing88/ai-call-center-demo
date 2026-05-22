@@ -24,7 +24,7 @@ test("loadEvidenceManifest reads a valid manifest response", async () => {
   });
 
   assert.equal(loaded?.defaultCallId, "CALL-CC-03");
-  assert.equal(Object.keys(loaded?.bundles ?? {}).length, 3);
+  assert.equal(Object.keys(loaded?.bundles ?? {}).length, 5);
 });
 
 test("loadAssistantEvidenceFromManifest reads a valid manifest response", async () => {
