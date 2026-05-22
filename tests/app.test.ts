@@ -97,7 +97,7 @@ test("renderApp escapes caller-provided text before rendering HTML", () => {
 test("renderApp displays assistant evidence candidates", () => {
   const html = renderApp();
 
-  assert.match(html, /Evidence candidates/);
+  assert.match(html, /根拠候補/);
   assert.match(html, /CALL-CC-03/);
   assert.match(html, /business_rules\/005_ccnet_public_service_guidance\.md/);
   assert.match(html, /CCNet光10G/);
@@ -143,14 +143,14 @@ test("buildAssistantConversationDraft stays useful while evidence is empty", () 
   });
 
   assert.equal(draft.callId, "CALL-0");
-  assert.match(draft.response, /対象のキュー項目を確認中/);
+  assert.match(draft.response, /対象のデモシナリオを確認中/);
   assert.match(draft.evidenceLine, /根拠候補は確認中/);
 });
 
 test("renderApp displays a conversation draft for the selected queue item", () => {
   const html = renderApp();
 
-  assert.match(html, /Response draft/);
+  assert.match(html, /応答ドラフト/);
   assert.match(html, /山本 花さんには、CCNet光10G Wi-Fi 相談について受付済みであることを伝える/);
   assert.match(html, /根拠: business_rules\/005_ccnet_public_service_guidance\.md/);
 });
@@ -224,8 +224,8 @@ test("buildConversationThreadPreview stays stable without a queue item", () => {
   const preview = buildConversationThreadPreview(undefined, draft);
 
   assert.equal(preview.callId, "CALL-0");
-  assert.match(preview.messages[0]?.body ?? "", /キュー項目を選択中/);
-  assert.match(preview.messages[1]?.body ?? "", /対象のキュー項目を確認中/);
+  assert.match(preview.messages[0]?.body ?? "", /デモシナリオを選択中/);
+  assert.match(preview.messages[1]?.body ?? "", /対象のデモシナリオを確認中/);
   assert.match(preview.messages[2]?.body ?? "", /根拠候補は確認中/);
 });
 
@@ -306,21 +306,21 @@ test("buildAssistantInputPreview stays explicit without a selected queue item", 
 test("renderApp displays a conversation preview for the selected queue item", () => {
   const html = renderApp();
 
-  assert.match(html, /Conversation preview/);
-  assert.match(html, /Customer/);
+  assert.match(html, /会話プレビュー/);
+  assert.match(html, /お客様/);
   assert.match(html, /山本 花: 春日井市の自宅でテレワーク中にWi-Fiが不安定です。/);
   assert.match(html, /CCNet光10G へ変えられるか/);
-  assert.match(html, /AI draft/);
-  assert.match(html, /Internal note/);
+  assert.match(html, /AIドラフト案/);
+  assert.match(html, /内部メモ/);
 });
 
 test("renderApp displays an unsent operator input for the selected queue item", () => {
   const html = renderApp();
 
-  assert.match(html, /Operator note/);
+  assert.match(html, /オペレーターメモ/);
   assert.match(html, /data-input-call-id="CALL-CC-03"/);
-  assert.match(html, /Unsent demo input/);
-  assert.match(html, /not sent or saved/);
+  assert.match(html, /未送信のデモ入力/);
+  assert.match(html, /外部送信・永続保存は行いません/);
   assert.doesNotMatch(html, /type="submit"/);
   assert.doesNotMatch(html, />Send</);
 });
@@ -328,12 +328,12 @@ test("renderApp displays an unsent operator input for the selected queue item", 
 test("renderApp displays a policy guard without implying send or save", () => {
   const html = renderApp();
 
-  assert.match(html, /Policy guard/);
-  assert.match(html, /Customer-specific answer blocked/);
-  assert.match(html, /General information only/);
-  assert.match(html, /External send/);
-  assert.match(html, /blocked/);
-  assert.match(html, /Persistent save/);
+  assert.match(html, /ポリシー判定/);
+  assert.match(html, /顧客個別回答は不可/);
+  assert.match(html, /一般情報のみ/);
+  assert.match(html, /外部送信/);
+  assert.match(html, /ブロック/);
+  assert.match(html, /永続保存/);
   assert.doesNotMatch(html, /送信済み/);
   assert.doesNotMatch(html, /保存済み/);
 });
@@ -343,37 +343,44 @@ test("renderApp leads with an executive demo brief that connects evidence, polic
     ...demoState,
     fallbackRehearsal: buildFallbackRehearsalPlan()
   });
+  const queueIndex = html.indexOf('id="queue-title"');
   const briefIndex = html.indexOf('id="executive-brief-title"');
+  const realtimeIndex = html.indexOf('id="realtime-boundary-bar-title"');
   const summaryIndex = html.indexOf('id="call-summary-title"');
+  const evidenceIndex = html.indexOf('id="evidence-title"');
+  const policyIndex = html.indexOf('id="policy-title"');
+  const fallbackIndex = html.indexOf('id="fallback-title"');
 
+  assert.ok(queueIndex >= 0);
   assert.ok(briefIndex >= 0);
+  assert.ok(briefIndex > queueIndex);
+  assert.ok(realtimeIndex > briefIndex);
   assert.ok(summaryIndex > briefIndex);
-  assert.ok(summaryIndex < html.indexOf('id="fallback-title"'));
-  assert.ok(briefIndex < html.indexOf('id="fallback-title"'));
-  assert.ok(briefIndex < html.indexOf('id="policy-title"'));
-  assert.ok(briefIndex < html.indexOf('id="evidence-title"'));
-  assert.match(html, /Executive demo brief/);
-  assert.match(html, /CCNet-fit scenario/);
-  assert.match(html, /CCNet株式会社 \/ fictional/);
+  assert.ok(evidenceIndex > summaryIndex);
+  assert.ok(policyIndex > evidenceIndex);
+  assert.ok(fallbackIndex > policyIndex);
+  assert.match(html, /経営向け要約/);
+  assert.match(html, /CCNet適合シナリオ/);
+  assert.match(html, /CCNet株式会社 \/ 架空/);
   assert.match(html, /CCNet光10G/);
   assert.match(html, /安全・安心123チャンネル/);
-  assert.match(html, /Fictional customer mockup/);
+  assert.match(html, /架空お客様情報/);
   assert.match(html, /customer_ccnet_2001/);
   assert.match(html, /CCNet光1G おとく割/);
   assert.match(html, /本人確認前は契約状態を断定しない/);
-  assert.match(html, /Use only fictional customer details/);
-  assert.match(html, /Evidence candidates/);
-  assert.match(html, /Policy guard/);
-  assert.match(html, /Fallback rehearsal/);
-  assert.match(html, /No-send \/ no-save boundary/);
-  assert.match(html, /External send blocked/);
-  assert.match(html, /Persistent save blocked/);
-  assert.match(html, /no production connection/);
-  assert.match(html, /Call summary/);
+  assert.match(html, /架空顧客情報のみを使用/);
+  assert.match(html, /根拠候補/);
+  assert.match(html, /ポリシー判定/);
+  assert.match(html, /フォールバック演習/);
+  assert.match(html, /送信・保存ブロック境界/);
+  assert.match(html, /顧客情報・音声の外部送信ブロック/);
+  assert.match(html, /本番DB保存ブロック/);
+  assert.match(html, /本番接続なし/);
+  assert.match(html, /通話サマリ/);
   assert.match(html, /山本 花さん/);
-  assert.match(html, /Next action/);
+  assert.match(html, /次のアクション/);
   assert.match(html, /本人確認/);
-  assert.match(html, /Summary only/);
+  assert.match(html, /要約のみ/);
   assert.doesNotMatch(html, /Live API connected/);
 });
 
@@ -539,7 +546,7 @@ test("renderApp switches the conversation preview with assistant evidence call i
     }
   });
 
-  assert.match(html, /Conversation preview/);
+  assert.match(html, /会話プレビュー/);
   assert.match(html, /田中 美咲: 大雨の前に、テレビで道路・河川カメラや地域情報を確認する方法を知りたいです。/);
   assert.match(html, /安全・安心123チャンネル確認について受付済み/);
   assert.match(html, /上席確認ルール &gt; AIが行う引き継ぎ準備/);
@@ -552,7 +559,7 @@ test("renderApp marks the selected queue item from assistant evidence", () => {
   assert.match(html, /data-queue-open="CALL-CC-03"/);
   assert.match(html, /customer_ccnet_2001/);
   assert.match(html, /春日井市 \/ 戸建て/);
-  assert.match(html, /unverified/);
+  assert.match(html, /本人確認: 未完了/);
   assert.match(html, /queue-item--selected/);
   assert.match(html, /aria-current="true"/);
   assert.match(html, /aria-pressed="true"/);
@@ -570,16 +577,15 @@ test("renderApp frames the selected call as a review-only call workspace", () =>
 
   assert.ok(workspaceIndex >= 0);
   assert.ok(workspaceTitleIndex >= 0);
-  assert.ok(summaryIndex > workspaceTitleIndex);
-  assert.ok(threadIndex > summaryIndex);
+  assert.ok(threadIndex > workspaceTitleIndex);
   assert.ok(inputIndex > threadIndex);
-  assert.ok(policyIndex > inputIndex);
-  assert.ok(evidenceIndex > policyIndex);
+  assert.ok(summaryIndex > inputIndex);
+  assert.ok(evidenceIndex > summaryIndex);
+  assert.ok(policyIndex > evidenceIndex);
   assert.match(html, /data-call-workspace-call-id="CALL-CC-03"/);
-  assert.match(html, /Call workspace/);
-  assert.match(html, /Review mode/);
-  assert.match(html, /Phone connection/);
-  assert.match(html, /not connected/);
+  assert.match(html, /通話ワークスペース/);
+  assert.match(html, /確認モード/);
+  assert.match(html, /本番電話接続なし/);
   assert.match(html, /CCNet光10G Wi-Fi/);
   assert.match(html, /customer_ccnet_2001/);
   assert.doesNotMatch(html, /Live call connected/i);
@@ -590,20 +596,21 @@ test("renderApp frames the selected call as a review-only call workspace", () =>
 
 test("renderApp displays the Realtime connection boundary as not configured", () => {
   const html = renderApp();
-  const realtimeIndex = html.indexOf('id="realtime-boundary-title"');
+  const realtimeIndex = html.indexOf('id="realtime-boundary-bar-title"');
   const workspaceIndex = html.indexOf('id="call-workspace-title"');
   const summaryIndex = html.indexOf('id="call-summary-title"');
 
-  assert.ok(realtimeIndex > workspaceIndex);
-  assert.ok(summaryIndex > realtimeIndex);
-  assert.match(html, /Realtime boundary/);
-  assert.match(html, /Realtime not configured/);
-  assert.match(html, /server-minted ephemeral client secret/);
-  assert.match(html, /does not request microphone permission/);
-  assert.match(html, /Token contract/);
-  assert.match(html, /POST \/api\/realtime\/client-secret \/ server adapter/);
-  assert.match(html, /Disabled adapter/);
-  assert.match(html, /not-configured \/ local fallback/);
+  assert.ok(realtimeIndex >= 0);
+  assert.ok(workspaceIndex > realtimeIndex);
+  assert.ok(summaryIndex > workspaceIndex);
+  assert.match(html, /リアルタイム接続境界/);
+  assert.match(html, /リアルタイム未設定/);
+  assert.match(html, /短命クライアントシークレット/);
+  assert.match(html, /マイク権限/);
+  assert.match(html, /トークン契約/);
+  assert.match(html, /POST \/api\/realtime\/client-secret \/ サーバーアダプター/);
+  assert.match(html, /無効化アダプター/);
+  assert.match(html, /未設定 \/ ローカル代替あり/);
   assert.match(html, /data-realtime-status="not-configured"/);
   assert.match(html, /data-token-endpoint-adapter-status="not-configured"/);
   assert.match(html, /data-token-endpoint-contract-path="\/api\/realtime\/client-secret"/);
@@ -626,10 +633,10 @@ test("renderApp displays browser Realtime call controls without exposing secrets
     })
   });
 
-  assert.match(html, /Realtime call controls/);
-  assert.match(html, /Start call/);
-  assert.match(html, /End call/);
-  assert.match(html, /Realtime call connected/);
+  assert.match(html, /リアルタイム通話操作/);
+  assert.match(html, /通話を開始/);
+  assert.match(html, /終了/);
+  assert.match(html, /リアルタイム通話に接続済み/);
   assert.match(html, /data-realtime-call-status="connected"/);
   assert.match(html, /data-microphone-permission-state="granted"/);
   assert.match(html, /data-realtime-start-call/);
@@ -647,9 +654,9 @@ test("renderApp can reflect configured Realtime runtime health in the boundary",
   });
 
   assert.match(html, /data-realtime-status="setup-incomplete"/);
-  assert.match(html, /<dt>Token endpoint<\/dt>\s*<dd>configured<\/dd>/);
-  assert.match(html, /Server token endpoint configuration \(ready\)/);
-  assert.doesNotMatch(html, /Server token endpoint is not configured\./);
+  assert.match(html, /<dt>トークン取得先<\/dt>\s*<dd>設定済<\/dd>/);
+  assert.match(html, /サーバートークン取得設定 \(準備完了\)/);
+  assert.doesNotMatch(html, /サーバートークン取得先が未設定です。/);
 });
 
 test("renderApp displays Realtime failure diagnostics without exposing secrets", () => {
@@ -668,14 +675,14 @@ test("renderApp displays Realtime failure diagnostics without exposing secrets",
     })
   });
 
-  assert.match(html, /Realtime failure diagnostics/);
+  assert.match(html, /リアルタイム接続 診断/);
   assert.match(html, /realtime-calls/);
-  assert.match(html, /HTTP status/);
+  assert.match(html, /HTTPステータス/);
   assert.match(html, /502/);
-  assert.match(html, /Error code/);
+  assert.match(html, /エラーコード/);
   assert.match(html, /realtime_calls_upstream_error/);
-  assert.match(html, /Microphone/);
-  assert.match(html, /granted/);
+  assert.match(html, /マイク/);
+  assert.match(html, /許可済み/);
   assert.match(html, /data-realtime-failure-stage="realtime-calls"/);
   assert.match(html, /data-realtime-failure-http-status="502"/);
   assert.match(html, /data-realtime-failure-error-code="realtime_calls_upstream_error"/);
@@ -689,21 +696,24 @@ test("renderApp displays the Realtime call handoff record after End call without
     realtimeCallHandoff: sampleRealtimeCallHandoff
   });
   const handoffIndex = html.indexOf('id="realtime-handoff-title"');
-  const controlsIndex = html.indexOf("Realtime call controls");
+  const controlsIndex = html.indexOf("data-realtime-start-call");
   const summaryIndex = html.indexOf('id="call-summary-title"');
 
   assert.ok(handoffIndex > controlsIndex);
-  assert.ok(summaryIndex > handoffIndex);
-  assert.match(html, /Realtime handoff record/);
+  assert.ok(handoffIndex > summaryIndex);
+  assert.match(html, /リアルタイム通話 引き継ぎ記録/);
   assert.match(html, /data-realtime-handoff-status="recorded"/);
   assert.match(html, /data-realtime-handoff-call-id="CALL-CC-03"/);
   assert.match(html, /data-persistent-save-allowed="false"/);
   assert.match(html, /data-external-send-allowed="false"/);
   assert.match(html, /Identity verification is needed/);
   assert.match(html, /business_rules\/demo\.md \/ Demo section/);
-  assert.match(html, /Customer-specific answer blocked/);
-  assert.match(html, /Next action/);
-  assert.match(html, /browser state plus server local JSON/);
+  assert.match(html, /顧客個別回答は不可/);
+  assert.match(html, /次のアクション/);
+  assert.match(html, /契約に踏み込む案内の前に本人確認を完了します。/);
+  assert.match(html, /ブラウザ状態 \+ デモ用サーバーローカルJSON/);
+  assert.match(html, /本番DB\/外部永続保存なし/);
+  assert.match(html, /契約内容の個別変更/);
   assert.doesNotMatch(html, /saved successfully/i);
   assert.doesNotMatch(html, /sent successfully/i);
 });

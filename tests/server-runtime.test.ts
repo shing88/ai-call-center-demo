@@ -524,7 +524,7 @@ test("server runtime keeps static app serving and blocks path traversal", async 
       const traversalStatus = await requestRawStatus(baseUrl, "/%2e%2e/package.json");
 
       assert.equal(indexResponse.status, 200);
-      assert.match(await indexResponse.text(), /AI Call Center Demo/);
+      assert.match(await indexResponse.text(), /AIコールセンター デモ/);
       assert.equal(scriptResponse.status, 200);
       assert.equal(scriptResponse.headers.get("content-type"), "text/javascript; charset=utf-8");
       assert.equal(await scriptResponse.text(), "export {};\n");
@@ -544,7 +544,7 @@ async function createServerFixture(): Promise<{
 
   await writeFile(
     join(rootDir, "index.html"),
-    "<!doctype html><title>AI Call Center Demo</title>",
+    "<!doctype html><title>AIコールセンター デモ</title>",
     "utf8"
   );
   await writeFile(join(rootDir, "styles.css"), "body { margin: 0; }\n", "utf8");
