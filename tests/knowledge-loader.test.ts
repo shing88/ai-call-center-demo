@@ -9,7 +9,7 @@ import {
 test("loadKnowledgeBase reads the demo markdown documents into stable chunks", () => {
   const knowledgeBase = loadKnowledgeBase();
 
-  assert.equal(knowledgeBase.documents.length, 16);
+  assert.equal(knowledgeBase.documents.length, 20);
   assert.ok(knowledgeBase.chunks.length > knowledgeBase.documents.length);
 
   assert.deepEqual(
@@ -26,11 +26,15 @@ test("loadKnowledgeBase reads the demo markdown documents into stable chunks", (
       "customer_contracts/customer_ccnet_2001",
       "customer_contracts/customer_ccnet_2002",
       "customer_contracts/customer_ccnet_2003",
+      "customer_contracts/customer_ccnet_2004",
+      "customer_contracts/customer_ccnet_2005",
       "scenarios/scenario_01_refund_normal",
       "scenarios/scenario_02_refund_exception",
       "scenarios/scenario_03_identity_not_verified",
       "scenarios/scenario_04_complaint_escalation",
-      "scenarios/scenario_05_ccnet_wifi_safety_handoff"
+      "scenarios/scenario_05_ccnet_wifi_safety_handoff",
+      "scenarios/scenario_06_ccnet_cableplus_existing_net_add",
+      "scenarios/scenario_07_ccnet_new_internet_cableplus_recommendation"
     ]
   );
 

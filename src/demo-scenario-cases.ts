@@ -112,5 +112,77 @@ export const demoScenarioRegressionCases: readonly DemoScenarioRegressionCase[] 
       humanReviewRequired: true,
       blockedResponseTypes: ["補償可否の断定"]
     }
+  },
+  {
+    id: "ccnet-existing-net-add-cableplus",
+    label: "ネット加入者のケーブルプラス電話追加",
+    queueItem: {
+      id: "CALL-SC-06",
+      callerName: "森 彩乃",
+      topic: "ケーブルプラス電話 追加",
+      status: "waiting",
+      priority: "normal",
+      waitSeconds: 96,
+      excerpt:
+        "今のCCNet光1Gに固定電話を追加したいです。家の電話番号と電話機を使い続けられるか、auスマホとのセットも知りたいです。",
+      customerId: "customer_ccnet_2004",
+      serviceArea: "豊川市 / 戸建て",
+      servicePlan: "CCNet光1G + メッシュWi-Fi / 固定電話未加入",
+      verificationStatus: "unverified"
+    },
+    operatorNoteValue:
+      "挨拶済み。本人確認前なので追加可否、番号継続、割引適用、最終料金は断定しない。ケーブルプラス電話とケーブルラインの選択肢を整理する。",
+    categories: ["business_rules", "customer_contracts", "scenarios"],
+    customerId: "customer_ccnet_2004",
+    evidenceLimit: 5,
+    expected: {
+      evidenceSourcePaths: [
+        "business_rules/005_ccnet_public_service_guidance.md",
+        "customer_contracts/customer_ccnet_2004.md",
+        "scenarios/scenario_06_ccnet_cableplus_existing_net_add.md"
+      ],
+      policyOutcome: "customer-specific-answer-blocked",
+      allowedResponseScope: "general-information-only",
+      identityVerification: "unverified",
+      customerSpecificAnswerAllowed: false,
+      humanReviewRequired: false,
+      blockedResponseTypes: ["契約状態・受付状況の断定"]
+    }
+  },
+  {
+    id: "ccnet-new-internet-cableplus-recommendation",
+    label: "ネット新規加入時のケーブルプラス電話提案",
+    queueItem: {
+      id: "CALL-SC-07",
+      callerName: "西村 陽太",
+      topic: "ネット新規加入 ケーブルプラス電話",
+      status: "ai-handling",
+      priority: "normal",
+      waitSeconds: 52,
+      excerpt:
+        "新築戸建てでネットを新規契約したいです。UQ mobileを使っていて、固定電話もまとめた方がよいか相談したいです。",
+      customerId: "customer_ccnet_2005",
+      serviceArea: "小牧市 / 新築戸建て予定",
+      servicePlan: "CCNet未加入 / ネット新規検討 + 固定電話検討",
+      verificationStatus: "unverified"
+    },
+    operatorNoteValue:
+      "挨拶済み。新規加入検討として住居種別、提供エリア、利用目的、携帯キャリア、固定電話の必要性を確認する。申込可否、工事費、番号継続、キャンペーン適用、最終月額は断定しない。",
+    categories: ["business_rules", "customer_contracts", "scenarios"],
+    customerId: "customer_ccnet_2005",
+    evidenceLimit: 5,
+    expected: {
+      evidenceSourcePaths: [
+        "business_rules/005_ccnet_public_service_guidance.md",
+        "customer_contracts/customer_ccnet_2005.md",
+        "scenarios/scenario_07_ccnet_new_internet_cableplus_recommendation.md"
+      ],
+      policyOutcome: "customer-specific-answer-blocked",
+      allowedResponseScope: "general-information-only",
+      identityVerification: "unverified",
+      customerSpecificAnswerAllowed: false,
+      humanReviewRequired: false,
+      blockedResponseTypes: ["契約状態・受付状況の断定"]
+    }
   }
 ];

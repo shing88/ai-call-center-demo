@@ -25,12 +25,16 @@ test("buildEvidenceManifest creates a bundle for each demo queue item", () => {
   assert.deepEqual(Object.keys(manifest.bundles).sort(), [
     "CALL-CC-01",
     "CALL-CC-02",
-    "CALL-CC-03"
+    "CALL-CC-03",
+    "CALL-CC-04",
+    "CALL-CC-05"
   ]);
   assert.equal(manifest.bundles["CALL-CC-03"]?.callId, "CALL-CC-03");
   assert.match(manifest.bundles["CALL-CC-03"]?.query ?? "", /CCNet光10G/);
   assert.match(manifest.bundles["CALL-CC-03"]?.query ?? "", /customer_ccnet_2001/);
   assert.ok((manifest.bundles["CALL-CC-03"]?.resultCount ?? 0) > 0);
+  assert.match(manifest.bundles["CALL-CC-04"]?.query ?? "", /ケーブルプラス電話/);
+  assert.match(manifest.bundles["CALL-CC-05"]?.query ?? "", /ネット新規/);
 });
 
 test("buildEvidenceManifest keeps CCNet customer contract evidence scoped to the selected fictional customer", () => {
